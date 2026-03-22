@@ -34,7 +34,7 @@ export function Testimonials() {
   const isInView = useInView(ref, { once: true, margin: "-100px" })
 
   return (
-    <section className="relative py-32 overflow-hidden">
+    <section className="relative py-20 md:py-32 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-b from-[#050505] via-[#0a0a0a] to-[#050505]" />
 
       <div className="max-w-7xl mx-auto px-6 relative z-10">
@@ -60,7 +60,7 @@ export function Testimonials() {
           </motion.h2>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
           {testimonials.map((testimonial, i) => (
             <motion.div
               key={testimonial.name}

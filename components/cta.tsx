@@ -13,7 +13,7 @@ export function CTA() {
   const isInView = useInView(ref, { once: true, margin: "-100px" })
 
   return (
-    <section id="kontakt" className="relative py-32 overflow-hidden">
+    <section id="kontakt" className="relative py-20 md:py-32 overflow-hidden">
       <div className="absolute inset-0 bg-[#050505]" />
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#ff6a00]/20 to-transparent" />
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-[radial-gradient(circle,rgba(255,106,0,0.06),transparent_70%)] pointer-events-none" />

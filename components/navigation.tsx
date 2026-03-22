@@ -24,14 +24,11 @@ export function Navigation() {
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 50)
-
-      // Update active tab based on scroll position
       const sections = navItems.map((item) => {
         const id = item.url.replace("#", "")
         const el = document.getElementById(id)
         return { name: item.name, el }
       })
-
       for (let i = sections.length - 1; i >= 0; i--) {
         const section = sections[i]
         if (section.el) {
@@ -43,30 +40,21 @@ export function Navigation() {
         }
       }
     }
-
-    window.addEventListener("scroll", handleScroll)
+    window.addEventListener("scroll", handleScroll, { passive: true })
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
   useEffect(() => {
-    if (mobileOpen) {
-      document.body.style.overflow = "hidden"
-    } else {
-      document.body.style.overflow = ""
-    }
-    return () => {
-      document.body.style.overflow = ""
-    }
+    document.body.style.overflow = mobileOpen ? "hidden" : ""
+    return () => { document.body.style.overflow = "" }
   }, [mobileOpen])
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, item: typeof navItems[0]) => {
     e.preventDefault()
     setActiveTab(item.name)
-    const id = item.url.replace("#", "")
-    const el = document.getElementById(id)
+    const el = document.getElementById(item.url.replace("#", ""))
     if (el) {
-      const offset = 100
-      const top = el.getBoundingClientRect().top + window.scrollY - offset
+      const top = el.getBoundingClientRect().top + window.scrollY - 80
       window.scrollTo({ top, behavior: "smooth" })
     }
   }
@@ -77,11 +65,11 @@ export function Navigation() {
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
-        className={`fixed top-0 left-0 right-0 z-50 py-6 transition-colors duration-500 ${
+        className={`fixed top-0 left-0 right-0 z-50 transition-colors duration-500 py-4 md:py-6 ${
           scrolled ? "bg-[#050505]" : "bg-transparent"
         }`}
       >
-        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 flex items-center justify-between">
           {/* Logo */}
           <a href="#" className="shrink-0">
             <Image
@@ -89,16 +77,15 @@ export function Navigation() {
               alt="vitamin b kommunikation & design"
               width={782}
               height={228}
-              className="w-auto h-10"
+              className="w-auto h-7 md:h-10"
               priority
             />
           </a>
 
-          {/* Centered NavBar Pill */}
+          {/* Desktop NavBar */}
           <div className="hidden lg:flex items-center gap-1 bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl py-1.5 px-1.5 rounded-full">
             {navItems.map((item) => {
               const isActive = activeTab === item.name
-
               return (
                 <a
                   key={item.name}
@@ -116,16 +103,10 @@ export function Navigation() {
                       layoutId="lamp"
                       className="absolute inset-0 w-full bg-[#ff6a00]/5 rounded-full -z-10"
                       initial={false}
-                      transition={{
-                        type: "spring",
-                        stiffness: 300,
-                        damping: 30,
-                      }}
+                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
                     >
                       <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-8 h-1 bg-[#ff6a00] rounded-t-full">
                         <div className="absolute w-12 h-6 bg-[#ff6a00]/20 rounded-full blur-md -top-2 -left-2" />
-                        <div className="absolute w-8 h-6 bg-[#ff6a00]/20 rounded-full blur-md -top-1" />
-                        <div className="absolute w-4 h-4 bg-[#ff6a00]/20 rounded-full blur-sm top-0 left-2" />
                       </div>
                     </motion.div>
                   )}
@@ -134,12 +115,9 @@ export function Navigation() {
             })}
           </div>
 
-          {/* CTA Button */}
+          {/* Desktop CTA */}
           <div className="hidden lg:block shrink-0">
-            <Button
-              asChild
-              className="bg-[#ff6a00] hover:bg-[#ff8c33] text-white rounded-full px-6 group"
-            >
+            <Button asChild className="bg-[#ff6a00] hover:bg-[#ff8c33] text-white rounded-full px-6 group">
               <a href="#kontakt">
                 Projekt starten
                 <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -150,52 +128,32 @@ export function Navigation() {
           {/* Mobile menu button */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="lg:hidden text-white p-2"
+            className="lg:hidden text-white p-2 -mr-2"
             aria-label="Menü öffnen"
           >
-            {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
       </motion.nav>
 
-      {/* Mobile NavBar bottom */}
-      <div className="lg:hidden fixed bottom-0 left-1/2 -translate-x-1/2 z-50 mb-6">
-        <div className="flex items-center gap-1 bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl py-1.5 px-1.5 rounded-full shadow-lg">
+      {/* Mobile Bottom NavBar */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 pb-[env(safe-area-inset-bottom)] bg-[#050505]/90 backdrop-blur-xl border-t border-white/[0.05]">
+        <div className="flex items-center justify-around py-2 px-2 max-w-md mx-auto">
           {navItems.map((item) => {
             const Icon = item.icon
             const isActive = activeTab === item.name
-
             return (
               <a
                 key={item.name}
                 href={item.url}
-                onClick={(e) => {
-                  handleNavClick(e, item)
-                  setMobileOpen(false)
-                }}
+                onClick={(e) => { handleNavClick(e, item); setMobileOpen(false) }}
                 className={cn(
-                  "relative cursor-pointer p-2.5 rounded-full transition-colors",
-                  "text-white/60 hover:text-[#ff6a00]",
-                  isActive && "text-[#ff6a00]",
+                  "flex flex-col items-center gap-0.5 py-1 px-2 rounded-lg transition-colors min-w-[44px]",
+                  isActive ? "text-[#ff6a00]" : "text-white/40",
                 )}
               >
-                <Icon size={18} strokeWidth={2.5} />
-                {isActive && (
-                  <motion.div
-                    layoutId="lamp-mobile"
-                    className="absolute inset-0 w-full bg-[#ff6a00]/5 rounded-full -z-10"
-                    initial={false}
-                    transition={{
-                      type: "spring",
-                      stiffness: 300,
-                      damping: 30,
-                    }}
-                  >
-                    <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-6 h-1 bg-[#ff6a00] rounded-t-full">
-                      <div className="absolute w-8 h-4 bg-[#ff6a00]/20 rounded-full blur-md -top-1 -left-1" />
-                    </div>
-                  </motion.div>
-                )}
+                <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+                <span className="text-[9px] font-medium">{item.name.split(" ")[0]}</span>
               </a>
             )
           })}
@@ -215,40 +173,24 @@ export function Navigation() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
-              transition={{ delay: 0.1 }}
-              className="flex flex-col items-center gap-8"
+              className="flex flex-col items-center gap-6"
             >
               {navItems.map((item, i) => (
                 <motion.a
                   key={item.url}
                   href={item.url}
-                  onClick={(e) => {
-                    handleNavClick(e, item)
-                    setMobileOpen(false)
-                  }}
+                  onClick={(e) => { handleNavClick(e, item); setMobileOpen(false) }}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 + i * 0.05 }}
-                  className="text-2xl font-light text-white/80 hover:text-[#ff6a00] transition-colors"
+                  transition={{ delay: 0.05 + i * 0.04 }}
+                  className="text-xl font-light text-white/80 hover:text-[#ff6a00] transition-colors"
                 >
                   {item.name}
                 </motion.a>
               ))}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-              >
-                <Button
-                  asChild
-                  size="lg"
-                  className="bg-[#ff6a00] hover:bg-[#ff8c33] text-white rounded-full px-8 mt-4"
-                >
-                  <a href="#kontakt" onClick={() => setMobileOpen(false)}>
-                    Projekt starten
-                  </a>
-                </Button>
-              </motion.div>
+              <Button asChild size="lg" className="bg-[#ff6a00] hover:bg-[#ff8c33] text-white rounded-full px-8 mt-2">
+                <a href="#kontakt" onClick={() => setMobileOpen(false)}>Projekt starten</a>
+              </Button>
             </motion.div>
           </motion.div>
         )}

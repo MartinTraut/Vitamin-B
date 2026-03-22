@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { useRef, useState, useEffect } from "react"
 import { motion, useScroll, useTransform, useMotionValueEvent, AnimatePresence, MotionValue } from "framer-motion"
 import { MessageSquare, Lightbulb, Pen, Rocket, CheckCircle2, Clock, Target, Zap, Heart, ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -204,6 +204,14 @@ function StepContent({ step, isActive }: { step: typeof steps[0]; isActive: bool
 export function Process() {
   const containerRef = useRef<HTMLDivElement>(null)
   const [activeStep, setActiveStep] = useState(0)
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener("resize", check)
+    return () => window.removeEventListener("resize", check)
+  }, [])
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -230,9 +238,9 @@ export function Process() {
 
   return (
     <section id="prozess">
-      <div ref={containerRef} className="relative" style={{ height: `${steps.length * 100 + 50}vh` }}>
+      <div ref={containerRef} className="relative" style={{ height: isMobile ? `${steps.length * 80}vh` : `${steps.length * 100 + 50}vh` }}>
         {/* Sticky viewport */}
-        <div className="sticky top-0 h-screen overflow-hidden">
+        <div className="sticky top-0 h-[100svh] overflow-hidden">
           {/* Background glow */}
           <div className="absolute inset-0 bg-grid opacity-10 pointer-events-none" />
           <motion.div
@@ -250,7 +258,7 @@ export function Process() {
           <div className="h-full flex flex-col justify-center">
             <div className="max-w-7xl mx-auto px-6 w-full">
               {/* Header */}
-              <div className="text-center mb-10 md:mb-14">
+              <div className="text-center mb-6 md:mb-14">
                 <span className="text-[#ff6a00] text-sm font-medium tracking-widest uppercase mb-3 block">
                   So arbeiten wir
                 </span>
@@ -366,7 +374,7 @@ export function Process() {
                 </div>
 
                 {/* Right: Content area */}
-                <div className="relative min-h-[400px] md:min-h-[440px]">
+                <div className="relative min-h-[350px] md:min-h-[440px]">
                   <AnimatePresence mode="wait">
                     <motion.div
                       key={activeStep}

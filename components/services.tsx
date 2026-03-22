@@ -120,7 +120,7 @@ export function Services() {
   const isInView = useInView(ref, { once: true, margin: "-100px" })
 
   return (
-    <section id="leistungen" className="relative py-32 overflow-hidden">
+    <section id="leistungen" className="relative py-20 md:py-32 overflow-hidden">
       <div className="absolute inset-0 bg-grid opacity-30" />
 
       <div className="max-w-7xl mx-auto px-6 relative z-10">

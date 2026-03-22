@@ -94,13 +94,42 @@
     }
     body {
         @apply bg-background text-foreground;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
     }
     html {
         @apply font-sans;
+        -webkit-text-size-adjust: 100%;
     }
     section[id] {
-        scroll-margin-top: 100px;
+        scroll-margin-top: 80px;
     }
+}
+
+/* Prevent horizontal overflow on mobile */
+body {
+    overflow-x: hidden;
+}
+
+/* Safe area for mobile bottom nav */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .pb-safe {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Fix mobile tap highlight */
+* {
+    -webkit-tap-highlight-color: transparent;
 }
 
 /* Custom scrollbar */

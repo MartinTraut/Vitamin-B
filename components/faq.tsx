@@ -47,7 +47,7 @@ export function FAQ() {
   const isInView = useInView(ref, { once: true, margin: "-100px" })
 
   return (
-    <section id="faq" className="relative py-32">
+    <section id="faq" className="relative py-20 md:py-32">
       <div className="max-w-4xl mx-auto px-6">
         <div ref={ref} className="text-center mb-16">
           <motion.span

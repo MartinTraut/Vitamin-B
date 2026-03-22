@@ -33,7 +33,7 @@ export function About() {
   const isInView = useInView(ref, { once: true, margin: "-100px" })
 
   return (
-    <section id="ueber-uns" className="relative py-32 overflow-hidden">
+    <section id="ueber-uns" className="relative py-20 md:py-32 overflow-hidden">
       <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[radial-gradient(circle,rgba(255,106,0,0.04),transparent_70%)] pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-6">
@@ -45,7 +45,7 @@ export function About() {
             transition={{ duration: 0.8 }}
             className="relative"
           >
-            <div className="relative aspect-[4/5] rounded-2xl overflow-hidden">
+            <div className="relative aspect-[4/3] md:aspect-[4/5] rounded-2xl overflow-hidden">
               <Image
                 src="/hero-bg.jpg"
                 alt="vitamin b Kommunikation & Design"
@@ -61,17 +61,17 @@ export function About() {
               initial={{ opacity: 0, y: 20 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.5, duration: 0.6 }}
-              className="absolute -bottom-6 -right-6 bg-[#0d0d0d] border border-white/10 rounded-2xl p-6 backdrop-blur-xl"
+              className="absolute -bottom-4 right-0 md:-bottom-6 md:-right-6 bg-[#0d0d0d] border border-white/10 rounded-xl md:rounded-2xl p-4 md:p-6 backdrop-blur-xl"
             >
-              <div className="text-4xl font-bold text-[#ff6a00] mb-1">8+</div>
-              <div className="text-white/50 text-sm">
+              <div className="text-2xl md:text-4xl font-bold text-[#ff6a00] mb-1">8+</div>
+              <div className="text-white/50 text-xs md:text-sm">
                 Jahre Erfahrung in
                 <br />
                 Design & Kommunikation
               </div>
             </motion.div>
 
-            <div className="absolute -top-4 -left-4 w-24 h-24 border-t-2 border-l-2 border-[#ff6a00]/30 rounded-tl-2xl" />
+            <div className="absolute -top-4 -left-4 w-16 h-16 md:w-24 md:h-24 border-t-2 border-l-2 border-[#ff6a00]/30 rounded-tl-2xl hidden md:block" />
           </motion.div>
 
           {/* Content side */}
