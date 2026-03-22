@@ -136,9 +136,9 @@ export function Navigation() {
         </div>
       </motion.nav>
 
-      {/* Mobile Bottom NavBar */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 pb-[env(safe-area-inset-bottom)] bg-[#050505]/90 backdrop-blur-xl border-t border-white/[0.05]">
-        <div className="flex items-center justify-around py-2 px-2 max-w-md mx-auto">
+      {/* Mobile Bottom NavBar — Floating Glass Pill */}
+      <div className="lg:hidden fixed bottom-0 left-1/2 -translate-x-1/2 z-50 mb-5 pb-[env(safe-area-inset-bottom)]">
+        <div className="flex items-center gap-1 bg-white/[0.04] border border-white/[0.08] backdrop-blur-2xl py-1.5 px-2 rounded-full shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
           {navItems.map((item) => {
             const Icon = item.icon
             const isActive = activeTab === item.name
@@ -148,12 +148,19 @@ export function Navigation() {
                 href={item.url}
                 onClick={(e) => { handleNavClick(e, item); setMobileOpen(false) }}
                 className={cn(
-                  "flex flex-col items-center gap-0.5 py-1 px-2 rounded-lg transition-colors min-w-[44px]",
-                  isActive ? "text-[#ff6a00]" : "text-white/40",
+                  "relative p-2.5 rounded-full transition-colors",
+                  isActive ? "text-[#ff6a00]" : "text-white/50",
                 )}
               >
-                <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-                <span className="text-[9px] font-medium">{item.name.split(" ")[0]}</span>
+                <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
+                {isActive && (
+                  <motion.div
+                    layoutId="lamp-mobile"
+                    className="absolute inset-0 bg-[#ff6a00]/[0.08] rounded-full -z-10"
+                    initial={false}
+                    transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                  />
+                )}
               </a>
             )
           })}
