@@ -96,7 +96,10 @@
         @apply bg-background text-foreground;
     }
     html {
-        @apply font-sans scroll-smooth;
+        @apply font-sans;
+    }
+    section[id] {
+        scroll-margin-top: 100px;
     }
 }
 

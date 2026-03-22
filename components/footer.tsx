@@ -32,11 +32,11 @@ export function Footer() {
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <Image
-              src="/logo.png"
+              src="/logo-full.png"
               alt="vitamin b"
-              width={150}
-              height={40}
-              className="h-8 w-auto mb-6"
+              width={782}
+              height={228}
+              className="h-10 w-auto mb-6"
             />
             <p className="text-white/40 text-sm leading-relaxed mb-6">
               Ihre Kreativagentur für Kommunikation & Design in der Region Heilbronn.
@@ -123,7 +123,7 @@ export function Footer() {
         {/* Bottom bar */}
         <div className="mt-16 pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-white/30 text-sm">
-            &copy; {new Date().getFullYear()} vitamin b - kommunikation & design. Alle Rechte vorbehalten.
+            &copy; {new Date().getFullYear()} vitamin b kommunikation & design. Alle Rechte vorbehalten.
           </p>
           <p className="text-white/20 text-xs">
             Mit Leidenschaft gestaltet in Neuenstadt am Kocher.

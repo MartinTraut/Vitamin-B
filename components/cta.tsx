@@ -14,7 +14,6 @@ export function CTA() {
 
   return (
     <section id="kontakt" className="relative py-32 overflow-hidden">
-      {/* Background effects */}
       <div className="absolute inset-0 bg-[#050505]" />
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#ff6a00]/20 to-transparent" />
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-[radial-gradient(circle,rgba(255,106,0,0.06),transparent_70%)] pointer-events-none" />
@@ -48,7 +47,7 @@ export function CTA() {
               className="text-white/50 text-lg leading-relaxed mb-10"
             >
               Bereit, Ihre Marke auf das nächste Level zu bringen? Erzählen Sie uns
-              von Ihrem Projekt — das Erstgespräch ist natürlich kostenlos und
+              von Ihrem Projekt. Das Erstgespräch ist natürlich kostenlos und
               unverbindlich.
             </motion.p>
 
@@ -67,7 +66,7 @@ export function CTA() {
                 </div>
                 <div>
                   <div className="text-xs text-white/30 mb-1">Telefon</div>
-                  <div className="font-medium">+49 (0) 151 / 72 89 65 74</div>
+                  <div className="font-medium">+49 (0) 151 72 89 65 74</div>
                 </div>
               </a>
 
@@ -79,7 +78,7 @@ export function CTA() {
                   <Mail className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="text-xs text-white/30 mb-1">E-Mail</div>
+                  <div className="text-xs text-white/30 mb-1">E Mail</div>
                   <div className="font-medium">mail@vitaminb-design.de</div>
                 </div>
               </a>
@@ -91,7 +90,7 @@ export function CTA() {
                 <div>
                   <div className="text-xs text-white/30 mb-1">Adresse</div>
                   <div className="font-medium">
-                    Hermann-Lang-Str. 32, 74196 Neuenstadt a.K.
+                    Hermann Lang Str. 32, 74196 Neuenstadt a.K.
                   </div>
                 </div>
               </div>
@@ -102,7 +101,7 @@ export function CTA() {
                 </div>
                 <div>
                   <div className="text-xs text-white/30 mb-1">Erreichbarkeit</div>
-                  <div className="font-medium">Mo - Fr: 9:00 - 18:00 Uhr</div>
+                  <div className="font-medium">Mo bis Fr: 9:00 bis 18:00 Uhr</div>
                 </div>
               </div>
             </motion.div>
@@ -128,7 +127,7 @@ export function CTA() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-white/60 text-sm">
-                    E-Mail *
+                    E Mail *
                   </Label>
                   <Input
                     id="email"
@@ -162,7 +161,7 @@ export function CTA() {
                   <option value="branding" className="bg-[#0d0d0d]">Branding & Corporate Design</option>
                   <option value="webdesign" className="bg-[#0d0d0d]">Webdesign & Entwicklung</option>
                   <option value="print" className="bg-[#0d0d0d]">Print & Drucksachen</option>
-                  <option value="social" className="bg-[#0d0d0d]">Social Media Marketing</option>
+                  <option value="social" className="bg-[#0d0d0d]">Social Media</option>
                   <option value="foto" className="bg-[#0d0d0d]">Fotografie & Video</option>
                   <option value="beratung" className="bg-[#0d0d0d]">Marketing & Beratung</option>
                   <option value="sonstiges" className="bg-[#0d0d0d]">Sonstiges</option>

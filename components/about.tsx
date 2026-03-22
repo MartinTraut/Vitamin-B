@@ -2,6 +2,7 @@
 
 import { motion, useInView } from "framer-motion"
 import { useRef } from "react"
+import Image from "next/image"
 import { CheckCircle2 } from "lucide-react"
 
 const values = [
@@ -33,7 +34,6 @@ export function About() {
 
   return (
     <section id="ueber-uns" className="relative py-32 overflow-hidden">
-      {/* Background accent */}
       <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[radial-gradient(circle,rgba(255,106,0,0.04),transparent_70%)] pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-6">
@@ -46,17 +46,17 @@ export function About() {
             className="relative"
           >
             <div className="relative aspect-[4/5] rounded-2xl overflow-hidden">
-              <div
-                className="absolute inset-0 bg-cover bg-center"
-                style={{
-                  backgroundImage:
-                    "url(https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&q=80)",
-                }}
+              <Image
+                src="/hero-bg.jpg"
+                alt="vitamin b Kommunikation & Design"
+                fill
+                className="object-cover object-center"
+                quality={95}
+                sizes="(max-width: 1024px) 100vw, 50vw"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-transparent" />
             </div>
 
-            {/* Floating stat card */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
@@ -71,7 +71,6 @@ export function About() {
               </div>
             </motion.div>
 
-            {/* Decorative border */}
             <div className="absolute -top-4 -left-4 w-24 h-24 border-t-2 border-l-2 border-[#ff6a00]/30 rounded-tl-2xl" />
           </motion.div>
 
@@ -102,9 +101,9 @@ export function About() {
               transition={{ delay: 0.4 }}
               className="text-white/50 text-lg leading-relaxed mb-8"
             >
-              Gegründet von Robert Bauer mit der Vision, kleinen und mittelständischen
-              Unternehmen in der Region Heilbronn Zugang zu erstklassigem Design zu geben.
-              Wir glauben, dass gutes Design kein Luxus ist — sondern eine Investition, die
+              Gegründet von Robert Bauer mit einer klaren Vision: Kleinen und mittelständischen
+              Unternehmen in der Region Heilbronn Zugang zu erstklassigem Design geben.
+              Wir glauben, dass gutes Design kein Luxus ist. Sondern eine Investition, die
               sich auszahlt.
             </motion.p>
             <motion.p
@@ -113,7 +112,7 @@ export function About() {
               transition={{ delay: 0.45 }}
               className="text-white/50 text-lg leading-relaxed mb-10"
             >
-              Vitamin B steht nicht nur für unseren Namen — es steht für Beziehungen.
+              Vitamin B steht nicht nur für unseren Namen. Es steht für Beziehungen.
               Denn die besten Projekte entstehen, wenn Agentur und Kunde auf Augenhöhe
               zusammenarbeiten.
             </motion.p>

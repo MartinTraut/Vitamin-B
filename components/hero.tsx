@@ -51,7 +51,6 @@ function ParticleField() {
         ctx.fill()
       })
 
-      // Draw connections
       particles.forEach((a, i) => {
         particles.slice(i + 1).forEach((b) => {
           const dist = Math.hypot(a.x - b.x, a.y - b.y)
@@ -83,16 +82,13 @@ function ParticleField() {
 export function Hero() {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Background layers */}
       <div className="absolute inset-0 bg-[#050505]" />
       <div className="absolute inset-0 bg-grid opacity-50" />
       <ParticleField />
 
-      {/* Radial gradient glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[radial-gradient(circle,rgba(255,106,0,0.08)_0%,transparent_70%)] pointer-events-none" />
 
-      {/* Content */}
-      <div className="relative z-10 max-w-6xl mx-auto px-6 text-center">
+      <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -125,8 +121,8 @@ export function Hero() {
           transition={{ duration: 0.6, delay: 0.5 }}
           className="text-lg md:text-xl text-white/60 max-w-2xl mx-auto mb-10 leading-relaxed"
         >
-          Von der Strategie bis zum fertigen Design &mdash; wir entwickeln visuelle Identitäten,
-          die Ihre Zielgruppe begeistern und Ihren Umsatz steigern.
+          Strategie, Design und Umsetzung aus einer Hand. Wir bauen visuelle Identitäten,
+          die Ihre Zielgruppe begeistern und Ihren Umsatz spürbar steigern.
         </motion.p>
 
         <motion.div
@@ -155,7 +151,6 @@ export function Hero() {
           </Button>
         </motion.div>
 
-        {/* Trust indicators */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -179,7 +174,6 @@ export function Hero() {
         </motion.div>
       </div>
 
-      {/* Scroll indicator */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
