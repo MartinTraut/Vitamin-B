@@ -66,7 +66,7 @@ export function CTA() {
                 </div>
                 <div>
                   <div className="text-xs text-white/30 mb-1">Telefon</div>
-                  <div className="font-medium">+49 (0) 151 72 89 65 74</div>
+                  <div className="font-medium">+49 151 72896574</div>
                 </div>
               </a>
 
@@ -79,7 +79,7 @@ export function CTA() {
                 </div>
                 <div>
                   <div className="text-xs text-white/30 mb-1">E Mail</div>
-                  <div className="font-medium">mail@vitaminb-design.de</div>
+                  <div className="font-medium">mail (at) vitaminb-design.de</div>
                 </div>
               </a>
 
@@ -155,7 +155,7 @@ export function CTA() {
                 </Label>
                 <select
                   id="service"
-                  className="w-full h-12 rounded-md bg-white/5 border border-white/10 text-white/60 px-3 focus:border-[#ff6a00]/50 focus:outline-none transition-colors"
+                  className="w-full h-12 rounded-md bg-white/5 border border-white/10 text-white/60 px-3 focus:border-[#ff6a00]/50 focus:ring-3 focus:ring-[#ff6a00]/20 focus:outline-none transition-colors"
                 >
                   <option value="" className="bg-[#0d0d0d]">Bitte wählen...</option>
                   <option value="branding" className="bg-[#0d0d0d]">Branding & Corporate Design</option>
@@ -178,6 +178,23 @@ export function CTA() {
                   rows={5}
                   className="bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:border-[#ff6a00]/50 resize-none"
                 />
+              </div>
+
+              {/* Honeypot field - hidden from users, catches bots */}
+              <div className="absolute -left-[9999px]" aria-hidden="true">
+                <input type="text" name="website" tabIndex={-1} autoComplete="off" />
+              </div>
+
+              <div className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  id="botcheck"
+                  required
+                  className="mt-1 w-4 h-4 rounded border-white/10 bg-white/5 accent-[#ff6a00] cursor-pointer"
+                />
+                <Label htmlFor="botcheck" className="text-white/40 text-sm leading-relaxed cursor-pointer">
+                  Ich bin kein Roboter und akzeptiere die Datenschutzerklärung.
+                </Label>
               </div>
 
               <Button

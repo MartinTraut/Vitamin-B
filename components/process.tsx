@@ -27,10 +27,10 @@ const steps = [
     subtitle: "Analyse",
     description: "Wir analysieren Ihre Branche, Ihre Zielgruppe und Ihre Mitbewerber. Daraus entsteht ein maßgeschneidertes Konzept, das Ihre Marke einzigartig positioniert.",
     color: "#ff8c33",
-    bars: [
-      { label: "Marktanalyse", pct: 90 },
-      { label: "Zielgruppenforschung", pct: 85 },
-      { label: "Strategieentwicklung", pct: 95 },
+    details: [
+      { icon: Target, text: "Marktanalyse" },
+      { icon: Lightbulb, text: "Zielgruppenforschung" },
+      { icon: Zap, text: "Strategieentwicklung" },
     ],
     checks: ["Markt & Wettbewerbsanalyse", "Zielgruppendefinition", "Strategische Positionierung"],
   },
@@ -111,32 +111,6 @@ function StepContent({ step, isActive }: { step: typeof steps[0]; isActive: bool
                 </motion.div>
               )
             })}
-          </div>
-        )}
-
-        {step.bars && (
-          <div className="space-y-5 mb-8">
-            {step.bars.map((bar, bi) => (
-              <motion.div
-                key={bar.label}
-                initial={{ opacity: 0, x: -20 }}
-                animate={isActive ? { opacity: 1, x: 0 } : { opacity: 0, x: -20 }}
-                transition={{ duration: 0.4, delay: 0.4 + bi * 0.15 }}
-              >
-                <div className="flex justify-between text-xs mb-2">
-                  <span className="text-white/60">{bar.label}</span>
-                  <span className="text-[#ff6a00] font-medium">{bar.pct}%</span>
-                </div>
-                <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={isActive ? { width: `${bar.pct}%` } : { width: 0 }}
-                    transition={{ duration: 1.2, delay: 0.5 + bi * 0.2, ease: [0.25, 0.1, 0.25, 1] }}
-                    className="h-full bg-gradient-to-r from-[#ff6a00] to-[#ff8c33] rounded-full"
-                  />
-                </div>
-              </motion.div>
-            ))}
           </div>
         )}
 
@@ -266,8 +240,8 @@ export function Process() {
                   className="text-3xl md:text-5xl font-bold text-white"
                   style={{ fontFamily: "var(--font-heading)" }}
                 >
-                  Vier Schritte zu{" "}
-                  <span className="text-white/30">Ihrem Traumdesign.</span>
+                  <span className="text-white">Vier Schritte</span>{" "}
+                  <span className="text-white/30">zu Ihrem Traumdesign.</span>
                 </h2>
               </div>
 

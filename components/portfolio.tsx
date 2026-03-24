@@ -173,8 +173,8 @@ export function Portfolio() {
             className="text-2xl md:text-5xl lg:text-6xl font-bold text-white mb-2 md:mb-4"
             style={{ fontFamily: "var(--font-heading)" }}
           >
-            Projekte, die{" "}
-            <span className="text-white/30">für sich sprechen.</span>
+            <span className="text-white">Projekte,</span>{" "}
+            <span className="text-white/30">die für sich sprechen.</span>
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 20 }}

@@ -54,9 +54,8 @@ export function Testimonials() {
             className="text-4xl md:text-5xl font-bold text-white mb-6"
             style={{ fontFamily: "var(--font-heading)" }}
           >
-            Ergebnisse statt
-            <br />
-            <span className="text-white/30">leere Versprechen.</span>
+            <span className="text-white">Ergebnisse</span>{" "}
+            <span className="text-white/30">statt leere Versprechen.</span>
           </motion.h2>
         </div>
 

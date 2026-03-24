@@ -69,7 +69,7 @@ export function Navigation() {
           scrolled ? "bg-[#050505]" : "bg-transparent"
         }`}
       >
-        <div className="max-w-7xl mx-auto px-4 md:px-6 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 flex items-center justify-between relative">
           {/* Logo */}
           <a href="#" className="shrink-0">
             <Image
@@ -77,13 +77,14 @@ export function Navigation() {
               alt="vitamin b kommunikation & design"
               width={782}
               height={228}
-              className="w-auto h-7 md:h-10"
+              className="w-auto h-9 md:h-10"
               priority
+              unoptimized
             />
           </a>
 
-          {/* Desktop NavBar */}
-          <div className="hidden lg:flex items-center gap-1 bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl py-1.5 px-1.5 rounded-full">
+          {/* Desktop NavBar - absolutely centered */}
+          <div className="hidden lg:flex items-center gap-1 bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl py-1.5 px-1.5 rounded-full absolute left-1/2 -translate-x-1/2">
             {navItems.map((item) => {
               const isActive = activeTab === item.name
               return (
@@ -104,11 +105,7 @@ export function Navigation() {
                       className="absolute inset-0 w-full bg-[#ff6a00]/5 rounded-full -z-10"
                       initial={false}
                       transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                    >
-                      <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-8 h-1 bg-[#ff6a00] rounded-t-full">
-                        <div className="absolute w-12 h-6 bg-[#ff6a00]/20 rounded-full blur-md -top-2 -left-2" />
-                      </div>
-                    </motion.div>
+                    />
                   )}
                 </a>
               )

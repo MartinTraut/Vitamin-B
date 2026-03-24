@@ -43,7 +43,7 @@ export default function Impressum() {
           <section>
             <h2 className="text-white text-xl font-semibold mb-4">Kontakt</h2>
             <p>
-              Telefon: +49 (0) 151 / 72 89 65 74
+              Telefon: +49 151 72896574
               <br />
               E-Mail: mail@vitaminb-design.de
             </p>

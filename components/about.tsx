@@ -51,7 +51,9 @@ export function About() {
                 alt="vitamin b Kommunikation & Design"
                 fill
                 className="object-cover object-center"
-                quality={95}
+                quality={100}
+                unoptimized
+                priority
                 sizes="(max-width: 1024px) 100vw, 50vw"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-transparent" />

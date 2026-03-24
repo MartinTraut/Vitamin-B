@@ -71,42 +71,35 @@ function ServiceCard({
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, y: 50, scale: 0.95 }}
-      animate={isInView ? { opacity: 1, y: 0, scale: 1 } : {}}
-      transition={{ duration: 0.7, delay: index * 0.1, ease: [0.25, 0.1, 0.25, 1] }}
+      initial={{ opacity: 0, y: 30 }}
+      animate={isInView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.6, delay: index * 0.08, ease: [0.25, 0.1, 0.25, 1] }}
       className="group relative"
     >
-      <div className="relative p-8 rounded-2xl bg-white/[0.02] border border-white/[0.05] hover:border-[#ff6a00]/20 transition-all duration-500 h-full hover:bg-white/[0.04]">
+      <div className="relative p-8 rounded-2xl bg-white/[0.02] border border-white/[0.05] hover:border-white/[0.1] transition-all duration-500 h-full hover:bg-white/[0.04]">
         <div className="absolute inset-0 rounded-2xl bg-[radial-gradient(circle_at_50%_0%,rgba(255,106,0,0.06),transparent_60%)] opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
 
         <div className="relative z-10">
           <div className="flex items-start justify-between mb-6">
-            <motion.div
-              whileHover={{ rotate: [0, -5, 5, 0], scale: 1.1 }}
-              transition={{ duration: 0.4 }}
-              className="w-12 h-12 rounded-xl bg-[#ff6a00]/10 flex items-center justify-center group-hover:bg-[#ff6a00]/20 transition-colors duration-500"
-            >
+            <div className="w-12 h-12 rounded-xl bg-[#ff6a00]/10 flex items-center justify-center group-hover:bg-[#ff6a00]/20 transition-colors duration-500">
               <Icon className="w-6 h-6 text-[#ff6a00]" />
-            </motion.div>
+            </div>
             <ArrowUpRight className="w-5 h-5 text-white/10 group-hover:text-[#ff6a00] transition-all duration-500 group-hover:translate-x-1 group-hover:-translate-y-1" />
           </div>
 
-          <h3 className="text-xl font-semibold text-white mb-3 group-hover:text-white transition-colors">{service.title}</h3>
-          <p className="text-white/40 text-sm leading-relaxed mb-6 group-hover:text-white/55 transition-colors duration-500">
+          <h3 className="text-xl font-semibold text-white mb-3 group-hover:text-[#ff6a00] transition-colors duration-500">{service.title}</h3>
+          <p className="text-white/40 text-sm leading-relaxed mb-6 min-h-[4.5rem] group-hover:text-white/55 transition-colors duration-500">
             {service.description}
           </p>
 
           <div className="flex flex-wrap gap-2">
-            {service.features.map((feature, i) => (
-              <motion.span
+            {service.features.map((feature) => (
+              <span
                 key={feature}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={isInView ? { opacity: 1, scale: 1 } : {}}
-                transition={{ delay: index * 0.1 + 0.4 + i * 0.05 }}
-                className="text-xs px-3 py-1 rounded-full bg-white/5 text-white/40 border border-white/5 group-hover:border-[#ff6a00]/10 group-hover:text-white/50 transition-all duration-500"
+                className="text-xs px-3 py-1 rounded-full bg-white/5 text-white/40 border border-white/5 group-hover:border-white/10 group-hover:text-white/50 transition-all duration-500"
               >
                 {feature}
-              </motion.span>
+              </span>
             ))}
           </div>
         </div>
