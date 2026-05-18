@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from "react"
 import { motion, useScroll, useTransform, useMotionValueEvent, AnimatePresence, MotionValue } from "framer-motion"
 import { MessageSquare, Lightbulb, Pen, Truck, CheckCircle2, Clock, Target, Zap, Heart, ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { GlowCard } from "@/components/ui/spotlight-card"
 
 const steps = [
   {
@@ -218,9 +219,14 @@ export function Process() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-60px" }}
                   transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
-                  className="relative p-5 rounded-3xl bg-white/[0.015] border border-white/[0.06] overflow-hidden"
                 >
-                  <StepContent step={step} isActive={true} />
+                  <GlowCard
+                    customSize
+                    glowColor="orange"
+                    className="w-full !p-6 overflow-hidden"
+                  >
+                    <StepContent step={step} isActive={true} />
+                  </GlowCard>
                 </motion.div>
               ))}
             </div>

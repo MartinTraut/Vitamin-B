@@ -5,22 +5,32 @@ import { useRef, useState, useEffect } from "react"
 import Image from "next/image"
 import { ArrowUpRight, X } from "lucide-react"
 
-const projects = [
+const projects: {
+  title: string
+  category: string
+  description: string
+  image: string
+  results: string[]
+  services: string[]
+  imagePosition?: string
+  imageContain?: boolean
+}[] = [
   {
-    title: "Weingut Sonnenhof",
-    category: "Branding & Webdesign",
-    description: "Eine Marke mit Wiedererkennung für ein traditionsreiches Weingut aus der Region. Strategie, Identität und digitaler Auftritt aus einer Hand. Vom Zeichen bis zur Website.",
-    image: "https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?w=1400&q=80",
-    results: ["Neue Markenidentität", "Responsive Website", "30% mehr Anfragen"],
-    services: ["Logo Design", "Corporate Design", "Webentwicklung", "SEO"],
+    title: "Fitness Leasing",
+    category: "Fahrzeugbeschriftung & Branding",
+    description: "Die Marke rollt durchs Land. Eine durchdachte Heckgestaltung, die das Leistungsversprechen sofort transportiert. Sauber foliert und über die ganze Flotte hinweg konsistent.",
+    image: "/projekt-fitnessleasing-van.jpg",
+    imagePosition: "center 38%",
+    results: ["Markante Fahrzeugflotte", "Konsistentes Markenbild", "Mobile Sichtbarkeit"],
+    services: ["Fahrzeugfolierung", "Werbetechnik", "Gestaltung", "Montage"],
   },
   {
-    title: "Autohaus Müller",
-    category: "Corporate Design",
-    description: "Markenrelaunch für einen etablierten Automobilhändler. Ein klares, hochwertiges Erscheinungsbild, das zur Position im Markt passt.",
-    image: "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=1400&q=80",
-    results: ["Kompletter Markenrelaunch", "Neue Geschäftsausstattung", "Modernes Erscheinungsbild"],
-    services: ["Brand Strategy", "Logo Redesign", "Print Design", "Fahrzeugbeschriftung"],
+    title: "FIRMfit Mobiler Showroom",
+    category: "Werbetechnik & Fahrzeugflotte",
+    description: "Werbung, die vorfährt. Transporter und Anhänger als zusammenhängendes Gestaltungssystem. Ein mobiler Auftritt, der die Fitnessräume direkt zum Kunden bringt.",
+    image: "/projekt-fitnessleasing-gespann.jpg",
+    results: ["Einheitliche Flottengestaltung", "Mobiler Showroom", "Hohe Wiedererkennung"],
+    services: ["Fahrzeugfolierung", "Anhängerfolierung", "Werbetechnik", "Großfläche"],
   },
   {
     title: "Café Goldene Zeit",
@@ -47,12 +57,14 @@ const projects = [
     services: ["Branding", "Innenraumdesign", "Social Media", "Kampagnen"],
   },
   {
-    title: "Bäckerei Goldkruste",
-    category: "Verpackungsdesign",
-    description: "Verpackung als Markenträger. Ein Gestaltungssystem, das im Regal auffällt und im Kopf bleibt.",
-    image: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=1400&q=80",
-    results: ["Neues Verpackungskonzept", "Stärkere Markenwahrnehmung", "Höhere Wiedererkennung"],
-    services: ["Verpackungsdesign", "POS Material", "Produktfotografie", "Print"],
+    title: "KUHN Performance",
+    category: "Fahrzeugbeschriftung & Branding",
+    description: "Die Marke fährt mit. Ein klares Beschriftungskonzept auf dem Fahrzeug. Präzise foliert, im Einklang mit dem Erscheinungsbild und auf der Straße sofort erkennbar.",
+    image: "/PHOTO-2026-05-18-02-57-23.jpg",
+    imagePosition: "center 70%",
+    imageContain: true,
+    results: ["Markante Fahrzeugbeschriftung", "Konsistentes Erscheinungsbild", "Hohe Wiedererkennung"],
+    services: ["Fahrzeugfolierung", "Werbetechnik", "Logo Anwendung", "Montage"],
   },
 ]
 
@@ -92,9 +104,23 @@ function ProjectModal({ project, onClose }: { project: typeof projects[0]; onClo
           <X className="w-4 h-4" />
         </button>
 
-        <div className="relative h-48 md:h-80 w-full overflow-hidden md:rounded-t-3xl">
-          <Image src={project.image} alt={project.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 800px" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/30 to-transparent" />
+        <div
+          className={`relative w-full overflow-hidden md:rounded-t-3xl bg-[#0a0a0a] ${
+            project.imageContain ? "h-72 md:h-[28rem]" : "h-48 md:h-80"
+          }`}
+        >
+          <Image
+            src={project.image}
+            alt={project.title}
+            fill
+            className={project.imageContain ? "object-contain" : "object-cover"}
+            style={{ objectPosition: project.imageContain ? "center" : project.imagePosition ?? "center" }}
+            sizes="(max-width: 768px) 100vw, 900px"
+            quality={92}
+          />
+          {!project.imageContain && (
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/30 to-transparent" />
+          )}
         </div>
 
         <div className="p-5 md:p-10 -mt-12 md:-mt-20 relative z-10">
@@ -164,6 +190,7 @@ export function Portfolio() {
         alt={project.title}
         fill
         className="object-cover transition-transform duration-700 group-hover:scale-110"
+        style={{ objectPosition: project.imagePosition ?? "center" }}
         sizes="(max-width: 768px) 50vw, 33vw"
         quality={75}
       />
