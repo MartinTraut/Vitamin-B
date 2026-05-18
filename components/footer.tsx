@@ -32,11 +32,11 @@ export function Footer() {
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <Image
-              src="/logo-vitaminb-white.png"
+              src="/logo-vitaminb-frame.png"
               alt="vitaminb kommunikation & design"
-              width={600}
-              height={215}
-              className="h-9 w-auto mb-6"
+              width={824}
+              height={824}
+              className="h-32 w-auto mb-6"
             />
             <p className="text-white/40 text-sm leading-relaxed mb-6">
               Creative Studio für Markenidentität und Wahrnehmung. Region Heilbronn.

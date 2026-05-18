@@ -84,13 +84,16 @@ export function Navigation() {
       >
         <div className="max-w-7xl mx-auto px-4 md:px-6 flex items-center justify-between relative">
           {/* Logo */}
-          <a href="#" className="shrink-0 ml-2 md:ml-6">
+          <a
+            href="#"
+            className="shrink-0 inline-flex items-center absolute left-1/2 -translate-x-1/2 lg:static lg:left-auto lg:translate-x-0 lg:ml-6"
+          >
             <Image
-              src="/logo-vitaminb-orange.png"
+              src="/logo-vitaminb-frame.png"
               alt="vitaminb kommunikation & design"
-              width={600}
-              height={215}
-              className="w-auto h-10 md:h-12"
+              width={824}
+              height={824}
+              className="w-auto h-16 md:h-20"
               priority
               unoptimized
             />
