@@ -1,7 +1,6 @@
 "use client"
 
-import { motion, useInView } from "framer-motion"
-import { useRef } from "react"
+import { motion } from "framer-motion"
 import Image from "next/image"
 import { Star, Quote } from "lucide-react"
 
@@ -30,18 +29,16 @@ const testimonials = [
 ]
 
 export function Testimonials() {
-  const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, margin: "-100px" })
-
   return (
-    <section className="relative py-20 md:py-32 overflow-hidden">
+    <section className="relative py-16 md:py-32 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-b from-[#050505] via-[#0a0a0a] to-[#050505]" />
 
       <div className="max-w-7xl mx-auto px-6 relative z-10">
-        <div ref={ref} className="text-center max-w-3xl mx-auto mb-16">
+        <div className="text-center max-w-3xl mx-auto mb-10 md:mb-16">
           <motion.span
             initial={{ opacity: 0, y: 10 }}
-            animate={isInView ? { opacity: 1, y: 0 } : {}}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.5 }}
             className="text-[#E39832] text-sm font-medium tracking-widest uppercase mb-4 block"
           >
@@ -49,9 +46,10 @@ Stimmen
           </motion.span>
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
-            animate={isInView ? { opacity: 1, y: 0 } : {}}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
             transition={{ delay: 0.1, duration: 0.6 }}
-            className="text-4xl md:text-5xl font-bold text-white mb-6"
+            className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-6"
             style={{ fontFamily: "var(--font-heading)" }}
           >
             <span className="text-white">Wirkung,</span>{" "}
@@ -64,16 +62,18 @@ Stimmen
             <motion.div
               key={testimonial.name}
               initial={{ opacity: 0, y: 50, scale: 0.95 }}
-              animate={isInView ? { opacity: 1, y: 0, scale: 1 } : {}}
-              transition={{ duration: 0.7, delay: 0.2 + i * 0.15, ease: [0.25, 0.1, 0.25, 1] }}
+              whileInView={{ opacity: 1, y: 0, scale: 1 }}
+              viewport={{ once: true, margin: "-80px" }}
+              transition={{ duration: 0.7, delay: i * 0.12, ease: [0.25, 0.1, 0.25, 1] }}
               whileHover={{ y: -6 }}
               className="relative group"
             >
               <div className="hover-glow hover-aura p-8 rounded-2xl bg-white/[0.02] border border-white/[0.05] hover:border-[#E39832]/30 transition-all duration-500 h-full flex flex-col group-hover:shadow-[0_0_40px_rgba(227,152,50,0.08)]">
                 <motion.div
                   initial={{ opacity: 0, rotate: -10 }}
-                  animate={isInView ? { opacity: 1, rotate: 0 } : {}}
-                  transition={{ delay: 0.4 + i * 0.15, duration: 0.5 }}
+                  whileInView={{ opacity: 1, rotate: 0 }}
+                  viewport={{ once: true, margin: "-80px" }}
+                  transition={{ delay: 0.2 + i * 0.12, duration: 0.5 }}
                 >
                   <Quote className="w-10 h-10 text-[#E39832]/20 mb-6 group-hover:text-[#E39832]/30 transition-colors duration-500" />
                 </motion.div>
@@ -82,11 +82,18 @@ Stimmen
                   {Array.from({ length: testimonial.rating }).map((_, j) => (
                     <motion.div
                       key={j}
-                      initial={{ opacity: 0, scale: 0 }}
-                      animate={isInView ? { opacity: 1, scale: 1 } : {}}
-                      transition={{ delay: 0.5 + i * 0.15 + j * 0.05, type: "spring", stiffness: 500 }}
+                      initial={{ opacity: 0, scale: 0, rotate: -60 }}
+                      whileInView={{ opacity: 1, scale: 1, rotate: 0 }}
+                      viewport={{ once: true, margin: "-60px" }}
+                      transition={{
+                        delay: 0.3 + i * 0.12 + j * 0.09,
+                        type: "spring",
+                        stiffness: 420,
+                        damping: 11,
+                      }}
+                      whileHover={{ scale: 1.25, rotate: 12 }}
                     >
-                      <Star className="w-4 h-4 text-[#E39832] fill-[#E39832]" />
+                      <Star className="w-4 h-4 text-[#E39832] fill-[#E39832] drop-shadow-[0_0_6px_rgba(227,152,50,0.5)]" />
                     </motion.div>
                   ))}
                 </div>

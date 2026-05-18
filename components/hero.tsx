@@ -1,21 +1,29 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { motion } from "framer-motion"
 import { ArrowRight, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 function ParticleField() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  // Auf dem Handy gar nicht rendern: vollflaechige Canvas + resize bei
+  // ein-/ausblendender Adressleiste = Flackern/Haengen beim Scrollen.
+  const [enabled, setEnabled] = useState(false)
 
   useEffect(() => {
+    const ok =
+      window.innerWidth >= 768 &&
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    setEnabled(ok)
+  }, [])
+
+  useEffect(() => {
+    if (!enabled) return
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext("2d")
     if (!ctx) return
-
-    // Respektiert Reduced-Motion: dann gar keine Animation rendern
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
 
     let animationId: number
     let running = true
@@ -94,8 +102,9 @@ function ParticleField() {
       window.removeEventListener("resize", resize)
       io.disconnect()
     }
-  }, [])
+  }, [enabled])
 
+  if (!enabled) return null
   return <canvas ref={canvasRef} className="absolute inset-0 z-0" />
 }
 

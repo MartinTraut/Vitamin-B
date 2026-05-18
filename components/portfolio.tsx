@@ -153,8 +153,89 @@ export function Portfolio() {
   const scale = useTransform(scrollYProgress, [0, 0.6], isMobile ? [0.96, 1] : [0.75, 1])
   const cardOpacity = useTransform(scrollYProgress, [0, 0.15], [0, 1])
 
+  const cards = projects.map((project) => (
+    <div
+      key={project.title}
+      onClick={() => setSelectedProject(project)}
+      className="group relative aspect-[4/3] overflow-hidden rounded-lg md:rounded-2xl cursor-pointer active:scale-[0.98] transition-transform"
+    >
+      <Image
+        src={project.image}
+        alt={project.title}
+        fill
+        className="object-cover transition-transform duration-700 group-hover:scale-110"
+        sizes="(max-width: 768px) 50vw, 33vw"
+        quality={75}
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-70 md:opacity-60 md:group-hover:opacity-90 transition-opacity duration-500" />
+      <div className="absolute inset-0 p-2.5 md:p-4 flex flex-col justify-end">
+        <span className="text-[#E39832] text-[8px] md:text-xs font-medium tracking-wide uppercase mb-0.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+          {project.category}
+        </span>
+        <h3 className="text-[11px] md:text-base font-bold text-white leading-tight">
+          {project.title}
+        </h3>
+      </div>
+      <div className="absolute top-2 right-2 w-6 h-6 md:w-9 md:h-9 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center md:opacity-0 md:scale-75 md:group-hover:opacity-100 md:group-hover:scale-100 transition-all md:group-hover:bg-[#E39832]">
+        <ArrowUpRight className="w-3 h-3 md:w-4 md:h-4 text-white" />
+      </div>
+    </div>
+  ))
+
+  if (isMobile) {
+    return (
+      <section id="portfolio" className="relative py-16">
+        <div className="max-w-7xl mx-auto px-5 text-center mb-8">
+          <motion.span
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-60px" }}
+            transition={{ duration: 0.5 }}
+            className="text-[#E39832] text-xs font-medium tracking-widest uppercase mb-2 block"
+          >
+            Arbeiten
+          </motion.span>
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-60px" }}
+            transition={{ delay: 0.05, duration: 0.6 }}
+            className="text-3xl font-bold text-white mb-2"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
+            <span className="text-white">Wirkung,</span>{" "}
+            <span className="text-white/30">die man sieht.</span>
+          </motion.h2>
+          <p className="text-white/40 text-sm">
+            Ein Projekt antippen und die Details ansehen.
+          </p>
+        </div>
+
+        <div className="px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-60px" }}
+            transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+            className="max-w-5xl mx-auto rounded-2xl border border-white/10 bg-[#111] p-2 shadow-[0_20px_60px_rgba(0,0,0,0.5)]"
+          >
+            <div className="rounded-xl bg-[#0a0a0a] p-2 overflow-hidden">
+              <div className="grid grid-cols-2 gap-1.5">{cards}</div>
+            </div>
+          </motion.div>
+        </div>
+
+        <AnimatePresence>
+          {selectedProject && (
+            <ProjectModal project={selectedProject} onClose={() => setSelectedProject(null)} />
+          )}
+        </AnimatePresence>
+      </section>
+    )
+  }
+
   return (
-    <section id="portfolio" ref={sectionRef} className="relative" style={{ height: isMobile ? "200vh" : "300vh" }}>
+    <section id="portfolio" ref={sectionRef} className="relative" style={{ height: "300vh" }}>
       <div className="sticky top-0 h-[100svh] flex flex-col justify-center overflow-hidden pt-24 md:pt-28 pb-6">
         {/* Header */}
         <div ref={headerRef} className="max-w-7xl mx-auto px-5 md:px-6 mb-5 md:mb-8 text-center">
@@ -200,36 +281,7 @@ Ein Projekt auswählen und die Details ansehen.
             <div className="rounded-2xl md:rounded-[32px] border border-white/10 bg-[#111] p-2 md:p-4 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
               <div className="rounded-xl md:rounded-3xl bg-[#0a0a0a] p-2 md:p-4 overflow-hidden">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5 md:gap-3">
-                  {projects.map((project, i) => (
-                    <div
-                      key={project.title}
-                      onClick={() => setSelectedProject(project)}
-                      className="group relative aspect-[4/3] overflow-hidden rounded-lg md:rounded-2xl cursor-pointer active:scale-[0.98] transition-transform"
-                    >
-                      <Image
-                        src={project.image}
-                        alt={project.title}
-                        fill
-                        className="object-cover transition-transform duration-700 group-hover:scale-110"
-                        sizes="(max-width: 768px) 50vw, 33vw"
-                        quality={75}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-70 md:opacity-60 md:group-hover:opacity-90 transition-opacity duration-500" />
-
-                      <div className="absolute inset-0 p-2.5 md:p-4 flex flex-col justify-end">
-                        <span className="text-[#E39832] text-[8px] md:text-xs font-medium tracking-wide uppercase mb-0.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                          {project.category}
-                        </span>
-                        <h3 className="text-[11px] md:text-base font-bold text-white leading-tight">
-                          {project.title}
-                        </h3>
-                      </div>
-
-                      <div className="absolute top-2 right-2 w-6 h-6 md:w-9 md:h-9 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center md:opacity-0 md:scale-75 md:group-hover:opacity-100 md:group-hover:scale-100 transition-all md:group-hover:bg-[#E39832]">
-                        <ArrowUpRight className="w-3 h-3 md:w-4 md:h-4 text-white" />
-                      </div>
-                    </div>
-                  ))}
+                  {cards}
                 </div>
               </div>
             </div>
