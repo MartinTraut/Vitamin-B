@@ -1,6 +1,6 @@
 "use client"
 
-import { motion, useScroll, useTransform, useSpring, AnimatePresence } from "framer-motion"
+import { motion, useScroll, useTransform, useSpring, useMotionTemplate, AnimatePresence } from "framer-motion"
 import { useRef, useState, useEffect } from "react"
 import Image from "next/image"
 import { ArrowUpRight, X, ChevronLeft, ChevronRight, Plus } from "lucide-react"
@@ -272,17 +272,22 @@ export function Portfolio() {
   // Scroll-Progress federn -> kein hartes 1:1-Mapping, sondern flüssige,
   // leicht nachlaufende Bewegung (smoother Reveal statt ruckeligem Scrub)
   const smooth = useSpring(scrollYProgress, {
-    stiffness: 90,
-    damping: 26,
-    mass: 0.4,
+    stiffness: 80,
+    damping: 28,
+    mass: 0.5,
   })
 
   // Mobile: kein 3D (kein perspektivisches Re-Rastern pro Frame -> smooth)
-  // Desktop: dezente, an den gefederten Scroll gekoppelte Reveal-Bewegung
-  const rotate = useTransform(smooth, [0, 0.65], isMobile ? [0, 0] : [10, 0])
-  const scale = useTransform(smooth, [0, 0.75], isMobile ? [0.97, 1] : [0.92, 1])
-  const y = useTransform(smooth, [0, 0.75], isMobile ? [0, 0] : [28, 0])
-  const cardOpacity = useTransform(smooth, [0, 0.1], [0, 1])
+  // Desktop: cinematischer, an den gefederten Scroll gekoppelter Reveal:
+  //  - 3D-Aufrichten aus der Tiefe
+  //  - leichtes Hochfahren + Skalieren
+  //  - sanftes Blur-to-clear (Fokus zieht scharf)
+  const rotate = useTransform(smooth, [0, 0.7], isMobile ? [0, 0] : [16, 0])
+  const scale = useTransform(smooth, [0, 0.82], isMobile ? [0.97, 1] : [0.84, 1])
+  const y = useTransform(smooth, [0, 0.82], isMobile ? [0, 0] : [70, 0])
+  const cardOpacity = useTransform(smooth, [0, 0.12], [0, 1])
+  const blurPx = useTransform(smooth, [0, 0.55], isMobile ? [0, 0] : [14, 0])
+  const filter = useMotionTemplate`blur(${blurPx}px)`
 
   const cards = projects.map((project) =>
     project.placeholder ? (
@@ -319,7 +324,7 @@ export function Portfolio() {
         className={`object-cover transition-transform duration-700 ${project.cardScaleClass ?? "group-hover:scale-110"}`}
         style={{ objectPosition: project.imagePosition ?? "center" }}
         sizes="(max-width: 768px) 50vw, 33vw"
-        quality={75}
+        quality={82}
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent opacity-55 md:opacity-45 md:group-hover:opacity-75 transition-opacity duration-500" />
       <div className="absolute inset-0 p-2.5 md:p-4 flex flex-col justify-end">
@@ -390,8 +395,8 @@ export function Portfolio() {
   }
 
   return (
-    <section id="portfolio" ref={sectionRef} className="relative" style={{ height: "180vh" }}>
-      <div className="sticky top-0 h-[100svh] flex flex-col justify-center overflow-hidden pt-16 md:pt-20 pb-6">
+    <section id="portfolio" ref={sectionRef} className="relative" style={{ height: "230vh" }}>
+      <div className="sticky top-0 h-[100svh] flex flex-col justify-center overflow-hidden pt-14 md:pt-16 pb-6">
         {/* Header */}
         <div className="max-w-7xl mx-auto px-5 md:px-6 mb-3 md:mb-4 text-center">
           <motion.span
@@ -408,7 +413,7 @@ Arbeiten
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
             transition={{ delay: 0.1, duration: 0.6 }}
-            className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-1.5 md:mb-2"
+            className="text-2xl md:text-4xl lg:text-5xl font-bold text-white mb-1.5 md:mb-2"
             style={{ fontFamily: "var(--font-heading)" }}
           >
             <span className="text-white">Wirkung,</span>{" "}
@@ -426,20 +431,22 @@ Ein Projekt auswählen und die Details ansehen.
         </div>
 
         {/* 3D Card */}
-        <div className="px-3 md:px-12 lg:px-20" style={{ perspective: "1200px" }}>
+        <div className="px-3 md:px-8 lg:px-12" style={{ perspective: "1700px" }}>
           <motion.div
             style={{
               rotateX: rotate,
               scale,
               y,
               opacity: cardOpacity,
+              filter,
               transformOrigin: "center top",
+              willChange: "transform, opacity, filter",
             }}
-            className="max-w-3xl mx-auto"
+            className="max-w-5xl mx-auto"
           >
-            <div className="rounded-2xl md:rounded-[32px] border border-white/10 bg-[#1c1c1c] p-2 md:p-3 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
-              <div className="rounded-xl md:rounded-3xl bg-[#151515] p-2 md:p-3 overflow-hidden">
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5 md:gap-2">
+            <div className="rounded-2xl md:rounded-[36px] border border-white/10 bg-[#1c1c1c] p-2.5 md:p-4 shadow-[0_40px_120px_-20px_rgba(0,0,0,0.6)]">
+              <div className="rounded-xl md:rounded-[28px] bg-[#151515] p-2.5 md:p-3 overflow-hidden">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3">
                   {cards}
                 </div>
               </div>

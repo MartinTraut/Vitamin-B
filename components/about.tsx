@@ -45,7 +45,7 @@ export function About() {
             transition={{ duration: 0.8 }}
             className="relative"
           >
-            <div className="relative aspect-[4/5] lg:max-h-[62vh] mx-auto w-full rounded-2xl overflow-hidden">
+            <div className="relative aspect-[3/4] w-full lg:max-w-[420px] mx-auto rounded-2xl overflow-hidden bg-[#0a0a0a]">
               <Image
                 src="/robert-bauer-portrait.png"
                 alt="Robert Bauer, Inhaber von vitaminb kommunikation & design"
@@ -55,7 +55,7 @@ export function About() {
                 priority
                 sizes="(max-width: 1024px) 100vw, 50vw"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/15 to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-[#050505] to-transparent" />
             </div>
 
             <motion.div
