@@ -1,6 +1,6 @@
 "use client"
 
-import { motion, useInView, useScroll, useTransform, AnimatePresence } from "framer-motion"
+import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion"
 import { useRef, useState, useEffect } from "react"
 import Image from "next/image"
 import { ArrowUpRight, X } from "lucide-react"
@@ -157,8 +157,6 @@ function ProjectModal({ project, onClose }: { project: typeof projects[0]; onClo
 
 export function Portfolio() {
   const sectionRef = useRef<HTMLDivElement>(null)
-  const headerRef = useRef(null)
-  const isInView = useInView(headerRef, { once: true, margin: "-100px" })
   const [selectedProject, setSelectedProject] = useState<typeof projects[0] | null>(null)
   const [isMobile, setIsMobile] = useState(false)
 
@@ -174,11 +172,13 @@ export function Portfolio() {
     offset: ["start start", "end end"],
   })
 
-  // Mobile: kein 3D (kein perspektivisches Re-Rastern pro Frame -> smooth), Desktop: sanfte Garagentor-Reveal
-  // Reveal frueh abgeschlossen, danach bleiben die Karten sichtbar (kein Verschwinden beim Weiterscrollen)
-  const rotate = useTransform(scrollYProgress, [0, 0.4], isMobile ? [0, 0] : [32, 0])
-  const scale = useTransform(scrollYProgress, [0, 0.4], isMobile ? [0.96, 1] : [0.9, 1])
-  const cardOpacity = useTransform(scrollYProgress, [0, 0.1], [0.4, 1])
+  // Mobile: kein 3D (kein perspektivisches Re-Rastern pro Frame -> smooth)
+  // Desktop: sanfte, an den Scroll gekoppelte Garagentor-Reveal ueber fast die ganze
+  // Pin-Strecke (kein toter Bereich), danach kurz gehalten bis zum Loesen
+  const rotate = useTransform(scrollYProgress, [0, 0.7], isMobile ? [0, 0] : [18, 0])
+  const scale = useTransform(scrollYProgress, [0, 0.8], isMobile ? [0.96, 1] : [0.86, 1])
+  const y = useTransform(scrollYProgress, [0, 0.8], isMobile ? [0, 0] : [60, 0])
+  const cardOpacity = useTransform(scrollYProgress, [0, 0.12], [0, 1])
 
   const cards = projects.map((project) => (
     <div
@@ -263,13 +263,14 @@ export function Portfolio() {
   }
 
   return (
-    <section id="portfolio" ref={sectionRef} className="relative" style={{ height: "200vh" }}>
+    <section id="portfolio" ref={sectionRef} className="relative" style={{ height: "180vh" }}>
       <div className="sticky top-0 h-[100svh] flex flex-col justify-center overflow-hidden pt-24 md:pt-28 pb-6">
         {/* Header */}
-        <div ref={headerRef} className="max-w-7xl mx-auto px-5 md:px-6 mb-5 md:mb-8 text-center">
+        <div className="max-w-7xl mx-auto px-5 md:px-6 mb-5 md:mb-8 text-center">
           <motion.span
             initial={{ opacity: 0, y: 10 }}
-            animate={isInView ? { opacity: 1, y: 0 } : {}}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.5 }}
             className="text-[#E39832] text-xs md:text-sm font-medium tracking-widest uppercase mb-2 md:mb-3 block"
           >
@@ -277,7 +278,8 @@ Arbeiten
           </motion.span>
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
-            animate={isInView ? { opacity: 1, y: 0 } : {}}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
             transition={{ delay: 0.1, duration: 0.6 }}
             className="text-2xl md:text-5xl lg:text-6xl font-bold text-white mb-2 md:mb-4"
             style={{ fontFamily: "var(--font-heading)" }}
@@ -287,7 +289,8 @@ Arbeiten
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
-            animate={isInView ? { opacity: 1, y: 0 } : {}}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
             transition={{ delay: 0.2, duration: 0.6 }}
             className="text-white/40 text-sm md:text-base hidden md:block"
           >
@@ -301,6 +304,7 @@ Ein Projekt auswählen und die Details ansehen.
             style={{
               rotateX: rotate,
               scale,
+              y,
               opacity: cardOpacity,
               transformOrigin: "center top",
             }}
