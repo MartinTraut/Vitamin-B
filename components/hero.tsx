@@ -117,24 +117,12 @@ export function Hero() {
 
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] md:w-[800px] h-[600px] md:h-[800px] bg-[radial-gradient(circle,rgba(227,152,50,0.08)_0%,transparent_70%)] pointer-events-none" />
 
-      <div className="relative z-10 max-w-5xl mx-auto px-5 text-center flex flex-col items-center justify-between min-h-[100svh] py-24 md:py-28">
+      <div className="relative z-10 max-w-5xl mx-auto px-5 text-center flex flex-col items-center justify-between min-h-[100svh] pt-32 pb-12 md:pt-40 md:pb-16">
         {/* Top spacer - smaller to push content up */}
-        <div className="shrink-[3]" />
+        <div className="shrink-[6]" />
 
         {/* Center content */}
         <div>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="mb-6 md:mb-8"
-          >
-            <span className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full border border-[#E39832]/20 bg-[#E39832]/5 text-[#E39832] text-xs md:text-sm">
-              <span className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-[#E39832] animate-pulse" />
-              Brand &amp; Creative Studio · Region Heilbronn
-            </span>
-          </motion.div>
-
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -142,11 +130,11 @@ export function Hero() {
             className="text-[2.5rem] min-[400px]:text-[3rem] leading-[1.02] sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-6 md:mb-8"
             style={{ fontFamily: "var(--font-heading)" }}
           >
-            <span className="text-white">Brand entsteht</span>
+            <span className="text-white">Ihre Vision</span>
             <br />
-            <span className="text-white">in der</span>
+            <span className="text-white">wird zu Ihrem</span>
             <br />
-            <span className="text-[#E39832]">Wahrnehmung.</span>
+            <span className="text-[#E39832]">Brand.</span>
           </motion.h1>
 
           <motion.p
@@ -155,9 +143,9 @@ export function Hero() {
             transition={{ duration: 0.6, delay: 0.5 }}
             className="text-[15px] md:text-xl text-white/60 max-w-2xl mx-auto mb-8 md:mb-8 leading-relaxed"
           >
-            vitaminb ist ein Creative Studio für strategische Markenentwicklung und
-            visuelle Identität. Wir verbinden Strategie mit Gestaltung. Aus einer
-            Idee wird eine Marke, die man wiedererkennt.
+            Creative Studio für Markenentwicklung und visuelle Identität in
+            Neuenstadt am Kocher. Branding, Webdesign und Werbetechnik für die
+            Region Heilbronn und den Hohenlohekreis.
           </motion.p>
 
           <motion.div
@@ -234,7 +222,7 @@ export function Hero() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.5 }}
-          className="md:-mb-16 lg:-mb-20"
+          className="mt-8 md:mt-10"
         >
           <a href="#leistungen" className="hidden md:flex flex-col items-center gap-2 text-white/30 hover:text-[#E39832] transition-colors">
             <span className="text-xs tracking-widest uppercase">Weiter</span>

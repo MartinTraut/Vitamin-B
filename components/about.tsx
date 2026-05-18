@@ -33,11 +33,11 @@ export function About() {
   const isInView = useInView(ref, { once: true, margin: "-100px" })
 
   return (
-    <section id="ueber-uns" className="relative py-16 md:py-32 overflow-hidden">
+    <section id="ueber-uns" className="relative py-16 md:py-28 overflow-hidden">
       <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[radial-gradient(circle,rgba(227,152,50,0.04),transparent_70%)] pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-6">
-        <div ref={ref} className="grid lg:grid-cols-2 gap-16 items-center">
+        <div ref={ref} className="grid lg:grid-cols-2 gap-10 lg:gap-12 items-center">
           {/* Image side */}
           <motion.div
             initial={{ opacity: 0, x: -40 }}
@@ -45,7 +45,7 @@ export function About() {
             transition={{ duration: 0.8 }}
             className="relative"
           >
-            <div className="relative aspect-[3/4] rounded-2xl overflow-hidden">
+            <div className="relative aspect-[4/5] lg:max-h-[62vh] mx-auto w-full rounded-2xl overflow-hidden">
               <Image
                 src="/robert-bauer-portrait.png"
                 alt="Robert Bauer, Inhaber von vitaminb kommunikation & design"
@@ -64,7 +64,7 @@ export function About() {
               transition={{ delay: 0.5, duration: 0.6 }}
               className="absolute -bottom-4 right-0 md:-bottom-6 md:-right-6 bg-[#0d0d0d] border border-white/10 rounded-xl md:rounded-2xl p-4 md:p-6 backdrop-blur-xl"
             >
-              <div className="text-2xl md:text-4xl font-bold text-[#E39832] mb-1">18+</div>
+              <div className="text-2xl md:text-4xl font-bold text-[#E39832] mb-1">20+</div>
               <div className="text-white/50 text-xs md:text-sm">
                 Jahre Erfahrung in
                 <br />
@@ -89,7 +89,7 @@ Studio
               initial={{ opacity: 0, y: 20 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.3 }}
-              className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-6"
+              className="text-3xl sm:text-4xl md:text-4xl font-bold text-white mb-4"
               style={{ fontFamily: "var(--font-heading)" }}
             >
               Vision to Brand.
@@ -100,7 +100,7 @@ Studio
               initial={{ opacity: 0, y: 20 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.4 }}
-              className="text-white/50 text-lg leading-relaxed mb-8"
+              className="text-white/50 text-base md:text-lg leading-relaxed mb-4"
             >
               Gegründet von Robert Bauer, mit einer klaren Haltung: Unternehmen in der
               Region Heilbronn eine Markenwahrnehmung geben, die sonst großen Marken
@@ -111,14 +111,14 @@ Studio
               initial={{ opacity: 0, y: 20 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.45 }}
-              className="text-white/50 text-lg leading-relaxed mb-10"
+              className="text-white/50 text-base md:text-lg leading-relaxed mb-6"
             >
               Im „b" steckt ein „v". Es steht für vision. Der Weg von der Idee zur
               Marke: Vision wird zu Wahrnehmung, Wahrnehmung wird zur Marke. Das ist
               kein Detail im Logo, sondern das Prinzip, nach dem wir arbeiten.
             </motion.p>
 
-            <div className="grid sm:grid-cols-2 gap-6">
+            <div className="grid sm:grid-cols-2 gap-x-6 gap-y-4">
               {values.map((value, i) => (
                 <motion.div
                   key={value.title}

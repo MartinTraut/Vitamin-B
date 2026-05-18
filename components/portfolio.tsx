@@ -1,9 +1,9 @@
 "use client"
 
-import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion"
+import { motion, useScroll, useTransform, useSpring, AnimatePresence } from "framer-motion"
 import { useRef, useState, useEffect } from "react"
 import Image from "next/image"
-import { ArrowUpRight, X } from "lucide-react"
+import { ArrowUpRight, X, ChevronLeft, ChevronRight, Plus } from "lucide-react"
 
 const projects: {
   title: string
@@ -14,23 +14,31 @@ const projects: {
   services: string[]
   imagePosition?: string
   imageContain?: boolean
+  cardScaleClass?: string
+  gallery?: { src: string; position?: string }[]
+  placeholder?: boolean
 }[] = [
   {
-    title: "Fitness Leasing",
-    category: "Fahrzeugbeschriftung & Branding",
-    description: "Die Marke rollt durchs Land. Eine durchdachte Heckgestaltung, die das Leistungsversprechen sofort transportiert. Sauber foliert und über die ganze Flotte hinweg konsistent.",
-    image: "/projekt-fitnessleasing-van.jpg",
-    imagePosition: "center 38%",
-    results: ["Markante Fahrzeugflotte", "Konsistentes Markenbild", "Mobile Sichtbarkeit"],
-    services: ["Fahrzeugfolierung", "Werbetechnik", "Gestaltung", "Montage"],
+    title: "Ihr Projekt",
+    category: "Demnächst hier",
+    description: "",
+    image: "",
+    placeholder: true,
+    results: [],
+    services: [],
   },
   {
     title: "FIRMfit Mobiler Showroom",
-    category: "Werbetechnik & Fahrzeugflotte",
-    description: "Werbung, die vorfährt. Transporter und Anhänger als zusammenhängendes Gestaltungssystem. Ein mobiler Auftritt, der die Fitnessräume direkt zum Kunden bringt.",
+    category: "Fahrzeugflotte & Werbetechnik",
+    description: "Ein durchgängiger Markenauftritt auf der Straße für FIRMfit Fitness Leasing. Transporter und Anhänger bilden einen mobilen Showroom, der die Trainingswelt direkt zum Kunden bringt. Die Heckgestaltung des Vans transportiert das Leistungsversprechen auf einen Blick. Sauber foliert, über die gesamte Flotte hinweg konsistent und auf jeder Strecke sofort wiedererkennbar.",
     image: "/projekt-fitnessleasing-gespann.jpg",
-    results: ["Einheitliche Flottengestaltung", "Mobiler Showroom", "Hohe Wiedererkennung"],
-    services: ["Fahrzeugfolierung", "Anhängerfolierung", "Werbetechnik", "Großfläche"],
+    cardScaleClass: "scale-[1.35] group-hover:scale-[1.45]",
+    gallery: [
+      { src: "/projekt-fitnessleasing-gespann.jpg", position: "center" },
+      { src: "/projekt-fitnessleasing-van.jpg", position: "center 38%" },
+    ],
+    results: ["Mobiler Showroom auf Rädern", "Einheitliche Flottengestaltung", "Hohe Wiedererkennung im Straßenbild"],
+    services: ["Fahrzeugfolierung", "Anhängerfolierung", "Heckgestaltung", "Werbetechnik", "Montage"],
   },
   {
     title: "Café Goldene Zeit",
@@ -61,12 +69,93 @@ const projects: {
     category: "Fahrzeugbeschriftung & Branding",
     description: "Die Marke fährt mit. Ein klares Beschriftungskonzept auf dem Fahrzeug. Präzise foliert, im Einklang mit dem Erscheinungsbild und auf der Straße sofort erkennbar.",
     image: "/PHOTO-2026-05-18-02-57-23.jpg",
-    imagePosition: "center 70%",
-    imageContain: true,
+    imagePosition: "center 60%",
     results: ["Markante Fahrzeugbeschriftung", "Konsistentes Erscheinungsbild", "Hohe Wiedererkennung"],
     services: ["Fahrzeugfolierung", "Werbetechnik", "Logo Anwendung", "Montage"],
   },
 ]
+
+function ModalGallery({
+  images,
+  alt,
+  heightClass,
+}: {
+  images: { src: string; position?: string }[]
+  alt: string
+  heightClass: string
+}) {
+  const [index, setIndex] = useState(0)
+  const [dir, setDir] = useState(0)
+
+  const go = (next: number) => {
+    setDir(next > index ? 1 : -1)
+    setIndex((next + images.length) % images.length)
+  }
+
+  return (
+    <div className={`relative w-full overflow-hidden md:rounded-t-3xl bg-[#0a0a0a] ${heightClass}`}>
+      <AnimatePresence initial={false} custom={dir} mode="popLayout">
+        <motion.div
+          key={index}
+          custom={dir}
+          initial={{ opacity: 0, x: dir >= 0 ? 60 : -60 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: dir >= 0 ? -60 : 60 }}
+          transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+          drag="x"
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={0.2}
+          onDragEnd={(_, info) => {
+            if (info.offset.x < -60) go(index + 1)
+            else if (info.offset.x > 60) go(index - 1)
+          }}
+          className="absolute inset-0 cursor-grab active:cursor-grabbing"
+        >
+          <Image
+            src={images[index].src}
+            alt={alt}
+            fill
+            className="object-cover pointer-events-none select-none"
+            style={{ objectPosition: images[index].position ?? "center" }}
+            sizes="(max-width: 768px) 100vw, 900px"
+            quality={92}
+            draggable={false}
+          />
+        </motion.div>
+      </AnimatePresence>
+
+      <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/30 to-transparent pointer-events-none" />
+
+      <button
+        onClick={() => go(index - 1)}
+        aria-label="Vorheriges Bild"
+        className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white/80 hover:text-white hover:bg-[#E39832] transition-all"
+      >
+        <ChevronLeft className="w-4 h-4" />
+      </button>
+      <button
+        onClick={() => go(index + 1)}
+        aria-label="Nächstes Bild"
+        className="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white/80 hover:text-white hover:bg-[#E39832] transition-all"
+      >
+        <ChevronRight className="w-4 h-4" />
+      </button>
+
+      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex gap-2">
+        {images.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => go(i)}
+            aria-label={`Bild ${i + 1}`}
+            className={`h-1.5 rounded-full transition-all ${
+              i === index ? "w-6 bg-[#E39832]" : "w-1.5 bg-white/40 hover:bg-white/70"
+            }`}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
 
 function ProjectModal({ project, onClose }: { project: typeof projects[0]; onClose: () => void }) {
   // Lock body scroll when modal open
@@ -90,7 +179,7 @@ function ProjectModal({ project, onClose }: { project: typeof projects[0]; onClo
         exit={{ opacity: 0, y: 100 }}
         transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full md:max-w-4xl max-h-[92vh] md:max-h-[90vh] overflow-y-auto rounded-t-3xl md:rounded-3xl bg-[#0a0a0a] border border-white/[0.08] z-10"
+        className="relative w-full md:max-w-3xl max-h-[92vh] md:max-h-[88vh] overflow-hidden rounded-t-3xl md:rounded-3xl bg-[#0a0a0a] border border-white/[0.08] z-10"
       >
         {/* Drag handle mobile */}
         <div className="md:hidden flex justify-center pt-3 pb-1">
@@ -99,39 +188,47 @@ function ProjectModal({ project, onClose }: { project: typeof projects[0]; onClo
 
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-20 w-9 h-9 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white/60 hover:text-white transition-all"
+          className="absolute top-4 right-4 z-30 w-9 h-9 rounded-full bg-[#E39832] shadow-lg shadow-black/30 flex items-center justify-center text-white hover:brightness-110 transition-all"
         >
           <X className="w-4 h-4" />
         </button>
 
-        <div
-          className={`relative w-full overflow-hidden md:rounded-t-3xl bg-[#0a0a0a] ${
-            project.imageContain ? "h-72 md:h-[28rem]" : "h-48 md:h-80"
-          }`}
-        >
-          <Image
-            src={project.image}
+        {project.gallery && project.gallery.length > 1 ? (
+          <ModalGallery
+            images={project.gallery}
             alt={project.title}
-            fill
-            className={project.imageContain ? "object-contain" : "object-cover"}
-            style={{ objectPosition: project.imageContain ? "center" : project.imagePosition ?? "center" }}
-            sizes="(max-width: 768px) 100vw, 900px"
-            quality={92}
+            heightClass={project.imageContain ? "h-60 md:h-80" : "h-44 md:h-64"}
           />
-          {!project.imageContain && (
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/30 to-transparent" />
-          )}
-        </div>
+        ) : (
+          <div
+            className={`relative w-full overflow-hidden md:rounded-t-3xl bg-[#0a0a0a] ${
+              project.imageContain ? "h-60 md:h-80" : "h-44 md:h-64"
+            }`}
+          >
+            <Image
+              src={project.image}
+              alt={project.title}
+              fill
+              className={project.imageContain ? "object-contain" : "object-cover"}
+              style={{ objectPosition: project.imageContain ? "center" : project.imagePosition ?? "center" }}
+              sizes="(max-width: 768px) 100vw, 900px"
+              quality={92}
+            />
+            {!project.imageContain && (
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/30 to-transparent" />
+            )}
+          </div>
+        )}
 
-        <div className="p-5 md:p-10 -mt-12 md:-mt-20 relative z-10">
+        <div className="p-5 md:p-8 -mt-12 md:-mt-16 relative z-10">
           <span className="text-[#E39832] text-[10px] md:text-xs font-medium tracking-widest uppercase">{project.category}</span>
-          <h2 className="text-2xl md:text-4xl font-bold text-white mt-1 mb-3 md:mb-4" style={{ fontFamily: "var(--font-heading)" }}>
+          <h2 className="text-2xl md:text-3xl font-bold text-white mt-1 mb-2 md:mb-3" style={{ fontFamily: "var(--font-heading)" }}>
             {project.title}
           </h2>
-          <p className="text-white/50 text-sm md:text-base leading-relaxed mb-6 md:mb-8">{project.description}</p>
+          <p className="text-white/50 text-sm md:text-[15px] leading-relaxed mb-4 md:mb-6">{project.description}</p>
 
-          <div className="mb-6 md:mb-8">
-            <h4 className="text-white text-xs font-semibold mb-3 uppercase tracking-wider">Ergebnisse</h4>
+          <div className="mb-4 md:mb-6">
+            <h4 className="text-white text-xs font-semibold mb-2 uppercase tracking-wider">Ergebnisse</h4>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 md:gap-3">
               {project.results.map((r) => (
                 <div key={r} className="p-3 md:p-4 rounded-xl bg-[#E39832]/5 border border-[#E39832]/10">
@@ -142,7 +239,7 @@ function ProjectModal({ project, onClose }: { project: typeof projects[0]; onClo
           </div>
 
           <div className="pb-4">
-            <h4 className="text-white text-xs font-semibold mb-3 uppercase tracking-wider">Leistungen</h4>
+            <h4 className="text-white text-xs font-semibold mb-2 uppercase tracking-wider">Leistungen</h4>
             <div className="flex flex-wrap gap-1.5 md:gap-2">
               {project.services.map((s) => (
                 <span key={s} className="text-[10px] md:text-xs px-3 py-1.5 rounded-full bg-white/5 text-white/50 border border-white/5">{s}</span>
@@ -172,30 +269,59 @@ export function Portfolio() {
     offset: ["start start", "end end"],
   })
 
-  // Mobile: kein 3D (kein perspektivisches Re-Rastern pro Frame -> smooth)
-  // Desktop: sanfte, an den Scroll gekoppelte Garagentor-Reveal ueber fast die ganze
-  // Pin-Strecke (kein toter Bereich), danach kurz gehalten bis zum Loesen
-  const rotate = useTransform(scrollYProgress, [0, 0.7], isMobile ? [0, 0] : [18, 0])
-  const scale = useTransform(scrollYProgress, [0, 0.8], isMobile ? [0.96, 1] : [0.86, 1])
-  const y = useTransform(scrollYProgress, [0, 0.8], isMobile ? [0, 0] : [60, 0])
-  const cardOpacity = useTransform(scrollYProgress, [0, 0.12], [0, 1])
+  // Scroll-Progress federn -> kein hartes 1:1-Mapping, sondern flüssige,
+  // leicht nachlaufende Bewegung (smoother Reveal statt ruckeligem Scrub)
+  const smooth = useSpring(scrollYProgress, {
+    stiffness: 90,
+    damping: 26,
+    mass: 0.4,
+  })
 
-  const cards = projects.map((project) => (
-    <div
-      key={project.title}
-      onClick={() => setSelectedProject(project)}
-      className="group relative aspect-[4/3] overflow-hidden rounded-lg md:rounded-2xl cursor-pointer active:scale-[0.98] transition-transform"
-    >
+  // Mobile: kein 3D (kein perspektivisches Re-Rastern pro Frame -> smooth)
+  // Desktop: dezente, an den gefederten Scroll gekoppelte Reveal-Bewegung
+  const rotate = useTransform(smooth, [0, 0.65], isMobile ? [0, 0] : [10, 0])
+  const scale = useTransform(smooth, [0, 0.75], isMobile ? [0.97, 1] : [0.92, 1])
+  const y = useTransform(smooth, [0, 0.75], isMobile ? [0, 0] : [28, 0])
+  const cardOpacity = useTransform(smooth, [0, 0.1], [0, 1])
+
+  const cards = projects.map((project) =>
+    project.placeholder ? (
+      <div
+        key={project.title}
+        className="group relative aspect-[4/3] overflow-hidden rounded-lg md:rounded-2xl border border-dashed border-white/10 bg-white/[0.015]"
+      >
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(227,152,50,0.07)_0%,transparent_70%)]" />
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-3">
+          <div className="w-8 h-8 md:w-12 md:h-12 rounded-full border border-[#E39832]/30 bg-[#E39832]/10 flex items-center justify-center mb-2 md:mb-3">
+            <Plus className="w-4 h-4 md:w-5 md:h-5 text-[#E39832]" />
+          </div>
+          <span className="text-[#E39832] text-[8px] md:text-xs font-medium tracking-wide uppercase mb-0.5">
+            {project.category}
+          </span>
+          <h3 className="text-[11px] md:text-base font-bold text-white leading-tight">
+            {project.title}
+          </h3>
+          <p className="hidden md:block text-white/35 text-xs mt-1.5 max-w-[14rem]">
+            Wird hier Ihr nächstes Projekt stehen?
+          </p>
+        </div>
+      </div>
+    ) : (
+      <div
+        key={project.title}
+        onClick={() => setSelectedProject(project)}
+        className="group relative aspect-[4/3] overflow-hidden rounded-lg md:rounded-2xl cursor-pointer active:scale-[0.98] transition-transform"
+      >
       <Image
         src={project.image}
         alt={project.title}
         fill
-        className="object-cover transition-transform duration-700 group-hover:scale-110"
+        className={`object-cover transition-transform duration-700 ${project.cardScaleClass ?? "group-hover:scale-110"}`}
         style={{ objectPosition: project.imagePosition ?? "center" }}
         sizes="(max-width: 768px) 50vw, 33vw"
         quality={75}
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-70 md:opacity-60 md:group-hover:opacity-90 transition-opacity duration-500" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent opacity-55 md:opacity-45 md:group-hover:opacity-75 transition-opacity duration-500" />
       <div className="absolute inset-0 p-2.5 md:p-4 flex flex-col justify-end">
         <span className="text-[#E39832] text-[8px] md:text-xs font-medium tracking-wide uppercase mb-0.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
           {project.category}
@@ -207,8 +333,9 @@ export function Portfolio() {
       <div className="absolute top-2 right-2 w-6 h-6 md:w-9 md:h-9 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center md:opacity-0 md:scale-75 md:group-hover:opacity-100 md:group-hover:scale-100 transition-all md:group-hover:bg-[#E39832]">
         <ArrowUpRight className="w-3 h-3 md:w-4 md:h-4 text-white" />
       </div>
-    </div>
-  ))
+      </div>
+    )
+  )
 
   if (isMobile) {
     return (
@@ -264,15 +391,15 @@ export function Portfolio() {
 
   return (
     <section id="portfolio" ref={sectionRef} className="relative" style={{ height: "180vh" }}>
-      <div className="sticky top-0 h-[100svh] flex flex-col justify-center overflow-hidden pt-24 md:pt-28 pb-6">
+      <div className="sticky top-0 h-[100svh] flex flex-col justify-center overflow-hidden pt-16 md:pt-20 pb-6">
         {/* Header */}
-        <div className="max-w-7xl mx-auto px-5 md:px-6 mb-5 md:mb-8 text-center">
+        <div className="max-w-7xl mx-auto px-5 md:px-6 mb-3 md:mb-4 text-center">
           <motion.span
             initial={{ opacity: 0, y: 10 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.5 }}
-            className="text-[#E39832] text-xs md:text-sm font-medium tracking-widest uppercase mb-2 md:mb-3 block"
+            className="text-[#E39832] text-xs md:text-sm font-medium tracking-widest uppercase mb-1.5 md:mb-2 block"
           >
 Arbeiten
           </motion.span>
@@ -281,7 +408,7 @@ Arbeiten
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
             transition={{ delay: 0.1, duration: 0.6 }}
-            className="text-2xl md:text-5xl lg:text-6xl font-bold text-white mb-2 md:mb-4"
+            className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-1.5 md:mb-2"
             style={{ fontFamily: "var(--font-heading)" }}
           >
             <span className="text-white">Wirkung,</span>{" "}
@@ -308,11 +435,11 @@ Ein Projekt auswählen und die Details ansehen.
               opacity: cardOpacity,
               transformOrigin: "center top",
             }}
-            className="max-w-5xl mx-auto"
+            className="max-w-3xl mx-auto"
           >
-            <div className="rounded-2xl md:rounded-[32px] border border-white/10 bg-[#111] p-2 md:p-4 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
-              <div className="rounded-xl md:rounded-3xl bg-[#0a0a0a] p-2 md:p-4 overflow-hidden">
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5 md:gap-3">
+            <div className="rounded-2xl md:rounded-[32px] border border-white/10 bg-[#1c1c1c] p-2 md:p-3 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
+              <div className="rounded-xl md:rounded-3xl bg-[#151515] p-2 md:p-3 overflow-hidden">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5 md:gap-2">
                   {cards}
                 </div>
               </div>

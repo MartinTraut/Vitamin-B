@@ -1,7 +1,7 @@
 "use client"
 
-import { motion, useInView, AnimatePresence } from "framer-motion"
-import { useRef, useState, useEffect } from "react"
+import { motion, useInView, LayoutGroup } from "framer-motion"
+import { useRef } from "react"
 import {
   Palette,
   Globe,
@@ -12,6 +12,7 @@ import {
   ArrowUpRight,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { TextRotate } from "@/components/ui/text-rotate"
 
 const services = [
   {
@@ -67,37 +68,6 @@ const services = [
 
 const rotatingWords = ["Hand", "Vision", "Strategie", "Quelle"]
 
-function RotatingWord() {
-  const [index, setIndex] = useState(0)
-
-  useEffect(() => {
-    const id = setInterval(
-      () => setIndex((i) => (i + 1) % rotatingWords.length),
-      2200,
-    )
-    return () => clearInterval(id)
-  }, [])
-
-  // Breite passt sich automatisch an das aktuelle Wort an, der Abstand zu "einer" bleibt konstant
-  return (
-    <span className="relative inline-flex overflow-hidden align-baseline leading-none">
-      <AnimatePresence mode="popLayout" initial={false}>
-        <motion.span
-          key={index}
-          layout
-          initial={{ y: "0.5em", opacity: 0 }}
-          animate={{ y: "0em", opacity: 1 }}
-          exit={{ y: "-0.5em", opacity: 0 }}
-          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          className="whitespace-nowrap text-[#E39832]"
-        >
-          {rotatingWords[index]}
-        </motion.span>
-      </AnimatePresence>
-    </span>
-  )
-}
-
 function FeatureTile() {
   return (
     <div className="glow-border lg:col-start-2 lg:row-start-2 group relative rounded-2xl overflow-hidden bg-white/[0.02] border border-white/[0.06]">
@@ -105,14 +75,33 @@ function FeatureTile() {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(227,152,50,0.10),transparent_70%)]" />
       <div className="relative z-10 h-full min-h-[200px] flex flex-col justify-center items-center text-center p-8">
         <h3
-          className="text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-[1.05]"
+          className="text-2xl md:text-3xl lg:text-4xl font-bold text-white leading-[1.18] px-2"
           style={{ fontFamily: "var(--font-heading)" }}
         >
           Alles aus
           <br />
-          <motion.span layout className="inline-flex items-baseline gap-[0.28em]">
-            einer <RotatingWord />
-          </motion.span>
+          <LayoutGroup>
+            <motion.span className="inline-flex items-baseline" layout>
+              <motion.span
+                layout
+                transition={{ type: "spring", damping: 30, stiffness: 400 }}
+              >
+                einer{" "}
+              </motion.span>
+              <TextRotate
+                texts={rotatingWords}
+                mainClassName="text-[#E39832] overflow-hidden justify-center"
+                staggerFrom="last"
+                initial={{ y: "100%", opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: "-120%", opacity: 0 }}
+                staggerDuration={0.025}
+                splitLevelClassName="overflow-hidden pb-1"
+                transition={{ type: "spring", damping: 30, stiffness: 400 }}
+                rotationInterval={2400}
+              />
+            </motion.span>
+          </LayoutGroup>
         </h3>
       </div>
     </div>
