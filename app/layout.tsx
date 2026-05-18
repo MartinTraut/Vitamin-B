@@ -111,7 +111,7 @@ export default function RootLayout({
               email: "mail@vitaminb-design.de",
               address: {
                 "@type": "PostalAddress",
-                streetAddress: "Hermann-Lang-Str. 32",
+                streetAddress: "Hermann-Lang-Straße 32",
                 addressLocality: "Neuenstadt am Kocher",
                 postalCode: "74196",
                 addressCountry: "DE",

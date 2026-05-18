@@ -62,8 +62,8 @@ export function FAQ() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
-      <div className="max-w-4xl mx-auto px-6">
-        <div ref={ref} className="text-center mb-16">
+      <div className="max-w-4xl mx-auto px-5 md:px-6">
+        <div ref={ref} className="text-center mb-10 md:mb-16">
           <motion.span
             initial={{ opacity: 0, y: 10 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
@@ -96,12 +96,12 @@ Fragen
               <Accordion type="single" collapsible>
                 <AccordionItem
                   value={`faq-${i}`}
-                  className="border border-white/5 rounded-xl px-6 bg-white/[0.02] hover:border-[#E39832]/10 transition-all duration-500 data-[state=open]:border-[#E39832]/20 data-[state=open]:bg-white/[0.03]"
+                  className="border border-white/5 rounded-xl px-4 md:px-6 bg-white/[0.02] hover:border-[#E39832]/10 transition-all duration-500 data-[state=open]:border-[#E39832]/20 data-[state=open]:bg-white/[0.03]"
                 >
-                  <AccordionTrigger className="text-left text-white hover:text-[#E39832] transition-colors py-5 text-base font-medium [&>svg]:text-[#E39832] [&>svg]:transition-transform [&>svg]:duration-300">
+                  <AccordionTrigger className="gap-4 text-left text-white hover:text-[#E39832] transition-colors py-4 md:py-5 text-[15px] md:text-base font-medium [&>svg]:text-[#E39832] [&>svg]:transition-transform [&>svg]:duration-300">
                     {faq.question}
                   </AccordionTrigger>
-                  <AccordionContent className="text-white/50 leading-relaxed pb-5">
+                  <AccordionContent className="text-white/50 text-sm md:text-[15px] leading-relaxed pb-4 md:pb-5">
                     {faq.answer}
                   </AccordionContent>
                 </AccordionItem>

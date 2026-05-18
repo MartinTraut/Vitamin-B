@@ -112,7 +112,7 @@ export function CTA() {
                 <div>
                   <div className="text-xs text-white/30 mb-1">Adresse</div>
                   <div className="font-medium">
-                    Hermann Lang Str. 32, 74196 Neuenstadt a.K.
+                    Hermann-Lang-Straße 32, 74196 Neuenstadt am Kocher
                   </div>
                 </div>
               </div>

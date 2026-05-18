@@ -8,17 +8,17 @@ export const metadata: Metadata = {
 export default function Datenschutz() {
   return (
     <main className="min-h-screen bg-[#050505] text-white">
-      <div className="max-w-3xl mx-auto px-6 py-32">
+      <div className="max-w-3xl mx-auto px-5 md:px-6 py-20 md:py-32">
         <a
           href="/"
-          className="inline-flex items-center gap-2 text-white/40 hover:text-[#E39832] transition-colors mb-12 text-sm"
+          className="inline-flex items-center gap-2 text-white/40 hover:text-[#E39832] transition-colors mb-8 md:mb-12 text-sm"
         >
           <ArrowLeft className="w-4 h-4" />
           Zurück zur Startseite
         </a>
 
         <h1
-          className="text-4xl font-bold mb-4"
+          className="text-3xl md:text-4xl font-bold mb-4"
           style={{ fontFamily: "var(--font-heading)" }}
         >
           Datenschutzerklärung
@@ -51,7 +51,7 @@ export default function Datenschutz() {
                 href="tel:+4915158779133"
                 className="text-[#E39832] hover:text-[#E39832] underline underline-offset-2 decoration-[#E39832]/30 transition-colors"
               >
-                0151 58779133
+                +49 151 58779133
               </a>
               <br />
               E-Mail:{" "}
