@@ -26,7 +26,7 @@ export function CTA() {
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-[radial-gradient(circle,rgba(227,152,50,0.06),transparent_70%)] pointer-events-none" />
 
       <div ref={ref} className="max-w-7xl mx-auto px-6 relative z-10">
-        <div className="grid lg:grid-cols-2 gap-16">
+        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 lg:items-center">
           {/* Left: Info */}
           <div>
             <motion.span
@@ -135,7 +135,7 @@ export function CTA() {
             animate={isInView ? { opacity: 1, x: 0 } : {}}
             transition={{ delay: 0.3, duration: 0.8 }}
           >
-            <div className="relative h-full flex flex-col justify-center p-8 md:p-10 rounded-2xl bg-white/[0.02] border border-white/[0.05] overflow-hidden">
+            <div className="relative flex flex-col p-8 md:p-10 rounded-2xl bg-white/[0.02] border border-white/[0.05] overflow-hidden">
               <div className="absolute -top-24 -right-24 w-72 h-72 bg-[radial-gradient(circle,rgba(37,211,102,0.12),transparent_70%)] pointer-events-none" />
 
               <div className="relative">
@@ -164,23 +164,6 @@ export function CTA() {
                   Per WhatsApp anfragen
                   <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
                 </a>
-
-                <div className="mt-5 flex flex-col sm:flex-row gap-3">
-                  <a
-                    href="tel:+4915158779133"
-                    className="flex-1 flex items-center justify-center gap-2 h-12 rounded-xl border border-white/10 text-white/60 hover:text-[#E39832] hover:border-[#E39832]/30 transition-colors text-sm font-medium"
-                  >
-                    <Phone className="w-4 h-4" />
-                    Anrufen
-                  </a>
-                  <a
-                    href="mailto:mail@vitaminb-design.de"
-                    className="flex-1 flex items-center justify-center gap-2 h-12 rounded-xl border border-white/10 text-white/60 hover:text-[#E39832] hover:border-[#E39832]/30 transition-colors text-sm font-medium"
-                  >
-                    <Mail className="w-4 h-4" />
-                    E-Mail
-                  </a>
-                </div>
 
                 <p className="text-white/25 text-xs text-center mt-6">
                   Ihre Anfrage behandeln wir vertraulich. Mehr dazu in der{" "}
