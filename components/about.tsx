@@ -92,7 +92,7 @@ Studio
               className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-6"
               style={{ fontFamily: "var(--font-heading)" }}
             >
-              Aus Vision wird Marke.
+              Vision to Brand.
               <br />
               <span className="text-white/30">Das ist vitaminb.</span>
             </motion.h2>
