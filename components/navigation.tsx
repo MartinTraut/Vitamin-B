@@ -86,14 +86,14 @@ export function Navigation() {
           {/* Logo */}
           <a
             href="#"
-            className="shrink-0 inline-flex items-center absolute left-1/2 -translate-x-1/2 lg:static lg:left-auto lg:translate-x-0"
+            className="shrink-0 inline-flex items-center"
           >
             <Image
               src="/logo-vitaminb-frame.png"
               alt="vitaminb kommunikation & design"
               width={824}
               height={824}
-              className="w-auto h-16 md:h-20"
+              className="w-auto h-16 md:h-24 lg:h-28"
               priority
               unoptimized
             />
