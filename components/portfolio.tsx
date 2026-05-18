@@ -174,10 +174,11 @@ export function Portfolio() {
     offset: ["start start", "end end"],
   })
 
-  // Mobile: kein 3D (kein perspektivisches Re-Rastern pro Frame -> smooth), Desktop: full garage door
-  const rotate = useTransform(scrollYProgress, [0, 0.6], isMobile ? [0, 0] : [55, 0])
-  const scale = useTransform(scrollYProgress, [0, 0.6], isMobile ? [0.96, 1] : [0.75, 1])
-  const cardOpacity = useTransform(scrollYProgress, [0, 0.15], [0, 1])
+  // Mobile: kein 3D (kein perspektivisches Re-Rastern pro Frame -> smooth), Desktop: sanfte Garagentor-Reveal
+  // Reveal frueh abgeschlossen, danach bleiben die Karten sichtbar (kein Verschwinden beim Weiterscrollen)
+  const rotate = useTransform(scrollYProgress, [0, 0.4], isMobile ? [0, 0] : [32, 0])
+  const scale = useTransform(scrollYProgress, [0, 0.4], isMobile ? [0.96, 1] : [0.9, 1])
+  const cardOpacity = useTransform(scrollYProgress, [0, 0.1], [0.4, 1])
 
   const cards = projects.map((project) => (
     <div
@@ -262,7 +263,7 @@ export function Portfolio() {
   }
 
   return (
-    <section id="portfolio" ref={sectionRef} className="relative" style={{ height: "300vh" }}>
+    <section id="portfolio" ref={sectionRef} className="relative" style={{ height: "200vh" }}>
       <div className="sticky top-0 h-[100svh] flex flex-col justify-center overflow-hidden pt-24 md:pt-28 pb-6">
         {/* Header */}
         <div ref={headerRef} className="max-w-7xl mx-auto px-5 md:px-6 mb-5 md:mb-8 text-center">

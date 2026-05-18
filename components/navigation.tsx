@@ -82,11 +82,11 @@ export function Navigation() {
           scrolled ? "bg-[#050505]" : "bg-transparent"
         }`}
       >
-        <div className="max-w-7xl mx-auto px-4 md:px-6 flex items-center justify-between relative">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 flex items-center justify-between lg:justify-center lg:gap-28 xl:gap-44 relative">
           {/* Logo */}
           <a
             href="#"
-            className="shrink-0 inline-flex items-center absolute left-1/2 -translate-x-1/2 lg:static lg:left-auto lg:translate-x-0 lg:ml-6"
+            className="shrink-0 inline-flex items-center absolute left-1/2 -translate-x-1/2 lg:static lg:left-auto lg:translate-x-0"
           >
             <Image
               src="/logo-vitaminb-frame.png"
@@ -99,8 +99,8 @@ export function Navigation() {
             />
           </a>
 
-          {/* Desktop NavBar - absolutely centered */}
-          <div className="hidden lg:flex items-center gap-1 bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl py-1.5 px-1.5 rounded-full absolute left-1/2 -translate-x-1/2">
+          {/* Desktop NavBar */}
+          <div className="hidden lg:flex items-center gap-1 bg-white/[0.03] border border-white/[0.08] backdrop-blur-xl py-1.5 px-1.5 rounded-full shrink-0">
             {navItems.map((item) => {
               const isActive = activeTab === item.name
               return (
@@ -141,7 +141,7 @@ export function Navigation() {
           {/* Mobile menu button */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="lg:hidden text-white p-2 -mr-2"
+            className="lg:hidden text-white p-2 -mr-2 ml-auto"
             aria-label="Menü öffnen"
           >
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}

@@ -200,7 +200,7 @@ export function Hero() {
               <span className="text-[10px]">Marken geformt</span>
             </div>
             <div className="flex flex-col items-center gap-0.5 border-x border-white/[0.06]">
-              <span className="text-[#E39832] text-lg font-bold">18+</span>
+              <span className="text-[#E39832] text-lg font-bold">20+</span>
               <span className="text-[10px]">Jahre Erfahrung</span>
             </div>
             <div className="flex flex-col items-center gap-0.5">
@@ -216,7 +216,7 @@ export function Hero() {
             </div>
             <div className="w-px h-6 bg-white/10" />
             <div className="flex items-center gap-2">
-              <span className="text-[#E39832] text-2xl font-bold">18+</span>
+              <span className="text-[#E39832] text-2xl font-bold">20+</span>
               <span>Jahre Erfahrung</span>
             </div>
             <div className="w-px h-6 bg-white/10" />
