@@ -14,7 +14,11 @@ function ParticleField() {
     const ctx = canvas.getContext("2d")
     if (!ctx) return
 
+    // Respektiert Reduced-Motion: dann gar keine Animation rendern
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+
     let animationId: number
+    let running = true
     const particles: { x: number; y: number; vx: number; vy: number; size: number; opacity: number }[] = []
 
     const resize = () => {
@@ -23,6 +27,17 @@ function ParticleField() {
     }
     resize()
     window.addEventListener("resize", resize)
+
+    // Animation anhalten, sobald der Hero aus dem Viewport scrollt
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        const wasRunning = running
+        running = entry.isIntersecting
+        if (running && !wasRunning) animate()
+      },
+      { threshold: 0 },
+    )
+    io.observe(canvas)
 
     // Fewer particles on mobile for performance
     const count = window.innerWidth < 768 ? 30 : 80
@@ -39,6 +54,7 @@ function ParticleField() {
     }
 
     const animate = () => {
+      if (!running) return
       ctx.clearRect(0, 0, canvas.width, canvas.height)
       particles.forEach((p) => {
         p.x += p.vx
@@ -47,7 +63,7 @@ function ParticleField() {
         if (p.y < 0 || p.y > canvas.height) p.vy *= -1
         ctx.beginPath()
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
-        ctx.fillStyle = `rgba(255, 106, 0, ${p.opacity})`
+        ctx.fillStyle = `rgba(227,152,50, ${p.opacity})`
         ctx.fill()
       })
 
@@ -60,7 +76,7 @@ function ParticleField() {
               ctx.beginPath()
               ctx.moveTo(a.x, a.y)
               ctx.lineTo(b.x, b.y)
-              ctx.strokeStyle = `rgba(255, 106, 0, ${0.06 * (1 - dist / 150)})`
+              ctx.strokeStyle = `rgba(227,152,50, ${0.06 * (1 - dist / 150)})`
               ctx.lineWidth = 0.5
               ctx.stroke()
             }
@@ -73,8 +89,10 @@ function ParticleField() {
     animate()
 
     return () => {
+      running = false
       cancelAnimationFrame(animationId)
       window.removeEventListener("resize", resize)
+      io.disconnect()
     }
   }, [])
 
@@ -88,7 +106,7 @@ export function Hero() {
       <div className="absolute inset-0 bg-grid opacity-50" />
       <ParticleField />
 
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] md:w-[800px] h-[600px] md:h-[800px] bg-[radial-gradient(circle,rgba(255,106,0,0.08)_0%,transparent_70%)] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] md:w-[800px] h-[600px] md:h-[800px] bg-[radial-gradient(circle,rgba(227,152,50,0.08)_0%,transparent_70%)] pointer-events-none" />
 
       <div className="relative z-10 max-w-5xl mx-auto px-5 text-center flex flex-col items-center justify-between min-h-[100svh] py-24 md:py-28">
         {/* Top spacer - smaller to push content up */}
@@ -102,9 +120,9 @@ export function Hero() {
             transition={{ duration: 0.6 }}
             className="mb-6 md:mb-8"
           >
-            <span className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full border border-[#ff6a00]/20 bg-[#ff6a00]/5 text-[#ff6a00] text-xs md:text-sm">
-              <span className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-[#ff6a00] animate-pulse" />
-              Kreativagentur aus der Region Heilbronn
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full border border-[#E39832]/20 bg-[#E39832]/5 text-[#E39832] text-xs md:text-sm">
+              <span className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-[#E39832] animate-pulse" />
+              Brand &amp; Creative Studio · Region Heilbronn
             </span>
           </motion.div>
 
@@ -115,11 +133,11 @@ export function Hero() {
             className="text-[3.5rem] leading-[0.95] sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-6 md:mb-8"
             style={{ fontFamily: "var(--font-heading)" }}
           >
-            <span className="text-white">Wir gestalten</span>
+            <span className="text-white">Brand entsteht</span>
             <br />
-            <span className="gradient-text">Marken, die</span>
+            <span className="text-white">in der</span>
             <br />
-            <span className="text-white">verkaufen.</span>
+            <span className="text-[#E39832]">Wahrnehmung.</span>
           </motion.h1>
 
           <motion.p
@@ -128,8 +146,9 @@ export function Hero() {
             transition={{ duration: 0.6, delay: 0.5 }}
             className="text-[15px] md:text-xl text-white/60 max-w-2xl mx-auto mb-8 md:mb-8 leading-relaxed"
           >
-            Strategie, Design und Umsetzung aus einer Hand. Wir bauen visuelle Identitäten,
-            die Ihre Zielgruppe begeistern und Ihren Umsatz spürbar steigern.
+            vitaminb ist ein Creative Studio für strategische Markenentwicklung und
+            visuelle Identität. Wir verbinden Strategie mit Gestaltung. Aus einer
+            Idee wird eine Marke, die man wiedererkennt.
           </motion.p>
 
           <motion.div
@@ -141,10 +160,10 @@ export function Hero() {
             <Button
               asChild
               size="lg"
-              className="bg-[#ff6a00] hover:bg-[#ff8c33] text-white rounded-full px-6 md:px-8 h-12 md:h-14 text-sm md:text-base group animate-pulse-glow w-full sm:w-auto"
+              className="bg-[#E39832] [a]:hover:bg-[#E39832] hover:brightness-110 text-white rounded-full px-6 md:px-8 h-12 md:h-14 text-sm md:text-base group animate-pulse-glow w-full sm:w-auto"
             >
               <a href="#kontakt">
-                Kostenloses Erstgespräch
+                Erstgespräch vereinbaren
                 <ArrowRight className="ml-2 h-4 w-4 md:h-5 md:w-5 transition-transform group-hover:translate-x-1" />
               </a>
             </Button>
@@ -154,7 +173,7 @@ export function Hero() {
               size="lg"
               className="rounded-full px-6 md:px-8 h-12 md:h-14 text-sm md:text-base border-white/10 bg-white/5 hover:bg-white/10 text-white w-full sm:w-auto"
             >
-              <a href="#portfolio">Portfolio ansehen</a>
+              <a href="#portfolio">Arbeiten ansehen</a>
             </Button>
           </motion.div>
 
@@ -168,33 +187,33 @@ export function Hero() {
           {/* Mobile: 3-col grid */}
           <div className="grid grid-cols-3 gap-3 md:hidden">
             <div className="flex flex-col items-center gap-0.5">
-              <span className="text-[#ff6a00] text-lg font-bold">50+</span>
-              <span className="text-[10px]">zufriedene Kunden</span>
+              <span className="text-[#E39832] text-lg font-bold">50+</span>
+              <span className="text-[10px]">Marken geformt</span>
             </div>
             <div className="flex flex-col items-center gap-0.5 border-x border-white/[0.06]">
-              <span className="text-[#ff6a00] text-lg font-bold">8+</span>
+              <span className="text-[#E39832] text-lg font-bold">18+</span>
               <span className="text-[10px]">Jahre Erfahrung</span>
             </div>
             <div className="flex flex-col items-center gap-0.5">
-              <span className="text-[#ff6a00] text-lg font-bold">100%</span>
-              <span className="text-[10px]">Leidenschaft</span>
+              <span className="text-[#E39832] text-lg font-bold">100%</span>
+              <span className="text-[10px]">Fokus auf Wirkung</span>
             </div>
           </div>
           {/* Desktop: inline flex */}
           <div className="hidden md:flex items-center justify-center gap-8">
             <div className="flex items-center gap-2">
-              <span className="text-[#ff6a00] text-2xl font-bold">50+</span>
-              <span>zufriedene Kunden</span>
+              <span className="text-[#E39832] text-2xl font-bold">50+</span>
+              <span>Marken geformt</span>
             </div>
             <div className="w-px h-6 bg-white/10" />
             <div className="flex items-center gap-2">
-              <span className="text-[#ff6a00] text-2xl font-bold">8+</span>
+              <span className="text-[#E39832] text-2xl font-bold">18+</span>
               <span>Jahre Erfahrung</span>
             </div>
             <div className="w-px h-6 bg-white/10" />
             <div className="flex items-center gap-2">
-              <span className="text-[#ff6a00] text-2xl font-bold">100%</span>
-              <span>Leidenschaft</span>
+              <span className="text-[#E39832] text-2xl font-bold">100%</span>
+              <span>Fokus auf Wirkung</span>
             </div>
           </div>
 
@@ -206,9 +225,10 @@ export function Hero() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.5 }}
+          className="md:-mb-16 lg:-mb-20"
         >
-          <a href="#leistungen" className="hidden md:flex flex-col items-center gap-2 text-white/30 hover:text-[#ff6a00] transition-colors">
-            <span className="text-xs tracking-widest uppercase">Entdecken</span>
+          <a href="#leistungen" className="hidden md:flex flex-col items-center gap-2 text-white/30 hover:text-[#E39832] transition-colors">
+            <span className="text-xs tracking-widest uppercase">Weiter</span>
             <ChevronDown className="h-5 w-5 animate-bounce" />
           </a>
         </motion.div>

@@ -4,15 +4,15 @@ import { motion } from "framer-motion"
 
 const words = [
   "BRANDING",
+  "WAHRNEHMUNG",
+  "IDENTITÄT",
   "WEBDESIGN",
+  "POSITIONIERUNG",
   "PRINT",
-  "SOCIAL MEDIA",
-  "FOTOGRAFIE",
   "STRATEGIE",
-  "MARKETING",
+  "WIEDERERKENNUNG",
   "CORPORATE DESIGN",
-  "UI/UX",
-  "KREATIVITÄT",
+  "WIRKUNG",
 ]
 
 export function Marquee() {
@@ -39,7 +39,7 @@ export function Marquee() {
             className="text-3xl md:text-5xl font-bold text-white/[0.08] flex items-center gap-8"
           >
             {word}
-            <span className="w-2 h-2 rounded-full bg-[#ff6a00]/30" />
+            <span className="w-2 h-2 rounded-full bg-[#E39832]/30" />
           </span>
         ))}
       </motion.div>

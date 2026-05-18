@@ -32,21 +32,21 @@ export function Footer() {
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <Image
-              src="/logo-full.png"
-              alt="vitamin b"
-              width={782}
-              height={228}
-              className="h-10 w-auto mb-6"
+              src="/logo-vitaminb-white.png"
+              alt="vitaminb kommunikation & design"
+              width={600}
+              height={215}
+              className="h-9 w-auto mb-6"
             />
             <p className="text-white/40 text-sm leading-relaxed mb-6">
-              Ihre Kreativagentur für Kommunikation & Design in der Region Heilbronn.
+              Creative Studio für Markenidentität und Wahrnehmung. Region Heilbronn.
             </p>
             <div className="flex gap-3">
               <a
                 href="https://www.instagram.com/vitaminb.design/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-white/40 hover:text-[#ff6a00] hover:bg-[#ff6a00]/10 transition-all"
+                className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-white/40 hover:text-[#E39832] hover:bg-[#E39832]/10 transition-all"
                 aria-label="Instagram"
               >
                 <Instagram className="w-4 h-4" />
@@ -55,14 +55,14 @@ export function Footer() {
                 href="https://www.facebook.com/vitaminb.design/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-white/40 hover:text-[#ff6a00] hover:bg-[#ff6a00]/10 transition-all"
+                className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-white/40 hover:text-[#E39832] hover:bg-[#E39832]/10 transition-all"
                 aria-label="Facebook"
               >
                 <Facebook className="w-4 h-4" />
               </a>
               <a
                 href="#"
-                className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-white/40 hover:text-[#ff6a00] hover:bg-[#ff6a00]/10 transition-all"
+                className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-white/40 hover:text-[#E39832] hover:bg-[#E39832]/10 transition-all"
                 aria-label="LinkedIn"
               >
                 <Linkedin className="w-4 h-4" />
@@ -78,7 +78,7 @@ export function Footer() {
                 <li key={link.label}>
                   <a
                     href={link.href}
-                    className="text-white/40 text-sm hover:text-[#ff6a00] transition-colors"
+                    className="text-white/40 text-sm hover:text-[#E39832] transition-colors"
                   >
                     {link.label}
                   </a>
@@ -94,7 +94,7 @@ export function Footer() {
                 <li key={link.label}>
                   <a
                     href={link.href}
-                    className="text-white/40 text-sm hover:text-[#ff6a00] transition-colors"
+                    className="text-white/40 text-sm hover:text-[#E39832] transition-colors"
                   >
                     {link.label}
                   </a>
@@ -110,7 +110,7 @@ export function Footer() {
                 <li key={link.label}>
                   <a
                     href={link.href}
-                    className="text-white/40 text-sm hover:text-[#ff6a00] transition-colors"
+                    className="text-white/40 text-sm hover:text-[#E39832] transition-colors"
                   >
                     {link.label}
                   </a>
@@ -123,10 +123,10 @@ export function Footer() {
         {/* Bottom bar */}
         <div className="mt-16 pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-white/30 text-sm">
-            &copy; {new Date().getFullYear()} vitamin b kommunikation & design. Alle Rechte vorbehalten.
+            &copy; {new Date().getFullYear()} vitaminb kommunikation & design. Alle Rechte vorbehalten.
           </p>
           <p className="text-white/20 text-xs">
-            Mit Leidenschaft gestaltet in Neuenstadt am Kocher.
+From Vision to Brand. Gestaltet in Neuenstadt am Kocher.
           </p>
         </div>
       </div>

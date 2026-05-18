@@ -22,26 +22,39 @@ export function Navigation() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 50)
-      const sections = navItems.map((item) => {
-        const id = item.url.replace("#", "")
-        const el = document.getElementById(id)
-        return { name: item.name, el }
+    // Section-Elemente einmal cachen, nicht bei jedem Scroll-Tick neu suchen
+    const sections = navItems.map((item) => ({
+      name: item.name,
+      id: item.url.replace("#", ""),
+    }))
+    let ticking = false
+
+    const measure = () => {
+      ticking = false
+      setScrolled((prev) => {
+        const next = window.scrollY > 50
+        return prev === next ? prev : next
       })
       for (let i = sections.length - 1; i >= 0; i--) {
-        const section = sections[i]
-        if (section.el) {
-          const rect = section.el.getBoundingClientRect()
-          if (rect.top <= 120) {
-            setActiveTab(section.name)
-            break
-          }
+        const el = document.getElementById(sections[i].id)
+        if (el && el.getBoundingClientRect().top <= 120) {
+          setActiveTab((prev) =>
+            prev === sections[i].name ? prev : sections[i].name,
+          )
+          break
         }
       }
     }
-    window.addEventListener("scroll", handleScroll, { passive: true })
-    return () => window.removeEventListener("scroll", handleScroll)
+
+    const onScroll = () => {
+      if (ticking) return
+      ticking = true
+      requestAnimationFrame(measure)
+    }
+
+    measure()
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
   }, [])
 
   useEffect(() => {
@@ -71,13 +84,13 @@ export function Navigation() {
       >
         <div className="max-w-7xl mx-auto px-4 md:px-6 flex items-center justify-between relative">
           {/* Logo */}
-          <a href="#" className="shrink-0">
+          <a href="#" className="shrink-0 ml-2 md:ml-6">
             <Image
-              src="/logo-full.png"
-              alt="vitamin b kommunikation & design"
-              width={782}
-              height={228}
-              className="w-auto h-9 md:h-10"
+              src="/logo-vitaminb-orange.png"
+              alt="vitaminb kommunikation & design"
+              width={600}
+              height={215}
+              className="w-auto h-10 md:h-12"
               priority
               unoptimized
             />
@@ -94,15 +107,15 @@ export function Navigation() {
                   onClick={(e) => handleNavClick(e, item)}
                   className={cn(
                     "relative cursor-pointer text-sm font-medium px-4 py-2 rounded-full transition-colors",
-                    "text-white/60 hover:text-[#ff6a00]",
-                    isActive && "text-[#ff6a00]",
+                    "text-white/60 hover:text-[#E39832]",
+                    isActive && "text-[#E39832]",
                   )}
                 >
                   {item.name}
                   {isActive && (
                     <motion.div
                       layoutId="lamp"
-                      className="absolute inset-0 w-full bg-[#ff6a00]/5 rounded-full -z-10"
+                      className="absolute inset-0 w-full bg-[#E39832]/5 rounded-full -z-10"
                       initial={false}
                       transition={{ type: "spring", stiffness: 300, damping: 30 }}
                     />
@@ -114,7 +127,7 @@ export function Navigation() {
 
           {/* Desktop CTA */}
           <div className="hidden lg:block shrink-0">
-            <Button asChild className="bg-[#ff6a00] hover:bg-[#ff8c33] text-white rounded-full px-6 group">
+            <Button asChild className="bg-[#E39832] [a]:hover:bg-[#E39832] hover:brightness-110 text-white rounded-full px-6 group">
               <a href="#kontakt">
                 Projekt starten
                 <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -146,14 +159,14 @@ export function Navigation() {
                 onClick={(e) => { handleNavClick(e, item); setMobileOpen(false) }}
                 className={cn(
                   "relative p-2.5 rounded-full transition-colors",
-                  isActive ? "text-[#ff6a00]" : "text-white/50",
+                  isActive ? "text-[#E39832]" : "text-white/50",
                 )}
               >
                 <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
                 {isActive && (
                   <motion.div
                     layoutId="lamp-mobile"
-                    className="absolute inset-0 bg-[#ff6a00]/[0.08] rounded-full -z-10"
+                    className="absolute inset-0 bg-[#E39832]/[0.08] rounded-full -z-10"
                     initial={false}
                     transition={{ type: "spring", stiffness: 350, damping: 30 }}
                   />
@@ -187,12 +200,12 @@ export function Navigation() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.05 + i * 0.04 }}
-                  className="text-xl font-light text-white/80 hover:text-[#ff6a00] transition-colors"
+                  className="text-xl font-light text-white/80 hover:text-[#E39832] transition-colors"
                 >
                   {item.name}
                 </motion.a>
               ))}
-              <Button asChild size="lg" className="bg-[#ff6a00] hover:bg-[#ff8c33] text-white rounded-full px-8 mt-2">
+              <Button asChild size="lg" className="bg-[#E39832] [a]:hover:bg-[#E39832] hover:brightness-110 text-white rounded-full px-8 mt-2">
                 <a href="#kontakt" onClick={() => setMobileOpen(false)}>Projekt starten</a>
               </Button>
             </motion.div>

@@ -10,11 +10,11 @@ const sora = Sora({ subsets: ["latin"], variable: "--font-heading-family" })
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.vitaminb-design.de"),
   title: {
-    default: "vitamin b | Kommunikation & Design aus Neuenstadt am Kocher",
-    template: "%s | vitamin b - kommunikation & design",
+    default: "vitaminb | Brand & Creative Studio in der Region Heilbronn",
+    template: "%s | vitaminb kommunikation & design",
   },
   description:
-    "Ihre Kreativagentur für Branding, Webdesign, Print & Social Media in der Region Heilbronn. Wir gestalten Marken, die verkaufen. Jetzt unverbindlich beraten lassen.",
+    "Creative Studio für strategische Markenentwicklung, visuelle Identität und Markenwahrnehmung in der Region Heilbronn. Branding, Webdesign, Print und Social Media. From Vision to Brand.",
   keywords: [
     "Designagentur Heilbronn",
     "Webdesign Neuenstadt",
@@ -25,32 +25,32 @@ export const metadata: Metadata = {
     "Werbeagentur Heilbronn",
     "Print Design",
     "Logo Design",
-    "vitamin b design",
+    "vitaminb design",
   ],
-  authors: [{ name: "vitamin b - kommunikation & design" }],
-  creator: "vitamin b - kommunikation & design",
-  publisher: "vitamin b - kommunikation & design",
+  authors: [{ name: "vitaminb kommunikation & design" }],
+  creator: "vitaminb kommunikation & design",
+  publisher: "vitaminb kommunikation & design",
   openGraph: {
     type: "website",
     locale: "de_DE",
     url: "https://www.vitaminb-design.de",
-    siteName: "vitamin b - kommunikation & design",
-    title: "vitamin b | Kreativagentur für Design & Kommunikation",
+    siteName: "vitaminb kommunikation & design",
+    title: "vitaminb | Brand & Creative Studio · Region Heilbronn",
     description:
-      "Marken, die verkaufen. Designs, die begeistern. Ihre Kreativagentur in der Region Heilbronn.",
+      "From Vision to Brand. Strategische Markenentwicklung und visuelle Identität aus der Region Heilbronn.",
     images: [
       {
         url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "vitamin b - kommunikation & design",
+        alt: "vitaminb kommunikation & design",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "vitamin b | Kreativagentur für Design & Kommunikation",
-    description: "Marken, die verkaufen. Designs, die begeistern.",
+    title: "vitaminb | Brand & Creative Studio · Region Heilbronn",
+    description: "From Vision to Brand. Strategische Markenentwicklung aus der Region Heilbronn.",
   },
   robots: {
     index: true,
@@ -83,11 +83,32 @@ export default function RootLayout({
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "ProfessionalService",
-              name: "vitamin b - kommunikation & design",
+              name: "vitaminb kommunikation & design",
+              alternateName: "vitaminb",
+              description:
+                "Creative Studio für strategische Markenentwicklung, visuelle Identität und Markenwahrnehmung in der Region Heilbronn. From Vision to Brand.",
+              slogan: "From Vision to Brand.",
               image: "https://www.vitaminb-design.de/logo.png",
+              logo: "https://www.vitaminb-design.de/logo-vitaminb-orange.png",
               "@id": "https://www.vitaminb-design.de",
               url: "https://www.vitaminb-design.de",
-              telephone: "+4915172896574",
+              founder: {
+                "@type": "Person",
+                name: "Robert Bauer",
+                jobTitle: "Inhaber & Creative Director",
+              },
+              knowsAbout: [
+                "Branding",
+                "Corporate Design",
+                "Webdesign",
+                "Printdesign",
+                "Werbetechnik",
+                "Fahrzeugbeschriftung",
+                "Social Media",
+                "Markenstrategie",
+              ],
+              telephone: "+4915158779133",
+              email: "mail@vitaminb-design.de",
               address: {
                 "@type": "PostalAddress",
                 streetAddress: "Hermann-Lang-Str. 32",

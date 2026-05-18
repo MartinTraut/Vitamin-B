@@ -4,10 +4,10 @@ import { motion, useInView, animate } from "framer-motion"
 import { useRef, useEffect, useState } from "react"
 
 const stats = [
-  { value: 50, suffix: "+", label: "Zufriedene Kunden" },
-  { value: 120, suffix: "+", label: "Abgeschlossene Projekte" },
-  { value: 8, suffix: "+", label: "Jahre Erfahrung" },
-  { value: 100, suffix: "%", label: "Weiterempfehlungsrate" },
+  { value: 50, suffix: "+", label: "Marken geformt" },
+  { value: 120, suffix: "+", label: "Projekte umgesetzt" },
+  { value: 18, suffix: "+", label: "Jahre Erfahrung" },
+  { value: 100, suffix: "%", label: "Fokus auf Wirkung" },
 ]
 
 function AnimatedCounter({ value, suffix }: { value: number; suffix: string }) {
@@ -47,13 +47,13 @@ export function Stats() {
         initial={{ scaleX: 0 }}
         animate={isInView ? { scaleX: 1 } : {}}
         transition={{ duration: 1.2, ease: "easeOut" }}
-        className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#ff6a00]/20 to-transparent origin-center"
+        className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#E39832]/20 to-transparent origin-center"
       />
       <motion.div
         initial={{ scaleX: 0 }}
         animate={isInView ? { scaleX: 1 } : {}}
         transition={{ duration: 1.2, ease: "easeOut", delay: 0.2 }}
-        className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#ff6a00]/20 to-transparent origin-center"
+        className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#E39832]/20 to-transparent origin-center"
       />
 
       <div ref={ref} className="max-w-7xl mx-auto px-6 relative z-10">
@@ -71,7 +71,7 @@ export function Stats() {
                 initial={{ width: 0 }}
                 animate={isInView ? { width: "40px" } : {}}
                 transition={{ delay: 0.8 + i * 0.15, duration: 0.6 }}
-                className="h-[1px] bg-[#ff6a00]/30 mx-auto mt-3 mb-2"
+                className="h-[1px] bg-[#E39832]/30 mx-auto mt-3 mb-2"
               />
               <div className="text-white/40 text-sm">{stat.label}</div>
             </motion.div>

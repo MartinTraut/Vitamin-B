@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from "react"
 import { motion, useScroll, useTransform, useMotionValueEvent, AnimatePresence, MotionValue } from "framer-motion"
-import { MessageSquare, Lightbulb, Pen, Rocket, CheckCircle2, Clock, Target, Zap, Heart, ArrowRight } from "lucide-react"
+import { MessageSquare, Lightbulb, Pen, Truck, CheckCircle2, Clock, Target, Zap, Heart, ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const steps = [
@@ -11,8 +11,8 @@ const steps = [
     icon: MessageSquare,
     title: "Erstgespräch",
     subtitle: "Kennenlernen",
-    description: "Wir lernen Sie und Ihr Unternehmen kennen, verstehen Ihre Ziele und stecken den Rahmen ab. Kein Verkaufsdruck. Nur echtes Interesse an Ihrem Projekt.",
-    color: "#ff6a00",
+    description: "Sie sprechen direkt mit Robert, nicht mit einem Vertrieb. Wir hören zu, erfassen Ihre Ziele und stecken den Rahmen ab. Kein Verkaufsdruck, nur echtes Interesse an Ihrer Marke.",
+    color: "#E39832",
     details: [
       { icon: Clock, text: "30 min. Gespräch" },
       { icon: Target, text: "Ziele definieren" },
@@ -25,8 +25,8 @@ const steps = [
     icon: Lightbulb,
     title: "Konzept & Strategie",
     subtitle: "Analyse",
-    description: "Wir analysieren Ihre Branche, Ihre Zielgruppe und Ihre Mitbewerber. Daraus entsteht ein maßgeschneidertes Konzept, das Ihre Marke einzigartig positioniert.",
-    color: "#ff8c33",
+    description: "Wir analysieren Markt, Zielgruppe und Wettbewerb. Daraus entsteht eine klare Positionierung. Die Strategie, die jeder gestalterischen Entscheidung zugrunde liegt, egal ob digital, gedruckt oder am Fahrzeug.",
+    color: "#E39832",
     details: [
       { icon: Target, text: "Marktanalyse" },
       { icon: Lightbulb, text: "Zielgruppenforschung" },
@@ -39,20 +39,20 @@ const steps = [
     icon: Pen,
     title: "Design & Umsetzung",
     subtitle: "Kreation",
-    description: "Jetzt wird es kreativ. Wir gestalten, programmieren und verfeinern. Immer in enger Abstimmung mit Ihnen. Sie bekommen regelmäßige Updates und können jederzeit Feedback geben.",
-    color: "#ff6a00",
+    description: "Aus Strategie wird Gestaltung. Wir entwerfen, gestalten und schärfen jedes Detail, immer in enger Abstimmung. Vom Logo über die Website bis zum druckfertigen Layout. Regelmäßige Stände, Feedback jederzeit möglich.",
+    color: "#E39832",
     flow: ["Entwurf", "Feedback", "Revision", "Finalisierung"],
     checks: ["Iterative Designrunden", "Regelmäßige Updates", "Feedback jederzeit möglich"],
   },
   {
     number: "04",
-    icon: Rocket,
-    title: "Launch & Support",
-    subtitle: "Go Live",
-    description: "Go live! Wir begleiten den Launch und stehen Ihnen auch danach als langfristiger Partner zur Seite. Weil gutes Design Pflege braucht.",
-    color: "#ff8c33",
-    live: true,
-    checks: ["Begleiteter Launch", "Langfristiger Support", "Optionale Betreuungspakete"],
+    icon: Truck,
+    title: "Produktion & Übergabe",
+    subtitle: "In die Realität",
+    description: "Hier wird die Marke greifbar. Wir bringen das Design auf das Material: gedruckte Geschäftsausstattung und Broschüren, beklebte Fahrzeuge, bedruckte Textilien, Schilder und Werbetechnik. Robert begleitet die Produktion persönlich und prüft jedes Stück, bevor es zu Ihnen geht. Auf Wunsch übernehmen wir auch Montage und Folierung vor Ort. Und danach bleiben wir Ihr fester Partner für alles, was nachkommt.",
+    color: "#E39832",
+    flow: ["Druck & Produktion", "Veredelung", "Montage & Folierung", "Übergabe"],
+    checks: ["Print, Textil & Werbetechnik aus einer Hand", "Fahrzeugfolierung & Montage vor Ort", "Persönliche Qualitätskontrolle durch Robert", "Fester Ansprechpartner statt Ticket-System"],
   },
 ]
 
@@ -72,12 +72,12 @@ function StepContent({ step, isActive }: { step: typeof steps[0]; isActive: bool
           <motion.div
             animate={isActive ? { rotate: [0, -8, 8, 0] } : {}}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="w-14 h-14 rounded-2xl bg-[#ff6a00]/10 border border-[#ff6a00]/20 flex items-center justify-center shrink-0"
+            className="w-14 h-14 rounded-2xl bg-[#E39832]/10 border border-[#E39832]/20 flex items-center justify-center shrink-0"
           >
-            <Icon className="w-7 h-7 text-[#ff6a00]" />
+            <Icon className="w-7 h-7 text-[#E39832]" />
           </motion.div>
           <div>
-            <span className="text-[#ff6a00] text-[10px] font-semibold tracking-[0.2em] uppercase block mb-1">{step.subtitle}</span>
+            <span className="text-[#E39832] text-[10px] font-semibold tracking-[0.2em] uppercase block mb-1">{step.subtitle}</span>
             <h3 className="text-2xl md:text-3xl font-bold text-white leading-tight">{step.title}</h3>
           </div>
         </div>
@@ -86,7 +86,7 @@ function StepContent({ step, isActive }: { step: typeof steps[0]; isActive: bool
           initial={{ width: 0 }}
           animate={isActive ? { width: 60 } : { width: 0 }}
           transition={{ duration: 0.8, delay: 0.3 }}
-          className="h-[2px] bg-gradient-to-r from-[#ff6a00] to-transparent mb-6 mt-4"
+          className="h-[2px] bg-gradient-to-r from-[#E39832] to-transparent mb-6 mt-4"
         />
 
         <p className="text-white/50 text-[15px] leading-relaxed mb-8 max-w-lg">
@@ -104,9 +104,9 @@ function StepContent({ step, isActive }: { step: typeof steps[0]; isActive: bool
                   initial={{ opacity: 0, y: 15 }}
                   animate={isActive ? { opacity: 1, y: 0 } : { opacity: 0, y: 15 }}
                   transition={{ duration: 0.4, delay: 0.4 + di * 0.1 }}
-                  className="flex items-center gap-3 p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-[#ff6a00]/15 transition-colors duration-300"
+                  className="flex items-center gap-3 p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-[#E39832]/15 transition-colors duration-300"
                 >
-                  <DIcon className="w-4 h-4 text-[#ff6a00] shrink-0" />
+                  <DIcon className="w-4 h-4 text-[#E39832] shrink-0" />
                   <span className="text-white/60 text-sm">{d.text}</span>
                 </motion.div>
               )
@@ -124,7 +124,7 @@ function StepContent({ step, isActive }: { step: typeof steps[0]; isActive: bool
                 animate={isActive ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.8 }}
                 transition={{ duration: 0.3, delay: 0.4 + i * 0.1 }}
               >
-                <span className="text-xs px-4 py-2 rounded-full bg-[#ff6a00]/10 text-[#ff6a00] border border-[#ff6a00]/20 font-medium">
+                <span className="text-xs px-4 py-2 rounded-full bg-[#E39832]/10 text-[#E39832] border border-[#E39832]/20 font-medium">
                   {s}
                 </span>
                 {i < step.flow!.length - 1 && (
@@ -135,25 +135,6 @@ function StepContent({ step, isActive }: { step: typeof steps[0]; isActive: bool
           </div>
         )}
 
-        {step.live && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={isActive ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="p-5 rounded-2xl bg-gradient-to-br from-[#ff6a00]/[0.06] to-transparent border border-[#ff6a00]/10 mb-8"
-          >
-            <div className="flex items-center gap-3 mb-3">
-              <div className="relative">
-                <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
-                <div className="w-2.5 h-2.5 rounded-full bg-green-400 absolute inset-0 animate-ping" />
-              </div>
-              <span className="text-white/80 text-sm font-medium">Ihr Projekt ist live</span>
-            </div>
-            <p className="text-white/40 text-sm leading-relaxed">
-              Nach dem Launch überwachen wir die Performance und stehen für Anpassungen bereit. Ihr Erfolg ist unser Erfolg.
-            </p>
-          </motion.div>
-        )}
 
         {/* Checks */}
         <div className="space-y-3">
@@ -165,7 +146,7 @@ function StepContent({ step, isActive }: { step: typeof steps[0]; isActive: bool
               animate={isActive ? { opacity: 1, x: 0 } : { opacity: 0, x: -10 }}
               transition={{ duration: 0.3, delay: 0.6 + ci * 0.08 }}
             >
-              <CheckCircle2 className="w-4 h-4 text-[#ff6a00] shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-[#E39832] shrink-0" />
               {item}
             </motion.div>
           ))}
@@ -225,7 +206,7 @@ export function Process() {
             }}
             transition={{ duration: 1.5, ease: "easeOut" }}
             style={{
-              background: "radial-gradient(circle, rgba(255,106,0,0.04) 0%, transparent 70%)",
+              background: "radial-gradient(circle, rgba(227,152,50,0.04) 0%, transparent 70%)",
             }}
           />
 
@@ -233,15 +214,15 @@ export function Process() {
             <div className="max-w-7xl mx-auto px-6 w-full">
               {/* Header */}
               <div className="text-center mb-6 md:mb-14">
-                <span className="text-[#ff6a00] text-sm font-medium tracking-widest uppercase mb-3 block">
-                  So arbeiten wir
+                <span className="text-[#E39832] text-sm font-medium tracking-widest uppercase mb-3 block">
+                  Prozess
                 </span>
                 <h2
                   className="text-3xl md:text-5xl font-bold text-white"
                   style={{ fontFamily: "var(--font-heading)" }}
                 >
-                  <span className="text-white">Vier Schritte</span>{" "}
-                  <span className="text-white/30">zu Ihrem Traumdesign.</span>
+                  <span className="text-white">Von der Vision</span>{" "}
+                  <span className="text-white/30">zur Marke.</span>
                 </h2>
               </div>
 
@@ -273,7 +254,7 @@ export function Process() {
                             {/* Pulse ring for current */}
                             {isCurrent && (
                               <motion.div
-                                className="absolute inset-0 rounded-full border-2 border-[#ff6a00]/40"
+                                className="absolute inset-0 rounded-full border-2 border-[#E39832]/40"
                                 animate={{ scale: [1, 1.8], opacity: [0.6, 0] }}
                                 transition={{ duration: 1.5, repeat: Infinity, ease: "easeOut" }}
                               />
@@ -283,12 +264,12 @@ export function Process() {
                               animate={{
                                 width: isCurrent ? 26 : isPast ? 14 : 10,
                                 height: isCurrent ? 26 : isPast ? 14 : 10,
-                                backgroundColor: isCurrent || isPast ? "#ff6a00" : "transparent",
-                                borderColor: isCurrent ? "#ff6a00" : isPast ? "#ff6a00" : "rgba(255,255,255,0.12)",
+                                backgroundColor: isCurrent || isPast ? "#E39832" : "transparent",
+                                borderColor: isCurrent ? "#E39832" : isPast ? "#E39832" : "rgba(255,255,255,0.12)",
                                 boxShadow: isCurrent
-                                  ? "0 0 20px rgba(255,106,0,0.5), 0 0 40px rgba(255,106,0,0.2)"
+                                  ? "0 0 20px rgba(227,152,50,0.5), 0 0 40px rgba(227,152,50,0.2)"
                                   : isPast
-                                  ? "0 0 8px rgba(255,106,0,0.2)"
+                                  ? "0 0 8px rgba(227,152,50,0.2)"
                                   : "none",
                               }}
                               transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
@@ -311,7 +292,7 @@ export function Process() {
                           >
                             <div className={cn(
                               "text-[10px] font-bold tracking-[0.15em] uppercase transition-colors duration-500",
-                              isCurrent ? "text-[#ff6a00]" : isPast ? "text-[#ff6a00]/40" : "text-white/15"
+                              isCurrent ? "text-[#E39832]" : isPast ? "text-[#E39832]/40" : "text-white/15"
                             )}>
                               Step {step.number}
                             </div>
@@ -335,7 +316,7 @@ export function Process() {
                       <motion.div
                         animate={{
                           width: i === activeStep ? 32 : 8,
-                          backgroundColor: i <= activeStep ? "#ff6a00" : "rgba(255,255,255,0.1)",
+                          backgroundColor: i <= activeStep ? "#E39832" : "rgba(255,255,255,0.1)",
                         }}
                         transition={{ duration: 0.4 }}
                         className="h-1.5 rounded-full"
@@ -380,7 +361,7 @@ function ProgressLine({ progress }: { progress: MotionValue<number> }) {
         className="absolute left-3 top-0 w-[2px] rounded-full origin-top"
         style={{
           height: heightPx,
-          background: "linear-gradient(to bottom, #ff6a00 0%, #ff8c33 80%, rgba(255,140,51,0.3) 100%)",
+          background: "linear-gradient(to bottom, #E39832 0%, #E39832 80%, rgba(227,152,50,0.3) 100%)",
         }}
       />
       {/* Glow overlay */}
@@ -388,7 +369,7 @@ function ProgressLine({ progress }: { progress: MotionValue<number> }) {
         className="absolute left-[10px] top-0 w-[6px] rounded-full origin-top blur-[3px]"
         style={{
           height: heightPx,
-          background: "linear-gradient(to bottom, rgba(255,106,0,0.4) 0%, rgba(255,140,51,0.1) 100%)",
+          background: "linear-gradient(to bottom, rgba(227,152,50,0.4) 0%, rgba(227,152,50,0.1) 100%)",
         }}
       />
     </>

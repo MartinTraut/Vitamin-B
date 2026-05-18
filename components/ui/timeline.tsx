@@ -78,14 +78,14 @@ export const Timeline = ({ data }: { data: TimelineEntry[] }) => {
                   <motion.div
                     animate={isActive ? {
                       scale: [1, 1.4, 1],
-                      backgroundColor: "rgba(255, 106, 0, 0.6)",
-                      borderColor: "rgba(255, 106, 0, 0.8)",
-                      boxShadow: "0 0 16px rgba(255, 106, 0, 0.5)",
+                      backgroundColor: "rgba(227,152,50, 0.6)",
+                      borderColor: "rgba(227,152,50, 0.8)",
+                      boxShadow: "0 0 16px rgba(227,152,50, 0.5)",
                     } : {
                       scale: 1,
-                      backgroundColor: "rgba(255, 106, 0, 0.1)",
-                      borderColor: "rgba(255, 106, 0, 0.2)",
-                      boxShadow: "0 0 0px rgba(255, 106, 0, 0)",
+                      backgroundColor: "rgba(227,152,50, 0.1)",
+                      borderColor: "rgba(227,152,50, 0.2)",
+                      boxShadow: "0 0 0px rgba(227,152,50, 0)",
                     }}
                     transition={isActive ? {
                       scale: { duration: 0.5, times: [0, 0.5, 1] },
@@ -96,7 +96,7 @@ export const Timeline = ({ data }: { data: TimelineEntry[] }) => {
                 </div>
                 {/* Step number */}
                 <motion.h3
-                  animate={isActive ? { opacity: 1, x: 0, color: "rgba(255, 106, 0, 0.3)" } : { opacity: 0.5, x: -10, color: "rgba(255, 106, 0, 0.08)" }}
+                  animate={isActive ? { opacity: 1, x: 0, color: "rgba(227,152,50, 0.3)" } : { opacity: 0.5, x: -10, color: "rgba(227,152,50, 0.08)" }}
                   transition={{ duration: 0.5 }}
                   className="hidden md:block text-xl md:pl-20 md:text-6xl font-bold"
                 >
@@ -112,13 +112,13 @@ export const Timeline = ({ data }: { data: TimelineEntry[] }) => {
                 transition={{ delay: 0.1, duration: 0.7, ease: [0.25, 0.1, 0.25, 1] }}
                 className="relative pl-20 pr-4 md:pl-4 w-full"
               >
-                <h3 className="md:hidden block text-2xl mb-4 text-left font-bold text-[#ff6a00]/20">
+                <h3 className="md:hidden block text-2xl mb-4 text-left font-bold text-[#E39832]/20">
                   {item.title}
                 </h3>
                 <motion.div
-                  animate={isActive ? { borderColor: "rgba(255, 106, 0, 0.1)", backgroundColor: "rgba(255, 255, 255, 0.02)" } : { borderColor: "rgba(255, 255, 255, 0.05)", backgroundColor: "rgba(255, 255, 255, 0.01)" }}
+                  animate={isActive ? { borderColor: "rgba(227,152,50, 0.1)", backgroundColor: "rgba(255, 255, 255, 0.02)" } : { borderColor: "rgba(255, 255, 255, 0.05)", backgroundColor: "rgba(255, 255, 255, 0.01)" }}
                   transition={{ duration: 0.5 }}
-                  className="p-6 md:p-8 rounded-2xl border hover:border-[#ff6a00]/10 transition-all duration-500 hover:bg-white/[0.03]"
+                  className="p-6 md:p-8 rounded-2xl border hover:border-[#E39832]/10 transition-all duration-500 hover:bg-white/[0.03]"
                 >
                   {item.content}
                 </motion.div>
@@ -137,7 +137,7 @@ export const Timeline = ({ data }: { data: TimelineEntry[] }) => {
               height: heightTransform,
               opacity: opacityTransform,
             }}
-            className="absolute inset-x-0 top-0 w-[2px] bg-gradient-to-t from-[#ff6a00] via-[#ff8c33] to-transparent from-[0%] via-[10%] rounded-full"
+            className="absolute inset-x-0 top-0 w-[2px] bg-gradient-to-t from-[#E39832] via-[#E39832] to-transparent from-[0%] via-[10%] rounded-full"
           />
         </div>
       </div>

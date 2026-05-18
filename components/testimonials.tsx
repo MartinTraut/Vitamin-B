@@ -9,7 +9,7 @@ const testimonials = [
   {
     name: "Thomas Schneider",
     role: "Geschäftsführer, Autohaus Schneider",
-    text: "vitamin b hat unsere komplette Marke neu aufgestellt. Von der Website bis zu den Printmaterialien, alles wie aus einem Guss. Unsere Kunden sind begeistert und wir haben spürbar mehr Anfragen seit dem Relaunch.",
+    text: "vitaminb hat unsere komplette Marke neu aufgestellt. Von der Website bis zu den Printmaterialien, alles wie aus einem Guss. Unsere Kunden sind begeistert und wir haben spürbar mehr Anfragen seit dem Relaunch.",
     rating: 5,
     image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&q=80",
   },
@@ -43,9 +43,9 @@ export function Testimonials() {
             initial={{ opacity: 0, y: 10 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.5 }}
-            className="text-[#ff6a00] text-sm font-medium tracking-widest uppercase mb-4 block"
+            className="text-[#E39832] text-sm font-medium tracking-widest uppercase mb-4 block"
           >
-            Kundenstimmen
+Stimmen
           </motion.span>
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
@@ -54,8 +54,8 @@ export function Testimonials() {
             className="text-4xl md:text-5xl font-bold text-white mb-6"
             style={{ fontFamily: "var(--font-heading)" }}
           >
-            <span className="text-white">Ergebnisse</span>{" "}
-            <span className="text-white/30">statt leere Versprechen.</span>
+            <span className="text-white">Wirkung,</span>{" "}
+            <span className="text-white/30">die bestätigt wird.</span>
           </motion.h2>
         </div>
 
@@ -69,13 +69,13 @@ export function Testimonials() {
               whileHover={{ y: -6 }}
               className="relative group"
             >
-              <div className="p-8 rounded-2xl bg-white/[0.02] border border-white/[0.05] hover:border-[#ff6a00]/10 transition-all duration-500 h-full flex flex-col group-hover:shadow-[0_0_40px_rgba(255,106,0,0.04)]">
+              <div className="hover-glow hover-aura p-8 rounded-2xl bg-white/[0.02] border border-white/[0.05] hover:border-[#E39832]/30 transition-all duration-500 h-full flex flex-col group-hover:shadow-[0_0_40px_rgba(227,152,50,0.08)]">
                 <motion.div
                   initial={{ opacity: 0, rotate: -10 }}
                   animate={isInView ? { opacity: 1, rotate: 0 } : {}}
                   transition={{ delay: 0.4 + i * 0.15, duration: 0.5 }}
                 >
-                  <Quote className="w-10 h-10 text-[#ff6a00]/20 mb-6 group-hover:text-[#ff6a00]/30 transition-colors duration-500" />
+                  <Quote className="w-10 h-10 text-[#E39832]/20 mb-6 group-hover:text-[#E39832]/30 transition-colors duration-500" />
                 </motion.div>
 
                 <div className="flex gap-1 mb-4">
@@ -86,7 +86,7 @@ export function Testimonials() {
                       animate={isInView ? { opacity: 1, scale: 1 } : {}}
                       transition={{ delay: 0.5 + i * 0.15 + j * 0.05, type: "spring", stiffness: 500 }}
                     >
-                      <Star className="w-4 h-4 text-[#ff6a00] fill-[#ff6a00]" />
+                      <Star className="w-4 h-4 text-[#E39832] fill-[#E39832]" />
                     </motion.div>
                   ))}
                 </div>
@@ -96,7 +96,7 @@ export function Testimonials() {
                 </p>
 
                 <div className="flex items-center gap-4 pt-6 border-t border-white/5">
-                  <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-[#ff6a00]/20 shrink-0 group-hover:border-[#ff6a00]/40 transition-colors duration-500">
+                  <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-[#E39832]/20 shrink-0 group-hover:border-[#E39832]/40 transition-colors duration-500">
                     <Image
                       src={testimonial.image}
                       alt={testimonial.name}

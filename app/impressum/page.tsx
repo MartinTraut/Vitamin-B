@@ -11,7 +11,7 @@ export default function Impressum() {
       <div className="max-w-3xl mx-auto px-6 py-32">
         <a
           href="/"
-          className="inline-flex items-center gap-2 text-white/40 hover:text-[#ff6a00] transition-colors mb-12 text-sm"
+          className="inline-flex items-center gap-2 text-white/40 hover:text-[#E39832] transition-colors mb-12 text-sm"
         >
           <ArrowLeft className="w-4 h-4" />
           Zurück zur Startseite
@@ -27,46 +27,65 @@ export default function Impressum() {
         <div className="prose prose-invert prose-sm max-w-none space-y-8 text-white/60">
           <section>
             <h2 className="text-white text-xl font-semibold mb-4">
-              Angaben gemäß § 5 TMG
+              Angaben gemäß § 5 DDG
             </h2>
             <p>
-              Robert Bauer
+              vitaminb kommunikation &amp; design
               <br />
-              vitamin b - kommunikation & design
+              Inhaber: Robert Bauer
               <br />
-              Hermann-Lang-Str. 32
+              Hermann-Lang-Straße 32
               <br />
               74196 Neuenstadt am Kocher
+              <br />
+              Deutschland
+            </p>
+            <p className="mt-3">
+              Einzelunternehmen, nicht im Handelsregister eingetragen.
             </p>
           </section>
 
           <section>
             <h2 className="text-white text-xl font-semibold mb-4">Kontakt</h2>
             <p>
-              Telefon: +49 151 72896574
+              Telefon:{" "}
+              <a
+                href="tel:+4915158779133"
+                className="text-[#E39832] hover:text-[#E39832] underline underline-offset-2 decoration-[#E39832]/30 transition-colors"
+              >
+                +49 151 58779133
+              </a>
               <br />
-              E-Mail: mail@vitaminb-design.de
+              E-Mail:{" "}
+              <a
+                href="mailto:mail@vitaminb-design.de"
+                className="text-[#E39832] hover:text-[#E39832] underline underline-offset-2 decoration-[#E39832]/30 transition-colors"
+              >
+                mail@vitaminb-design.de
+              </a>
             </p>
           </section>
 
           <section>
             <h2 className="text-white text-xl font-semibold mb-4">
-              Umsatzsteuer-ID
+              Umsatzsteuer-Identifikationsnummer
             </h2>
             <p>
-              Umsatzsteuer-Identifikationsnummer gemäß § 27 a
-              Umsatzsteuergesetz: wird nachgereicht.
+              Umsatzsteuer-Identifikationsnummer gemäß § 27a Umsatzsteuergesetz:
+              <br />
+              DE269883628
             </p>
           </section>
 
           <section>
             <h2 className="text-white text-xl font-semibold mb-4">
-              Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV
+              Verantwortlich für den Inhalt
             </h2>
-            <p>
+            <p>Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV:</p>
+            <p className="mt-2">
               Robert Bauer
               <br />
-              Hermann-Lang-Str. 32
+              Hermann-Lang-Straße 32
               <br />
               74196 Neuenstadt am Kocher
             </p>
@@ -74,34 +93,46 @@ export default function Impressum() {
 
           <section>
             <h2 className="text-white text-xl font-semibold mb-4">
-              Haftungsausschluss
+              Verbraucherstreitbeilegung
             </h2>
-            <h3 className="text-white/80 font-medium mb-2">Haftung für Inhalte</h3>
             <p>
-              Die Inhalte unserer Seiten wurden mit größter Sorgfalt erstellt. Für
-              die Richtigkeit, Vollständigkeit und Aktualität der Inhalte können wir
-              jedoch keine Gewähr übernehmen. Als Diensteanbieter sind wir gemäß § 7
-              Abs.1 TMG für eigene Inhalte auf diesen Seiten nach den allgemeinen
-              Gesetzen verantwortlich.
+              Ich bin nicht verpflichtet und nicht bereit, an einem
+              Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle
+              teilzunehmen.
             </p>
-            <h3 className="text-white/80 font-medium mb-2 mt-4">
-              Haftung für Links
-            </h3>
+          </section>
+
+          <section>
+            <h2 className="text-white text-xl font-semibold mb-4">
+              Haftung für Inhalte
+            </h2>
             <p>
-              Unser Angebot enthält Links zu externen Webseiten Dritter, auf deren
-              Inhalte wir keinen Einfluss haben. Deshalb können wir für diese fremden
-              Inhalte auch keine Gewähr übernehmen.
+              Die Inhalte dieser Website wurden mit größter Sorgfalt erstellt. Für die
+              Richtigkeit, Vollständigkeit und Aktualität der Inhalte übernehme ich
+              jedoch keine Gewähr.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-white text-xl font-semibold mb-4">
+              Haftung für Links
+            </h2>
+            <p>
+              Diese Website enthält Verweise auf externe Websites Dritter. Auf deren
+              Inhalte habe ich keinen Einfluss. Deshalb übernehme ich für diese fremden
+              Inhalte keine Gewähr. Für die Inhalte der verlinkten Seiten ist stets der
+              jeweilige Anbieter verantwortlich.
             </p>
           </section>
 
           <section>
             <h2 className="text-white text-xl font-semibold mb-4">Urheberrecht</h2>
             <p>
-              Die durch die Seitenbetreiber erstellten Inhalte und Werke auf diesen
-              Seiten unterliegen dem deutschen Urheberrecht. Die Vervielfältigung,
-              Bearbeitung, Verbreitung und jede Art der Verwertung außerhalb der
-              Grenzen des Urheberrechtes bedürfen der schriftlichen Zustimmung des
-              jeweiligen Autors bzw. Erstellers.
+              Die durch den Seitenbetreiber erstellten Inhalte und Werke auf dieser
+              Website unterliegen dem deutschen Urheberrecht. Beiträge Dritter sind als
+              solche gekennzeichnet. Vervielfältigung, Bearbeitung und Verbreitung
+              außerhalb der Grenzen des Urheberrechts bedürfen der schriftlichen
+              Zustimmung.
             </p>
           </section>
         </div>

@@ -9,7 +9,7 @@ const projects = [
   {
     title: "Weingut Sonnenhof",
     category: "Branding & Webdesign",
-    description: "Komplette Markenidentität und moderner Webauftritt für ein traditionsreiches Weingut aus der Region. Von der Logoentwicklung über das Corporate Design bis hin zur responsiven Website.",
+    description: "Eine Marke mit Wiedererkennung für ein traditionsreiches Weingut aus der Region. Strategie, Identität und digitaler Auftritt aus einer Hand. Vom Zeichen bis zur Website.",
     image: "https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?w=1400&q=80",
     results: ["Neue Markenidentität", "Responsive Website", "30% mehr Anfragen"],
     services: ["Logo Design", "Corporate Design", "Webentwicklung", "SEO"],
@@ -17,7 +17,7 @@ const projects = [
   {
     title: "Autohaus Müller",
     category: "Corporate Design",
-    description: "Premium Markenrelaunch für einen etablierten Automobilhändler in der Region.",
+    description: "Markenrelaunch für einen etablierten Automobilhändler. Ein klares, hochwertiges Erscheinungsbild, das zur Position im Markt passt.",
     image: "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=1400&q=80",
     results: ["Kompletter Markenrelaunch", "Neue Geschäftsausstattung", "Modernes Erscheinungsbild"],
     services: ["Brand Strategy", "Logo Redesign", "Print Design", "Fahrzeugbeschriftung"],
@@ -25,7 +25,7 @@ const projects = [
   {
     title: "Café Goldene Zeit",
     category: "Print & Social Media",
-    description: "Umfassendes Marketingkonzept mit Speisekarten, Flyern und Social Media Kampagnen.",
+    description: "Eine durchgängige visuelle Sprache vom Menü bis zum Social Feed. Konsistent gedacht, damit das Café wiedererkannt wird.",
     image: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=1400&q=80",
     results: ["2.000+ neue Follower", "Umsatzsteigerung 25%", "Lokaler Hotspot"],
     services: ["Speisekarten Design", "Social Media", "Fotografie", "Flyer"],
@@ -33,7 +33,7 @@ const projects = [
   {
     title: "TechStart GmbH",
     category: "Webdesign & Entwicklung",
-    description: "Landingpage mit Fokus auf Conversion für ein innovatives Tech Startup.",
+    description: "Ein digitaler Auftritt, der in Sekunden verständlich ist. Klar strukturiert und darauf gebaut, Besucher zu führen.",
     image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1400&q=80",
     results: ["40% höhere Conversion", "Ladezeit unter 1s", "Top SEO Rankings"],
     services: ["UI/UX Design", "Webentwicklung", "SEO", "Analytics"],
@@ -41,7 +41,7 @@ const projects = [
   {
     title: "Fitness Studio IRON",
     category: "Branding & Marketing",
-    description: "Markenstrategie, Innenraumgestaltung und digitale Kampagnen für ein Premium Fitnessstudio.",
+    description: "Eine Premium-Positionierung, die sich durchzieht. Von der Markenstrategie über den Raum bis in die digitale Kommunikation.",
     image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1400&q=80",
     results: ["Premium Markenauftritt", "500+ neue Mitglieder", "Social Media Wachstum"],
     services: ["Branding", "Innenraumdesign", "Social Media", "Kampagnen"],
@@ -49,7 +49,7 @@ const projects = [
   {
     title: "Bäckerei Goldkruste",
     category: "Verpackungsdesign",
-    description: "Moderne Verpackungsgestaltung und POS Materialien für eine traditionelle Bäckerei.",
+    description: "Verpackung als Markenträger. Ein Gestaltungssystem, das im Regal auffällt und im Kopf bleibt.",
     image: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=1400&q=80",
     results: ["Neues Verpackungskonzept", "Stärkere Markenwahrnehmung", "Höhere Wiedererkennung"],
     services: ["Verpackungsdesign", "POS Material", "Produktfotografie", "Print"],
@@ -98,7 +98,7 @@ function ProjectModal({ project, onClose }: { project: typeof projects[0]; onClo
         </div>
 
         <div className="p-5 md:p-10 -mt-12 md:-mt-20 relative z-10">
-          <span className="text-[#ff6a00] text-[10px] md:text-xs font-medium tracking-widest uppercase">{project.category}</span>
+          <span className="text-[#E39832] text-[10px] md:text-xs font-medium tracking-widest uppercase">{project.category}</span>
           <h2 className="text-2xl md:text-4xl font-bold text-white mt-1 mb-3 md:mb-4" style={{ fontFamily: "var(--font-heading)" }}>
             {project.title}
           </h2>
@@ -108,7 +108,7 @@ function ProjectModal({ project, onClose }: { project: typeof projects[0]; onClo
             <h4 className="text-white text-xs font-semibold mb-3 uppercase tracking-wider">Ergebnisse</h4>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 md:gap-3">
               {project.results.map((r) => (
-                <div key={r} className="p-3 md:p-4 rounded-xl bg-[#ff6a00]/5 border border-[#ff6a00]/10">
+                <div key={r} className="p-3 md:p-4 rounded-xl bg-[#E39832]/5 border border-[#E39832]/10">
                   <span className="text-white/70 text-xs md:text-sm">{r}</span>
                 </div>
               ))}
@@ -155,16 +155,16 @@ export function Portfolio() {
 
   return (
     <section id="portfolio" ref={sectionRef} className="relative" style={{ height: isMobile ? "200vh" : "300vh" }}>
-      <div className="sticky top-0 h-[100svh] flex flex-col justify-center overflow-hidden">
+      <div className="sticky top-0 h-[100svh] flex flex-col justify-center overflow-hidden pt-24 md:pt-28 pb-6">
         {/* Header */}
-        <div ref={headerRef} className="max-w-7xl mx-auto px-5 md:px-6 mb-6 md:mb-14 text-center">
+        <div ref={headerRef} className="max-w-7xl mx-auto px-5 md:px-6 mb-5 md:mb-8 text-center">
           <motion.span
             initial={{ opacity: 0, y: 10 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.5 }}
-            className="text-[#ff6a00] text-xs md:text-sm font-medium tracking-widest uppercase mb-2 md:mb-3 block"
+            className="text-[#E39832] text-xs md:text-sm font-medium tracking-widest uppercase mb-2 md:mb-3 block"
           >
-            Ausgewählte Arbeiten
+Arbeiten
           </motion.span>
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
@@ -173,8 +173,8 @@ export function Portfolio() {
             className="text-2xl md:text-5xl lg:text-6xl font-bold text-white mb-2 md:mb-4"
             style={{ fontFamily: "var(--font-heading)" }}
           >
-            <span className="text-white">Projekte,</span>{" "}
-            <span className="text-white/30">die für sich sprechen.</span>
+            <span className="text-white">Wirkung,</span>{" "}
+            <span className="text-white/30">die man sieht.</span>
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -182,7 +182,7 @@ export function Portfolio() {
             transition={{ delay: 0.2, duration: 0.6 }}
             className="text-white/40 text-sm md:text-base hidden md:block"
           >
-            Klicken Sie auf ein Projekt, um alle Details zu sehen.
+Ein Projekt auswählen und die Details ansehen.
           </motion.p>
         </div>
 
@@ -195,10 +195,10 @@ export function Portfolio() {
               opacity: cardOpacity,
               transformOrigin: "center top",
             }}
-            className="max-w-6xl mx-auto"
+            className="max-w-5xl mx-auto"
           >
-            <div className="rounded-2xl md:rounded-[32px] border border-white/10 bg-[#111] p-2 md:p-6 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
-              <div className="rounded-xl md:rounded-3xl bg-[#0a0a0a] p-2 md:p-5 overflow-hidden">
+            <div className="rounded-2xl md:rounded-[32px] border border-white/10 bg-[#111] p-2 md:p-4 shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
+              <div className="rounded-xl md:rounded-3xl bg-[#0a0a0a] p-2 md:p-4 overflow-hidden">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5 md:gap-3">
                   {projects.map((project, i) => (
                     <div
@@ -217,7 +217,7 @@ export function Portfolio() {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-70 md:opacity-60 md:group-hover:opacity-90 transition-opacity duration-500" />
 
                       <div className="absolute inset-0 p-2.5 md:p-4 flex flex-col justify-end">
-                        <span className="text-[#ff6a00] text-[8px] md:text-xs font-medium tracking-wide uppercase mb-0.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                        <span className="text-[#E39832] text-[8px] md:text-xs font-medium tracking-wide uppercase mb-0.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                           {project.category}
                         </span>
                         <h3 className="text-[11px] md:text-base font-bold text-white leading-tight">
@@ -225,7 +225,7 @@ export function Portfolio() {
                         </h3>
                       </div>
 
-                      <div className="absolute top-2 right-2 w-6 h-6 md:w-9 md:h-9 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center md:opacity-0 md:scale-75 md:group-hover:opacity-100 md:group-hover:scale-100 transition-all md:group-hover:bg-[#ff6a00]">
+                      <div className="absolute top-2 right-2 w-6 h-6 md:w-9 md:h-9 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center md:opacity-0 md:scale-75 md:group-hover:opacity-100 md:group-hover:scale-100 transition-all md:group-hover:bg-[#E39832]">
                         <ArrowUpRight className="w-3 h-3 md:w-4 md:h-4 text-white" />
                       </div>
                     </div>
