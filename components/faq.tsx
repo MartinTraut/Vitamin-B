@@ -57,7 +57,7 @@ export function FAQ() {
   }
 
   return (
-    <section id="faq" className="relative py-20 md:py-32">
+    <section id="faq" className="relative py-16 md:py-32">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
@@ -76,7 +76,7 @@ Fragen
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ delay: 0.1, duration: 0.6 }}
-            className="text-4xl md:text-5xl font-bold text-white mb-6"
+            className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-6"
             style={{ fontFamily: "var(--font-heading)" }}
           >
             Sie fragen.

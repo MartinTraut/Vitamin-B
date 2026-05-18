@@ -148,7 +148,7 @@ export function Navigation() {
 
       {/* Mobile Bottom NavBar — Floating Glass Pill */}
       <div className="lg:hidden fixed bottom-0 left-1/2 -translate-x-1/2 z-50 mb-5 pb-[env(safe-area-inset-bottom)]">
-        <div className="flex items-center gap-1 bg-white/[0.04] border border-white/[0.08] backdrop-blur-2xl py-1.5 px-2 rounded-full shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
+        <div className="flex items-center gap-1 bg-[#0d0d0d]/90 border border-white/[0.08] backdrop-blur-md py-1.5 px-2 rounded-full shadow-[0_4px_30px_rgba(0,0,0,0.5)] [transform:translateZ(0)]">
           {navItems.map((item) => {
             const Icon = item.icon
             const isActive = activeTab === item.name

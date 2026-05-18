@@ -39,7 +39,7 @@ export function Stats() {
   const isInView = useInView(ref, { once: true, margin: "-100px" })
 
   return (
-    <section className="relative py-24 overflow-hidden">
+    <section className="relative py-16 md:py-24 overflow-hidden">
       <div className="absolute inset-0 bg-[#0a0a0a]" />
       <div className="absolute inset-0 bg-grid opacity-30" />
 

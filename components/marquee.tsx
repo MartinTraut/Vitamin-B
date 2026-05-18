@@ -18,8 +18,8 @@ const words = [
 export function Marquee() {
   return (
     <div className="relative py-8 md:py-12 overflow-hidden border-y border-white/5">
-      <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-[#050505] to-transparent z-10" />
-      <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-[#050505] to-transparent z-10" />
+      <div className="absolute left-0 top-0 bottom-0 w-12 md:w-32 bg-gradient-to-r from-[#050505] to-transparent z-10" />
+      <div className="absolute right-0 top-0 bottom-0 w-12 md:w-32 bg-gradient-to-l from-[#050505] to-transparent z-10" />
 
       <motion.div
         animate={{ x: [0, -2000] }}

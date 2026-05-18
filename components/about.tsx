@@ -33,7 +33,7 @@ export function About() {
   const isInView = useInView(ref, { once: true, margin: "-100px" })
 
   return (
-    <section id="ueber-uns" className="relative py-20 md:py-32 overflow-hidden">
+    <section id="ueber-uns" className="relative py-16 md:py-32 overflow-hidden">
       <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[radial-gradient(circle,rgba(227,152,50,0.04),transparent_70%)] pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-6">
@@ -45,17 +45,17 @@ export function About() {
             transition={{ duration: 0.8 }}
             className="relative"
           >
-            <div className="relative aspect-[4/3] md:aspect-[4/5] rounded-2xl overflow-hidden">
+            <div className="relative aspect-[3/4] rounded-2xl overflow-hidden">
               <Image
                 src="/robert-bauer-portrait.png"
                 alt="Robert Bauer, Inhaber von vitaminb kommunikation & design"
                 fill
-                className="object-cover object-top"
+                className="object-cover object-center"
                 unoptimized
                 priority
                 sizes="(max-width: 1024px) 100vw, 50vw"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#050505]/60 via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/15 to-transparent" />
             </div>
 
             <motion.div
@@ -89,7 +89,7 @@ Studio
               initial={{ opacity: 0, y: 20 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.3 }}
-              className="text-4xl md:text-5xl font-bold text-white mb-6"
+              className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-6"
               style={{ fontFamily: "var(--font-heading)" }}
             >
               Aus Vision wird Marke.

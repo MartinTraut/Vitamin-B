@@ -62,7 +62,7 @@ function StepContent({ step, isActive }: { step: typeof steps[0]; isActive: bool
   return (
     <div>
       {/* Big number background */}
-      <div className="absolute top-6 right-8 text-[8rem] md:text-[12rem] font-bold text-white/[0.02] leading-none select-none pointer-events-none">
+      <div className="absolute top-3 right-4 md:top-6 md:right-8 text-[4.5rem] md:text-[12rem] font-bold text-white/[0.02] leading-none select-none pointer-events-none">
         {step.number}
       </div>
 
@@ -72,9 +72,9 @@ function StepContent({ step, isActive }: { step: typeof steps[0]; isActive: bool
           <motion.div
             animate={isActive ? { rotate: [0, -8, 8, 0] } : {}}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="w-14 h-14 rounded-2xl bg-[#E39832]/10 border border-[#E39832]/20 flex items-center justify-center shrink-0"
+            className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-[#E39832]/10 border border-[#E39832]/20 flex items-center justify-center shrink-0"
           >
-            <Icon className="w-7 h-7 text-[#E39832]" />
+            <Icon className="w-6 h-6 md:w-7 md:h-7 text-[#E39832]" />
           </motion.div>
           <div>
             <span className="text-[#E39832] text-[10px] font-semibold tracking-[0.2em] uppercase block mb-1">{step.subtitle}</span>
@@ -86,16 +86,16 @@ function StepContent({ step, isActive }: { step: typeof steps[0]; isActive: bool
           initial={{ width: 0 }}
           animate={isActive ? { width: 60 } : { width: 0 }}
           transition={{ duration: 0.8, delay: 0.3 }}
-          className="h-[2px] bg-gradient-to-r from-[#E39832] to-transparent mb-6 mt-4"
+          className="h-[2px] bg-gradient-to-r from-[#E39832] to-transparent mb-4 mt-3 md:mb-6 md:mt-4"
         />
 
-        <p className="text-white/50 text-[15px] leading-relaxed mb-8 max-w-lg">
+        <p className="text-white/50 text-sm md:text-[15px] leading-relaxed mb-5 md:mb-8 max-w-lg">
           {step.description}
         </p>
 
         {/* Step-specific visuals */}
         {step.details && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 md:gap-3 mb-5 md:mb-8">
             {step.details.map((d, di) => {
               const DIcon = d.icon
               return (
@@ -115,7 +115,7 @@ function StepContent({ step, isActive }: { step: typeof steps[0]; isActive: bool
         )}
 
         {step.flow && (
-          <div className="flex items-center gap-2 mb-8 flex-wrap">
+          <div className="flex items-center gap-1.5 md:gap-2 mb-5 md:mb-8 flex-wrap">
             {step.flow.map((s, i) => (
               <motion.div
                 key={s}
@@ -124,7 +124,7 @@ function StepContent({ step, isActive }: { step: typeof steps[0]; isActive: bool
                 animate={isActive ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.8 }}
                 transition={{ duration: 0.3, delay: 0.4 + i * 0.1 }}
               >
-                <span className="text-xs px-4 py-2 rounded-full bg-[#E39832]/10 text-[#E39832] border border-[#E39832]/20 font-medium">
+                <span className="text-xs px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-[#E39832]/10 text-[#E39832] border border-[#E39832]/20 font-medium">
                   {s}
                 </span>
                 {i < step.flow!.length - 1 && (
@@ -137,7 +137,7 @@ function StepContent({ step, isActive }: { step: typeof steps[0]; isActive: bool
 
 
         {/* Checks */}
-        <div className="space-y-3">
+        <div className="space-y-2 md:space-y-3">
           {step.checks.map((item, ci) => (
             <motion.div
               key={item}
@@ -179,6 +179,7 @@ export function Process() {
   const lineStops = steps.map((_, i) => (i / (steps.length - 1)) * 100)
 
   useMotionValueEvent(scrollYProgress, "change", (v) => {
+    if (isMobile) return
     let step = 0
     for (let i = stepBreakpoints.length - 1; i >= 0; i--) {
       if (v >= stepBreakpoints[i]) {
@@ -186,14 +187,47 @@ export function Process() {
         break
       }
     }
-    setActiveStep(step)
+    // Nur bei echter Änderung neu rendern, sonst ruckelt es beim Scrollen
+    setActiveStep((prev) => (prev === step ? prev : step))
   })
 
   const lineProgress = useTransform(scrollYProgress, stepBreakpoints, lineStops)
 
   return (
     <section id="prozess">
-      <div ref={containerRef} className="relative" style={{ height: isMobile ? `${steps.length * 80}vh` : `${steps.length * 100 + 50}vh` }}>
+      {isMobile ? (
+        <div className="py-16">
+          <div className="max-w-2xl mx-auto px-5">
+            <div className="text-center mb-10">
+              <span className="text-[#E39832] text-sm font-medium tracking-widest uppercase mb-3 block">
+                Prozess
+              </span>
+              <h2
+                className="text-3xl font-bold text-white"
+                style={{ fontFamily: "var(--font-heading)" }}
+              >
+                <span className="text-white">Von der Vision</span>{" "}
+                <span className="text-white/30">zur Marke.</span>
+              </h2>
+            </div>
+            <div className="space-y-5">
+              {steps.map((step) => (
+                <motion.div
+                  key={step.number}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-60px" }}
+                  transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+                  className="relative p-5 rounded-3xl bg-white/[0.015] border border-white/[0.06] overflow-hidden"
+                >
+                  <StepContent step={step} isActive={true} />
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : (
+      <div ref={containerRef} className="relative" style={{ height: `${steps.length * 100 + 50}vh` }}>
         {/* Sticky viewport */}
         <div className="sticky top-0 h-[100svh] overflow-hidden">
           {/* Background glow */}
@@ -329,7 +363,7 @@ export function Process() {
                 </div>
 
                 {/* Right: Content area */}
-                <div className="relative min-h-[350px] md:min-h-[440px]">
+                <div className="relative min-h-[280px] md:min-h-[440px]">
                   <AnimatePresence mode="wait">
                     <motion.div
                       key={activeStep}
@@ -348,6 +382,7 @@ export function Process() {
           </div>
         </div>
       </div>
+      )}
     </section>
   )
 }

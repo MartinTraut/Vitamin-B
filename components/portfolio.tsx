@@ -148,9 +148,9 @@ export function Portfolio() {
     offset: ["start start", "end end"],
   })
 
-  // Mobile: less dramatic animation, Desktop: full garage door
-  const rotate = useTransform(scrollYProgress, [0, 0.6], isMobile ? [25, 0] : [55, 0])
-  const scale = useTransform(scrollYProgress, [0, 0.6], isMobile ? [0.9, 1] : [0.75, 1])
+  // Mobile: kein 3D (kein perspektivisches Re-Rastern pro Frame -> smooth), Desktop: full garage door
+  const rotate = useTransform(scrollYProgress, [0, 0.6], isMobile ? [0, 0] : [55, 0])
+  const scale = useTransform(scrollYProgress, [0, 0.6], isMobile ? [0.96, 1] : [0.75, 1])
   const cardOpacity = useTransform(scrollYProgress, [0, 0.15], [0, 1])
 
   return (
