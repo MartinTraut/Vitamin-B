@@ -130,7 +130,7 @@ export function Hero() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-[3.5rem] leading-[0.95] sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-6 md:mb-8"
+            className="text-[2.5rem] min-[400px]:text-[3rem] leading-[1.02] sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-6 md:mb-8"
             style={{ fontFamily: "var(--font-heading)" }}
           >
             <span className="text-white">Brand entsteht</span>
@@ -187,7 +187,7 @@ export function Hero() {
           {/* Mobile: 3-col grid */}
           <div className="grid grid-cols-3 gap-3 md:hidden">
             <div className="flex flex-col items-center gap-0.5">
-              <span className="text-[#E39832] text-lg font-bold">50+</span>
+              <span className="text-[#E39832] text-lg font-bold">320+</span>
               <span className="text-[10px]">Marken geformt</span>
             </div>
             <div className="flex flex-col items-center gap-0.5 border-x border-white/[0.06]">
@@ -202,7 +202,7 @@ export function Hero() {
           {/* Desktop: inline flex */}
           <div className="hidden md:flex items-center justify-center gap-8">
             <div className="flex items-center gap-2">
-              <span className="text-[#E39832] text-2xl font-bold">50+</span>
+              <span className="text-[#E39832] text-2xl font-bold">320+</span>
               <span>Marken geformt</span>
             </div>
             <div className="w-px h-6 bg-white/10" />

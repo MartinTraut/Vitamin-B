@@ -39,7 +39,7 @@ const steps = [
     icon: Pen,
     title: "Design & Umsetzung",
     subtitle: "Kreation",
-    description: "Aus Strategie wird Gestaltung. Wir entwerfen, gestalten und schärfen jedes Detail, immer in enger Abstimmung. Vom Logo über die Website bis zum druckfertigen Layout. Regelmäßige Stände, Feedback jederzeit möglich.",
+    description: "Aus Strategie wird Gestaltung. Wir entwerfen, gestalten und schärfen jedes Detail, immer in enger Abstimmung. Vom Logo über die Website bis zum druckfertigen Layout. Regelmäßige Zwischenstände, Feedback jederzeit möglich.",
     color: "#E39832",
     flow: ["Entwurf", "Feedback", "Revision", "Finalisierung"],
     checks: ["Iterative Designrunden", "Regelmäßige Updates", "Feedback jederzeit möglich"],

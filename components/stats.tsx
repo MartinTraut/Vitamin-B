@@ -4,7 +4,7 @@ import { motion, useInView, animate } from "framer-motion"
 import { useRef, useEffect, useState } from "react"
 
 const stats = [
-  { value: 50, suffix: "+", label: "Marken geformt" },
+  { value: 320, suffix: "+", label: "Marken geformt" },
   { value: 120, suffix: "+", label: "Projekte umgesetzt" },
   { value: 18, suffix: "+", label: "Jahre Erfahrung" },
   { value: 100, suffix: "%", label: "Fokus auf Wirkung" },
@@ -57,7 +57,7 @@ export function Stats() {
       />
 
       <div ref={ref} className="max-w-7xl mx-auto px-6 relative z-10">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-12">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 sm:gap-10 lg:gap-12">
           {stats.map((stat, i) => (
             <motion.div
               key={stat.label}
