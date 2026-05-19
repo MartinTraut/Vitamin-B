@@ -9,7 +9,24 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 
+// Ursprüngliche Online-Fragen (unverändert) plus ergänzende Punkte mit
+// Orts-/Leistungsbezug für lokale Suche, GEO und KI-Antworten.
 const faqs = [
+  {
+    question: "Was genau macht vitaminb?",
+    answer:
+      "vitaminb ist ein Creative Studio für Markenentwicklung aus Neuenstadt am Kocher. Ich entwickle Marken von der Strategie bis zum fertigen Auftritt: Branding und Corporate Design, Logo, Webdesign, Print, Social Media und Werbetechnik. Alles aus einer Hand, mit einem klaren Anspruch: From Vision to Brand.",
+  },
+  {
+    question: "Wo sitzt vitaminb und welche Region betreut ihr?",
+    answer:
+      "Mein Studio ist in Neuenstadt am Kocher, im Landkreis Heilbronn. Ich arbeite für Unternehmen in der gesamten Region Heilbronn-Franken und im Hohenlohekreis, darunter Heilbronn, Öhringen, Bad Friedrichshall, Möckmühl, Neckarsulm, Bad Wimpfen und Künzelsau. Vieles läuft unkompliziert digital, ein Treffen vor Ort ist jederzeit möglich.",
+  },
+  {
+    question: "Macht ihr auch Werbetechnik und Fahrzeugbeschriftung?",
+    answer:
+      "Ja. Neben Branding und Webdesign setze ich die Marke auch physisch um: Fahrzeugbeschriftung und Folierung, Schilder, Textildruck, Werbemittel und Geschäftsausstattung. Der Vorteil: Das Design bleibt vom Bildschirm bis zum Fahrzeug konsistent, weil alles aus einer Hand kommt. Auf Wunsch inklusive Montage vor Ort in der Region Heilbronn.",
+  },
   {
     question: "Was kostet die Zusammenarbeit?",
     answer:
@@ -21,9 +38,9 @@ const faqs = [
       "Das hängt vom Vorhaben ab. Eine Marke entsteht nicht über Nacht, soll aber auch nicht ewig dauern. Den realistischen Zeitrahmen bespreche ich mit Ihnen vorab und halte mich daran. Sie wissen jederzeit, woran wir gerade arbeiten.",
   },
   {
-    question: "Arbeiten Sie auch mit Kunden außerhalb der Region?",
+    question: "Arbeitet ihr auch mit Kunden außerhalb der Region Heilbronn?",
     answer:
-      "Mein Studio ist in Neuenstadt am Kocher in der Region Heilbronn. Ich arbeite mit Kunden in ganz Deutschland, vieles läuft unkompliziert digital. Wenn Sie ein persönliches Treffen möchten, machen wir das möglich.",
+      "Ja, ich arbeite mit Kunden in ganz Deutschland. Branding, Webdesign und Konzept lassen sich vollständig digital umsetzen, der Ablauf bleibt persönlich und direkt. Werbetechnik mit Montage vor Ort konzentriert sich auf die Region Heilbronn und den Hohenlohekreis.",
   },
   {
     question: "Was brauchen Sie von mir, um loszulegen?",
@@ -49,6 +66,15 @@ export function FAQ() {
   const faqSchema = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
+    "@id": "https://www.vitaminb-design.de/#faq",
+    inLanguage: "de-DE",
+    name: "Häufige Fragen zu vitaminb kommunikation & design",
+    isPartOf: { "@id": "https://www.vitaminb-design.de" },
+    about: {
+      "@type": "ProfessionalService",
+      name: "vitaminb kommunikation & design",
+      areaServed: "Region Heilbronn-Franken, Hohenlohekreis",
+    },
     mainEntity: faqs.map((f) => ({
       "@type": "Question",
       name: f.question,
@@ -67,15 +93,15 @@ export function FAQ() {
           <motion.span
             initial={{ opacity: 0, y: 10 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
             className="text-[#E39832] text-sm font-medium tracking-widest uppercase mb-4 block"
           >
-Fragen
+            Fragen
           </motion.span>
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ delay: 0.1, duration: 0.6 }}
+            transition={{ delay: 0.1, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
             className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-6"
             style={{ fontFamily: "var(--font-heading)" }}
           >
@@ -85,18 +111,22 @@ Fragen
           </motion.h2>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3 md:space-y-4">
           {faqs.map((faq, i) => (
             <motion.div
               key={i}
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 24 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ delay: 0.2 + i * 0.08, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+              transition={{
+                delay: 0.15 + i * 0.05,
+                duration: 0.5,
+                ease: [0.25, 0.1, 0.25, 1],
+              }}
             >
               <Accordion type="single" collapsible>
                 <AccordionItem
                   value={`faq-${i}`}
-                  className="border border-white/5 rounded-xl px-4 md:px-6 bg-white/[0.02] hover:border-[#E39832]/10 transition-all duration-500 data-[state=open]:border-[#E39832]/20 data-[state=open]:bg-white/[0.03]"
+                  className="border border-white/5 rounded-xl px-4 md:px-6 bg-white/[0.02] hover:border-[#E39832]/10 transition-colors duration-300 data-[state=open]:border-[#E39832]/20 data-[state=open]:bg-white/[0.03]"
                 >
                   <AccordionTrigger className="gap-4 text-left text-white hover:text-[#E39832] transition-colors py-4 md:py-5 text-[15px] md:text-base font-medium [&>svg]:text-[#E39832] [&>svg]:transition-transform [&>svg]:duration-300">
                     {faq.question}

@@ -234,6 +234,25 @@ body {
     opacity: 0.9;
 }
 
+/* Mobile + reduced-motion: keinen Dauer-Conic-Render auf jedem Frame.
+   Statischer Orange-Bogen bleibt (premium), aber ohne GPU-Last. */
+@media (max-width: 767px) {
+    .glow-border::before,
+    .animated-border::before,
+    .hover-glow::before {
+        animation: none !important;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .glow-border::before,
+    .animated-border::before,
+    .hover-glow::before,
+    .animate-pulse-glow,
+    .animate-float {
+        animation: none !important;
+    }
+}
+
 /* Hover-only orange glow border (reveals + sweeps on hover) */
 .hover-glow::before {
     content: '';

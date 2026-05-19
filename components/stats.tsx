@@ -68,10 +68,10 @@ export function Stats() {
             >
               <AnimatedCounter value={stat.value} suffix={stat.suffix} />
               <motion.div
-                initial={{ width: 0 }}
-                animate={isInView ? { width: "40px" } : {}}
-                transition={{ delay: 0.8 + i * 0.15, duration: 0.6 }}
-                className="h-[1px] bg-[#E39832]/30 mx-auto mt-3 mb-2"
+                initial={{ scaleX: 0 }}
+                animate={isInView ? { scaleX: 1 } : {}}
+                transition={{ delay: 0.8 + i * 0.15, duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+                className="h-[1px] w-10 bg-[#E39832]/30 mx-auto mt-3 mb-2"
               />
               <div className="text-white/40 text-sm">{stat.label}</div>
             </motion.div>

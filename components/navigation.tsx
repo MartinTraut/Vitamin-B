@@ -78,10 +78,18 @@ export function Navigation() {
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
-        className={`fixed top-0 left-0 right-0 z-50 transition-colors duration-500 py-4 md:py-6 ${
-          scrolled ? "bg-[#050505]" : "bg-transparent"
-        }`}
+        className="fixed top-0 left-0 right-0 z-50 py-4 md:py-6 bg-transparent"
       >
+        {/* Schwebender Header: kein harter Balken. Beim Scrollen blendet ein
+            weicher dunkler Verlauf ein, damit Logo/Navi auch ueber hellen
+            Bildern lesbar bleiben (kein abgesetzter Rand). */}
+        <div
+          aria-hidden
+          className={cn(
+            "pointer-events-none absolute inset-x-0 top-0 h-[180%] bg-gradient-to-b from-[#050505]/85 via-[#050505]/45 to-transparent transition-opacity duration-500",
+            scrolled ? "opacity-100" : "opacity-0",
+          )}
+        />
         <div className="max-w-7xl mx-auto px-4 md:px-6 flex items-center justify-between lg:justify-center lg:gap-28 xl:gap-44 relative">
           {/* Logo */}
           <a

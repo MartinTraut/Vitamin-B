@@ -157,7 +157,7 @@ export function Hero() {
             <Button
               asChild
               size="lg"
-              className="bg-[#E39832] [a]:hover:bg-[#E39832] hover:brightness-110 text-white rounded-full px-6 md:px-8 h-12 md:h-14 text-sm md:text-base group animate-pulse-glow w-full sm:w-auto"
+              className="bg-[#E39832] [a]:hover:bg-[#E39832] hover:brightness-110 text-white rounded-full px-6 md:px-8 h-12 md:h-14 text-sm md:text-base group w-full sm:w-auto shadow-[0_0_28px_rgba(227,152,50,0.32)] hover:shadow-[0_0_46px_rgba(227,152,50,0.55)] transition-shadow duration-300"
             >
               <a href="#kontakt">
                 Erstgespräch vereinbaren

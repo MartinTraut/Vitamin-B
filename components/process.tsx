@@ -1,7 +1,7 @@
 "use client"
 
 import { useRef, useState, useEffect } from "react"
-import { motion, useScroll, useTransform, useMotionValueEvent, AnimatePresence, MotionValue } from "framer-motion"
+import { motion, useScroll, useTransform, useSpring, useMotionValueEvent, AnimatePresence, MotionValue } from "framer-motion"
 import { MessageSquare, Lightbulb, Pen, Truck, CheckCircle2, Clock, Target, Zap, Heart, ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -49,7 +49,7 @@ const steps = [
     icon: Truck,
     title: "Produktion & Übergabe",
     subtitle: "In die Realität",
-    description: "Hier wird die Marke greifbar. Wir bringen das Design auf das Material: gedruckte Geschäftsausstattung und Broschüren, beklebte Fahrzeuge, bedruckte Textilien, Schilder und Werbetechnik. Robert begleitet die Produktion persönlich und prüft jedes Stück, bevor es zu Ihnen geht. Auf Wunsch übernehmen wir auch Montage und Folierung vor Ort. Und danach bleiben wir Ihr fester Partner für alles, was nachkommt.",
+    description: "Hier wird die Marke greifbar. Wir bringen das Design auf das Material: Geschäftsausstattung, Fahrzeuge, Textilien, Schilder und Werbetechnik. Robert prüft jedes Stück persönlich, auf Wunsch inklusive Montage und Folierung vor Ort. Danach bleiben wir Ihr fester Partner.",
     color: "#E39832",
     flow: ["Druck & Produktion", "Veredelung", "Montage & Folierung", "Übergabe"],
     checks: ["Print, Textil & Werbetechnik aus einer Hand", "Fahrzeugfolierung & Montage vor Ort", "Persönliche Qualitätskontrolle durch Robert", "Fester Ansprechpartner statt Ticket-System"],
@@ -83,10 +83,11 @@ function StepContent({ step, isActive }: { step: typeof steps[0]; isActive: bool
         </div>
 
         <motion.div
-          initial={{ width: 0 }}
-          animate={isActive ? { width: 60 } : { width: 0 }}
-          transition={{ duration: 0.8, delay: 0.3 }}
-          className="h-[2px] bg-gradient-to-r from-[#E39832] to-transparent mb-4 mt-3 md:mb-6 md:mt-4"
+          initial={{ scaleX: 0 }}
+          animate={isActive ? { scaleX: 1 } : { scaleX: 0 }}
+          transition={{ duration: 0.8, delay: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+          style={{ transformOrigin: "left" }}
+          className="h-[2px] w-[60px] bg-gradient-to-r from-[#E39832] to-transparent mb-4 mt-3 md:mb-6 md:mt-4"
         />
 
         <p className="text-white/50 text-sm md:text-[15px] leading-relaxed mb-5 md:mb-8 max-w-lg">
@@ -176,7 +177,6 @@ export function Process() {
   // Each step triggers at its dot position (0%, 33%, 66%, 100% of the timeline)
   // Line stops at each dot, then continues to the next
   const stepBreakpoints = steps.map((_, i) => 0.08 + (i / (steps.length - 1)) * 0.84)
-  const lineStops = steps.map((_, i) => (i / (steps.length - 1)) * 100)
 
   useMotionValueEvent(scrollYProgress, "change", (v) => {
     if (isMobile) return
@@ -191,7 +191,20 @@ export function Process() {
     setActiveStep((prev) => (prev === step ? prev : step))
   })
 
-  const lineProgress = useTransform(scrollYProgress, stepBreakpoints, lineStops)
+  // Gefederter Scroll -> Timeline-Fortschritt laeuft smooth statt ruckelig
+  const smooth = useSpring(scrollYProgress, {
+    stiffness: 110,
+    damping: 30,
+    mass: 0.35,
+  })
+  // Linearer Fortschritt zwischen erstem und letztem Dot. Wird als
+  // GPU-Transform (scaleY) animiert -> kein Layout-Reflow, kein Ruckeln.
+  const lineScale = useTransform(
+    smooth,
+    [stepBreakpoints[0], stepBreakpoints[stepBreakpoints.length - 1]],
+    [0, 1],
+    { clamp: true },
+  )
 
   return (
     <section id="prozess">
@@ -230,24 +243,20 @@ export function Process() {
       <div ref={containerRef} className="relative" style={{ height: `${steps.length * 100 + 50}vh` }}>
         {/* Sticky viewport */}
         <div className="sticky top-0 h-[100svh] overflow-hidden">
-          {/* Background glow */}
+          {/* Background glow – ruhig & fest (kein durchs Bild springender
+              Glow mehr -> kein "Bouncen" der Sektion beim Scrollen) */}
           <div className="absolute inset-0 bg-grid opacity-10 pointer-events-none" />
-          <motion.div
-            className="absolute w-[600px] h-[600px] rounded-full pointer-events-none"
-            animate={{
-              x: activeStep % 2 === 0 ? "-10%" : "60%",
-              y: activeStep % 2 === 0 ? "10%" : "-10%",
-            }}
-            transition={{ duration: 1.5, ease: "easeOut" }}
+          <div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full pointer-events-none"
             style={{
-              background: "radial-gradient(circle, rgba(227,152,50,0.04) 0%, transparent 70%)",
+              background: "radial-gradient(circle, rgba(227,152,50,0.045) 0%, transparent 70%)",
             }}
           />
 
-          <div className="h-full flex flex-col justify-center">
-            <div className="max-w-7xl mx-auto px-6 w-full">
-              {/* Header */}
-              <div className="text-center mb-6 md:mb-14">
+          <div className="h-full flex flex-col pt-40 pb-8 md:pt-44">
+            <div className="max-w-7xl mx-auto px-6 w-full h-full flex flex-col">
+              {/* Header – fix oben, bewegt sich bei keinem Step */}
+              <div className="text-center mb-5 md:mb-10 shrink-0">
                 <span className="text-[#E39832] text-sm font-medium tracking-widest uppercase mb-3 block">
                   Prozess
                 </span>
@@ -260,15 +269,17 @@ export function Process() {
                 </h2>
               </div>
 
-              {/* Layout: Timeline + Content */}
-              <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-6 lg:gap-12">
+              {/* Layout: Timeline + Content – zentriert im Bereich UNTER dem
+                  fixen Header, damit der Header nie wandert/abschneidet */}
+              <div className="flex-1 min-h-0 flex items-center">
+              <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-6 lg:gap-12 w-full">
                 {/* Left: Vertical Timeline (Desktop) */}
                 <div className="hidden lg:block relative">
                   <div className="relative h-[360px]">
                     {/* Track background */}
                     <div className="absolute left-3 top-0 bottom-0 w-[2px] bg-white/[0.04] rounded-full" />
                     {/* Glowing active line */}
-                    <ProgressLine progress={lineProgress} />
+                    <ProgressLine scale={lineScale} />
 
                     {/* Step dots + labels */}
                     {steps.map((step, i) => {
@@ -288,18 +299,24 @@ export function Process() {
                             {/* Pulse ring for current */}
                             {isCurrent && (
                               <motion.div
-                                className="absolute inset-0 rounded-full border-2 border-[#E39832]/40"
-                                animate={{ scale: [1, 1.8], opacity: [0.6, 0] }}
-                                transition={{ duration: 1.5, repeat: Infinity, ease: "easeOut" }}
+                                className="absolute inset-0 rounded-full border border-[#E39832]/35"
+                                animate={{ scale: [1, 2.1], opacity: [0.45, 0] }}
+                                transition={{
+                                  duration: 2.8,
+                                  repeat: Infinity,
+                                  repeatDelay: 0.5,
+                                  ease: "easeOut",
+                                }}
                               />
                             )}
                             {/* Dot */}
                             <motion.div
                               animate={{
-                                width: isCurrent ? 26 : isPast ? 14 : 10,
-                                height: isCurrent ? 26 : isPast ? 14 : 10,
+                                width: isCurrent ? 26 : isPast ? 14 : 7,
+                                height: isCurrent ? 26 : isPast ? 14 : 7,
                                 backgroundColor: isCurrent || isPast ? "#E39832" : "transparent",
-                                borderColor: isCurrent ? "#E39832" : isPast ? "#E39832" : "rgba(255,255,255,0.12)",
+                                borderColor: isCurrent ? "#E39832" : isPast ? "#E39832" : "rgba(255,255,255,0.05)",
+                                opacity: isCurrent || isPast ? 1 : 0.4,
                                 boxShadow: isCurrent
                                   ? "0 0 20px rgba(227,152,50,0.5), 0 0 40px rgba(227,152,50,0.2)"
                                   : isPast
@@ -318,7 +335,7 @@ export function Process() {
                           {/* Label */}
                           <motion.div
                             animate={{
-                              opacity: isCurrent ? 1 : isPast ? 0.5 : 0.15,
+                              opacity: isCurrent ? 1 : isPast ? 0.5 : 0.06,
                               x: isCurrent ? 14 : 10,
                             }}
                             transition={{ duration: 0.5, ease: "easeOut" }}
@@ -378,6 +395,7 @@ export function Process() {
                   </AnimatePresence>
                 </div>
               </div>
+              </div>
             </div>
           </div>
         </div>
@@ -387,23 +405,26 @@ export function Process() {
   )
 }
 
-function ProgressLine({ progress }: { progress: MotionValue<number> }) {
-  const heightPx = useTransform(progress, (v) => `${v}%`)
+function ProgressLine({ scale }: { scale: MotionValue<number> }) {
   return (
     <>
-      {/* Main line */}
+      {/* Main line – scaleY statt height: GPU-Transform, kein Reflow */}
       <motion.div
-        className="absolute left-3 top-0 w-[2px] rounded-full origin-top"
+        className="absolute left-3 top-0 bottom-0 w-[2px] rounded-full"
         style={{
-          height: heightPx,
+          scaleY: scale,
+          transformOrigin: "top",
+          willChange: "transform",
           background: "linear-gradient(to bottom, #E39832 0%, #E39832 80%, rgba(227,152,50,0.3) 100%)",
         }}
       />
       {/* Glow overlay */}
       <motion.div
-        className="absolute left-[10px] top-0 w-[6px] rounded-full origin-top blur-[3px]"
+        className="absolute left-[10px] top-0 bottom-0 w-[6px] rounded-full blur-[3px]"
         style={{
-          height: heightPx,
+          scaleY: scale,
+          transformOrigin: "top",
+          willChange: "transform",
           background: "linear-gradient(to bottom, rgba(227,152,50,0.4) 0%, rgba(227,152,50,0.1) 100%)",
         }}
       />

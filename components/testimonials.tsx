@@ -88,8 +88,8 @@ Stimmen
                       transition={{
                         delay: 0.3 + i * 0.12 + j * 0.09,
                         type: "spring",
-                        stiffness: 420,
-                        damping: 11,
+                        stiffness: 380,
+                        damping: 20,
                       }}
                       whileHover={{ scale: 1.25, rotate: 12 }}
                     >

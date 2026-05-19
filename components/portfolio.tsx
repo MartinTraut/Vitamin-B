@@ -1,6 +1,6 @@
 "use client"
 
-import { motion, useScroll, useTransform, useSpring, useMotionTemplate, AnimatePresence } from "framer-motion"
+import { motion, useScroll, useTransform, useSpring, AnimatePresence } from "framer-motion"
 import { useRef, useState, useEffect } from "react"
 import Image from "next/image"
 import { ArrowUpRight, X, ChevronLeft, ChevronRight, Plus } from "lucide-react"
@@ -172,22 +172,18 @@ function ProjectModal({ project, onClose }: { project: typeof projects[0]; onClo
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] flex items-end md:items-center justify-center"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
       onClick={onClose}
     >
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-md" />
+      <div className="absolute inset-0 bg-black/85 backdrop-blur-sm" />
       <motion.div
-        initial={{ opacity: 0, y: 100 }}
+        initial={{ opacity: 0, y: 60 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 100 }}
+        exit={{ opacity: 0, y: 60 }}
         transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
         onClick={(e) => e.stopPropagation()}
-        className="relative flex flex-col w-full md:max-w-3xl max-h-[92vh] md:max-h-[88vh] overflow-hidden rounded-t-3xl md:rounded-3xl bg-[#0a0a0a] border border-white/[0.08] z-10"
+        className="relative flex flex-col w-full md:max-w-3xl h-[82svh] md:h-auto md:max-h-[88vh] overflow-hidden rounded-3xl bg-[#0a0a0a] border border-white/[0.08] z-10"
       >
-        {/* Drag handle mobile */}
-        <div className="md:hidden flex justify-center pt-3 pb-1 shrink-0">
-          <div className="w-10 h-1 rounded-full bg-white/20" />
-        </div>
 
         <button
           onClick={onClose}
@@ -225,7 +221,7 @@ function ProjectModal({ project, onClose }: { project: typeof projects[0]; onClo
         )}
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-5 md:p-8 -mt-12 md:-mt-16 relative z-10">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-5 md:p-8 relative z-10">
           <span className="text-[#E39832] text-[10px] md:text-xs font-medium tracking-widest uppercase">{project.category}</span>
           <h2 className="text-2xl md:text-3xl font-bold text-white mt-1 mb-2 md:mb-3" style={{ fontFamily: "var(--font-heading)" }}>
             {project.title}
@@ -277,19 +273,19 @@ export function Portfolio() {
   // Scroll-Progress federn -> kein hartes 1:1-Mapping, sondern flüssige,
   // leicht nachlaufende Bewegung (smoother Reveal statt ruckeligem Scrub)
   const smooth = useSpring(scrollYProgress, {
-    stiffness: 80,
-    damping: 28,
-    mass: 0.5,
+    stiffness: 100,
+    damping: 30,
+    mass: 0.3,
   })
 
   // Mobile: kein 3D. Desktop: cinematischer, an den gefederten Scroll
-  // gekoppelter Reveal (3D-Aufrichten, Hochfahren, Blur-to-clear).
+  // gekoppelter Reveal (3D-Aufrichten, Hochfahren). Kein animierter Blur
+  // mehr: Filter auf einer viewportgroßen Karte = teure GPU-Recomposition
+  // pro Frame. rotateX + scale + opacity reichen für die Tiefe.
   const rotate = useTransform(smooth, [0, 0.7], isMobile ? [0, 0] : [16, 0])
   const scale = useTransform(smooth, [0, 0.82], isMobile ? [0.97, 1] : [0.84, 1])
   const y = useTransform(smooth, [0, 0.82], isMobile ? [0, 0] : [70, 0])
   const cardOpacity = useTransform(smooth, [0, 0.12], [0, 1])
-  const blurPx = useTransform(smooth, [0, 0.55], isMobile ? [0, 0] : [14, 0])
-  const filter = useMotionTemplate`blur(${blurPx}px)`
 
   // Klick auf einen "#portfolio"-Link (Header-Navigation) soll die
   // Scroll-Reveal-Animation automatisch abspielen, statt nur hart zur
@@ -371,7 +367,7 @@ export function Portfolio() {
       <div
         key={project.title}
         onClick={() => setSelectedProject(project)}
-        className="group relative aspect-[4/3] overflow-hidden rounded-lg md:rounded-2xl cursor-pointer ring-1 ring-inset ring-white/[0.06] md:ring-0 active:scale-[0.98] transition-transform"
+        className="group relative aspect-[4/3] overflow-hidden rounded-lg md:rounded-2xl cursor-pointer ring-1 ring-inset ring-white/[0.06] md:ring-0 active:scale-[0.98] transition-transform duration-200"
       >
       <Image
         src={project.image}
@@ -496,9 +492,8 @@ Ein Projekt auswählen und die Details ansehen.
               scale,
               y,
               opacity: cardOpacity,
-              filter,
               transformOrigin: "center top",
-              willChange: "transform, opacity, filter",
+              willChange: "transform, opacity",
             }}
             className="max-w-4xl mx-auto"
           >

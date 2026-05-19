@@ -68,9 +68,22 @@ const services = [
 
 const rotatingWords = ["Hand", "Vision", "Strategie", "Quelle"]
 
+// Erscheinungs-Reihenfolge "um die Mitte herum" (im Uhrzeigersinn):
+// oben-links, oben-rechts, rechts, unten-rechts, unten-links, links
+// serviceIndex -> Rang (Mitte = vor allen)
+const REVEAL_RANK: Record<number, number> = { 0: 0, 1: 1, 3: 2, 5: 3, 4: 4, 2: 5 }
+
 function FeatureTile() {
+  const ref = useRef(null)
+  const isInView = useInView(ref, { once: true, margin: "-80px" })
   return (
-    <div className="glow-border lg:col-start-2 lg:row-start-2 group relative rounded-2xl overflow-hidden bg-white/[0.02] border border-white/[0.06]">
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, scale: 0.92 }}
+      animate={isInView ? { opacity: 1, scale: 1 } : {}}
+      transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+      className="glow-border lg:col-start-2 lg:row-start-2 group relative rounded-2xl overflow-hidden bg-white/[0.02] border border-white/[0.06]"
+    >
       <div className="absolute inset-0 bg-grid opacity-[0.18]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(227,152,50,0.10),transparent_70%)]" />
       <div className="relative z-10 h-full min-h-[200px] flex flex-col justify-center items-center text-center p-8">
@@ -104,7 +117,7 @@ function FeatureTile() {
           </LayoutGroup>
         </h3>
       </div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -119,12 +132,16 @@ function ServiceCard({
   const isInView = useInView(ref, { once: true, margin: "-60px" })
   const Icon = service.icon
 
+  // Mitte erscheint zuerst, dann die Karten gestaffelt "um sie herum"
+  const rank = REVEAL_RANK[index] ?? index
+  const delay = 0.18 + rank * 0.09
+
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, y: 24 }}
-      animate={isInView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.6, delay: index * 0.06, ease: [0.25, 0.1, 0.25, 1] }}
+      initial={{ opacity: 0, y: 36, scale: 0.94 }}
+      animate={isInView ? { opacity: 1, y: 0, scale: 1 } : {}}
+      transition={{ duration: 0.65, delay, ease: [0.22, 1, 0.36, 1] }}
       className={cn("group relative", service.area)}
     >
       <div
@@ -196,10 +213,11 @@ export function Services() {
             <span className="text-white/30">Aus einer Hand.</span>
           </motion.h2>
           <motion.div
-            initial={{ width: 0 }}
-            animate={isInView ? { width: "80px" } : {}}
-            transition={{ delay: 0.3, duration: 0.8 }}
-            className="h-[2px] bg-gradient-to-r from-[#E39832] to-transparent mb-6"
+            initial={{ scaleX: 0 }}
+            animate={isInView ? { scaleX: 1 } : {}}
+            transition={{ delay: 0.3, duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
+            style={{ transformOrigin: "left" }}
+            className="h-[2px] w-20 bg-gradient-to-r from-[#E39832] to-transparent mb-6"
           />
           <motion.p
             initial={{ opacity: 0, y: 20 }}
