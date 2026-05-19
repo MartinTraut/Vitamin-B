@@ -81,12 +81,12 @@ function FeatureTile() {
           Alles aus
           <br />
           <LayoutGroup>
-            <motion.span className="inline-flex items-baseline" layout>
+            <motion.span className="inline-flex items-baseline gap-[0.28em]" layout>
               <motion.span
                 layout
                 transition={{ type: "spring", damping: 30, stiffness: 400 }}
               >
-                einer{" "}
+                einer
               </motion.span>
               <TextRotate
                 texts={rotatingWords}

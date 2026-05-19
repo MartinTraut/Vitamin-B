@@ -195,8 +195,9 @@ export default function RootLayout({
                 })),
               },
               sameAs: [
-                "https://www.instagram.com/vitaminb.design/",
+                "https://www.instagram.com/vitaminb_design/",
                 "https://www.facebook.com/vitaminb.design/",
+                "https://de.linkedin.com/in/robert-bauer-016653355",
               ],
             }),
           }}

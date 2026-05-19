@@ -43,7 +43,7 @@ export function Footer() {
             </p>
             <div className="flex gap-3">
               <a
-                href="https://www.instagram.com/vitaminb.design/"
+                href="https://www.instagram.com/vitaminb_design/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-white/40 hover:text-[#E39832] hover:bg-[#E39832]/10 transition-all"
@@ -58,10 +58,12 @@ export function Footer() {
                 className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-white/40 hover:text-[#E39832] hover:bg-[#E39832]/10 transition-all"
                 aria-label="Facebook"
               >
-                <Facebook className="w-4 h-4" />
+                <Facebook className="w-[19px] h-[19px]" />
               </a>
               <a
-                href="#"
+                href="https://de.linkedin.com/in/robert-bauer-016653355"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-white/40 hover:text-[#E39832] hover:bg-[#E39832]/10 transition-all"
                 aria-label="LinkedIn"
               >

@@ -35,6 +35,7 @@ const projects: {
     cardScaleClass: "scale-[1.35] group-hover:scale-[1.45]",
     gallery: [
       { src: "/projekt-fitnessleasing-gespann.jpg", position: "center" },
+      { src: "/projekt-fitnessleasing-heck.jpg", position: "center 30%" },
       { src: "/projekt-fitnessleasing-van.jpg", position: "center 38%" },
     ],
     results: ["Mobiler Showroom auf Rädern", "Einheitliche Flottengestaltung", "Hohe Wiedererkennung im Straßenbild"],
@@ -277,17 +278,68 @@ export function Portfolio() {
     mass: 0.5,
   })
 
-  // Mobile: kein 3D (kein perspektivisches Re-Rastern pro Frame -> smooth)
-  // Desktop: cinematischer, an den gefederten Scroll gekoppelter Reveal:
-  //  - 3D-Aufrichten aus der Tiefe
-  //  - leichtes Hochfahren + Skalieren
-  //  - sanftes Blur-to-clear (Fokus zieht scharf)
+  // Mobile: kein 3D. Desktop: cinematischer, an den gefederten Scroll
+  // gekoppelter Reveal (3D-Aufrichten, Hochfahren, Blur-to-clear).
   const rotate = useTransform(smooth, [0, 0.7], isMobile ? [0, 0] : [16, 0])
   const scale = useTransform(smooth, [0, 0.82], isMobile ? [0.97, 1] : [0.84, 1])
   const y = useTransform(smooth, [0, 0.82], isMobile ? [0, 0] : [70, 0])
   const cardOpacity = useTransform(smooth, [0, 0.12], [0, 1])
   const blurPx = useTransform(smooth, [0, 0.55], isMobile ? [0, 0] : [14, 0])
   const filter = useMotionTemplate`blur(${blurPx}px)`
+
+  // Klick auf einen "#portfolio"-Link (Header-Navigation) soll die
+  // Scroll-Reveal-Animation automatisch abspielen, statt nur hart zur
+  // Section zu springen: wir scrollen das Fenster selbst sanft durch den
+  // Reveal-Bereich -> exakt dieselbe Animation "wie beim Scrollen", und
+  // die Seite bleibt danach korrekt im aufgedeckten Zustand.
+  useEffect(() => {
+    if (isMobile) return
+
+    const easeInOutCubic = (t: number) =>
+      t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+
+    let rafId = 0
+
+    const autoScrollToReveal = () => {
+      const section = sectionRef.current
+      if (!section) return
+      const start = window.scrollY
+      const sectionTop = section.offsetTop
+      const scrollable = section.offsetHeight - window.innerHeight
+      // ~88% des Reveal-Wegs -> Animation komplett durchgelaufen,
+      // Section ausgerichtet, weiterer Scroll bleibt natürlich.
+      const target = sectionTop + scrollable * 0.85
+      const distance = target - start
+      if (Math.abs(distance) < 8) return
+
+      const duration = 1150
+      const t0 = performance.now()
+      cancelAnimationFrame(rafId)
+
+      const step = (now: number) => {
+        const p = Math.min((now - t0) / duration, 1)
+        window.scrollTo(0, start + distance * easeInOutCubic(p))
+        if (p < 1) rafId = requestAnimationFrame(step)
+      }
+      rafId = requestAnimationFrame(step)
+    }
+
+    const onClick = (e: MouseEvent) => {
+      const link = (e.target as HTMLElement | null)?.closest(
+        'a[href="#portfolio"], a[href$="#portfolio"]',
+      )
+      if (!link) return
+      e.preventDefault()
+      window.history.replaceState(null, "", "#portfolio")
+      requestAnimationFrame(autoScrollToReveal)
+    }
+
+    document.addEventListener("click", onClick)
+    return () => {
+      document.removeEventListener("click", onClick)
+      cancelAnimationFrame(rafId)
+    }
+  }, [isMobile])
 
   const cards = projects.map((project) =>
     project.placeholder ? (
@@ -326,12 +378,12 @@ export function Portfolio() {
         sizes="(max-width: 768px) 50vw, 33vw"
         quality={82}
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent opacity-55 md:opacity-45 md:group-hover:opacity-75 transition-opacity duration-500" />
-      <div className="absolute inset-0 p-2.5 md:p-4 flex flex-col justify-end">
-        <span className="text-[#E39832] text-[8px] md:text-xs font-medium tracking-wide uppercase mb-0.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-transparent opacity-100 md:opacity-45 md:group-hover:opacity-75 transition-opacity duration-500" />
+      <div className="absolute inset-0 p-3 md:p-4 flex flex-col justify-end">
+        <span className="text-[#F3B25E] md:text-[#E39832] text-[10px] md:text-xs font-semibold tracking-wider uppercase mb-1 md:mb-0.5 [text-shadow:0_1px_4px_rgba(0,0,0,0.85)] md:[text-shadow:none] md:opacity-0 md:group-hover:opacity-100 transition-opacity">
           {project.category}
         </span>
-        <h3 className="text-[11px] md:text-base font-bold text-white leading-tight">
+        <h3 className="text-[13px] md:text-base font-bold text-white leading-tight [text-shadow:0_1px_5px_rgba(0,0,0,0.8)] md:[text-shadow:none]">
           {project.title}
         </h3>
       </div>
@@ -396,7 +448,7 @@ export function Portfolio() {
 
   return (
     <section id="portfolio" ref={sectionRef} className="relative" style={{ height: "230vh" }}>
-      <div className="sticky top-0 h-[100svh] flex flex-col justify-center overflow-hidden pt-14 md:pt-16 pb-6">
+      <div className="sticky top-0 h-[100svh] flex flex-col justify-center overflow-hidden pt-24 md:pt-28 pb-8">
         {/* Header */}
         <div className="max-w-7xl mx-auto px-5 md:px-6 mb-3 md:mb-4 text-center">
           <motion.span
@@ -413,7 +465,7 @@ Arbeiten
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
             transition={{ delay: 0.1, duration: 0.6 }}
-            className="text-2xl md:text-4xl lg:text-5xl font-bold text-white mb-1.5 md:mb-2"
+            className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-1.5 md:mb-2"
             style={{ fontFamily: "var(--font-heading)" }}
           >
             <span className="text-white">Wirkung,</span>{" "}
@@ -442,9 +494,9 @@ Ein Projekt auswählen und die Details ansehen.
               transformOrigin: "center top",
               willChange: "transform, opacity, filter",
             }}
-            className="max-w-5xl mx-auto"
+            className="max-w-4xl mx-auto"
           >
-            <div className="rounded-2xl md:rounded-[36px] border border-white/10 bg-[#1c1c1c] p-2.5 md:p-4 shadow-[0_40px_120px_-20px_rgba(0,0,0,0.6)]">
+            <div className="rounded-2xl md:rounded-[32px] border border-white/10 bg-[#1c1c1c] p-2.5 md:p-3 shadow-[0_40px_120px_-20px_rgba(0,0,0,0.6)]">
               <div className="rounded-xl md:rounded-[28px] bg-[#151515] p-2.5 md:p-3 overflow-hidden">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3">
                   {cards}
