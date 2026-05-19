@@ -1,13 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Image from "next/image"
-import { Menu, X, Briefcase, FolderOpen, User, Settings, HelpCircle, Mail, ArrowRight } from "lucide-react"
+import { Menu, X, Home, Briefcase, FolderOpen, User, Settings, HelpCircle, Mail, ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 
 const navItems = [
+  { name: "Startseite", url: "#", icon: Home },
   { name: "Leistungen", url: "#leistungen", icon: Briefcase },
   { name: "Portfolio", url: "#portfolio", icon: FolderOpen },
   { name: "Über uns", url: "#ueber-uns", icon: User },
@@ -20,6 +21,9 @@ export function Navigation() {
   const [activeTab, setActiveTab] = useState(navItems[0].name)
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  // Waehrend eines Klick-Scrolls den Scroll-Spy sperren, sonst springt
+  // die Markierung durch jede durchscrollte Sektion (hektisches Bouncen).
+  const lockSpy = useRef(false)
 
   useEffect(() => {
     // Section-Elemente einmal cachen, nicht bei jedem Scroll-Tick neu suchen
@@ -35,15 +39,20 @@ export function Navigation() {
         const next = window.scrollY > 50
         return prev === next ? prev : next
       })
-      for (let i = sections.length - 1; i >= 0; i--) {
+      // Waehrend Klick-Scroll: Markierung bleibt auf dem Zielicon,
+      // nicht durch jede durchscrollte Sektion springen.
+      if (lockSpy.current) return
+      // Letzte Sektion finden, deren Oberkante schon durchlaufen ist.
+      // Ist man oberhalb der ersten Sektion (Hero/Seitenanfang), faellt
+      // die Markierung automatisch auf den ersten Punkt zurueck, statt
+      // auf der zuletzt gesetzten haengen zu bleiben.
+      let idx = -1
+      for (let i = 0; i < sections.length; i++) {
         const el = document.getElementById(sections[i].id)
-        if (el && el.getBoundingClientRect().top <= 120) {
-          setActiveTab((prev) =>
-            prev === sections[i].name ? prev : sections[i].name,
-          )
-          break
-        }
+        if (el && el.getBoundingClientRect().top <= 120) idx = i
       }
+      const name = idx === -1 ? sections[0].name : sections[idx].name
+      setActiveTab((prev) => (prev === name ? prev : name))
     }
 
     const onScroll = () => {
@@ -62,14 +71,57 @@ export function Navigation() {
     return () => { document.body.style.overflow = "" }
   }, [mobileOpen])
 
+  // Einheitlicher Scroll fuer ALLE Sektionen, auch gepinnte Sticky-
+  // Sektionen wie Prozess: nicht die Section-Box, sondern die Ueberschrift
+  // (h2) positionieren. Sie landet immer mit konstantem kleinem Abstand
+  // direkt unter dem Header, der Eyebrow darueber. Kein Leerraum, nicht
+  // abgeschnitten, ueberall gleich.
+  const scrollToUrl = (url: string) => {
+    let top: number | null = null
+    if (url === "#") {
+      top = 0
+    } else {
+      const el = document.getElementById(url.replace("#", ""))
+      if (el) {
+        const heading = el.querySelector("h2") ?? el
+        const navEl = document.querySelector("nav")
+        const headerOffset = (navEl ? navEl.offsetHeight : 96) + 16
+        top = Math.max(
+          0,
+          window.scrollY +
+            heading.getBoundingClientRect().top -
+            headerOffset -
+            36,
+        )
+      }
+    }
+    if (top === null) return
+
+    lockSpy.current = true
+    window.scrollTo({ top, behavior: "smooth" })
+    const targetTop = top
+    const start = performance.now()
+    const settle = () => {
+      if (Math.abs(window.scrollY - targetTop) < 2 || performance.now() - start > 1400) {
+        lockSpy.current = false
+        return
+      }
+      requestAnimationFrame(settle)
+    }
+    requestAnimationFrame(settle)
+  }
+
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, item: typeof navItems[0]) => {
     e.preventDefault()
     setActiveTab(item.name)
-    const el = document.getElementById(item.url.replace("#", ""))
-    if (el) {
-      const top = el.getBoundingClientRect().top + window.scrollY - 80
-      window.scrollTo({ top, behavior: "smooth" })
-    }
+    scrollToUrl(item.url)
+  }
+
+  const handleCtaClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault()
+    setActiveTab("Kontakt")
+    setMobileOpen(false)
+    scrollToUrl("#kontakt")
   }
 
   return (
@@ -94,6 +146,21 @@ export function Navigation() {
           {/* Logo */}
           <a
             href="#"
+            onClick={(e) => {
+              e.preventDefault()
+              setActiveTab(navItems[0].name)
+              lockSpy.current = true
+              window.scrollTo({ top: 0, behavior: "smooth" })
+              const start = performance.now()
+              const settle = () => {
+                if (window.scrollY < 2 || performance.now() - start > 1400) {
+                  lockSpy.current = false
+                  return
+                }
+                requestAnimationFrame(settle)
+              }
+              requestAnimationFrame(settle)
+            }}
             className="shrink-0 inline-flex items-center"
           >
             <Image
@@ -128,7 +195,7 @@ export function Navigation() {
                       layoutId="lamp"
                       className="absolute inset-0 w-full bg-[#E39832]/5 rounded-full -z-10"
                       initial={false}
-                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
                     />
                   )}
                 </a>
@@ -139,7 +206,7 @@ export function Navigation() {
           {/* Desktop CTA */}
           <div className="hidden lg:block shrink-0">
             <Button asChild className="bg-[#E39832] [a]:hover:bg-[#E39832] hover:brightness-110 text-white rounded-full px-6 group">
-              <a href="#kontakt">
+              <a href="#kontakt" onClick={handleCtaClick}>
                 Projekt starten
                 <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
               </a>
@@ -179,7 +246,7 @@ export function Navigation() {
                     layoutId="lamp-mobile"
                     className="absolute inset-0 bg-[#E39832]/[0.08] rounded-full -z-10"
                     initial={false}
-                    transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                    transition={{ duration: 0.45, ease: [0.25, 0.1, 0.25, 1] }}
                   />
                 )}
               </a>
@@ -217,7 +284,7 @@ export function Navigation() {
                 </motion.a>
               ))}
               <Button asChild size="lg" className="bg-[#E39832] [a]:hover:bg-[#E39832] hover:brightness-110 text-white rounded-full px-8 mt-2">
-                <a href="#kontakt" onClick={() => setMobileOpen(false)}>Projekt starten</a>
+                <a href="#kontakt" onClick={handleCtaClick}>Projekt starten</a>
               </Button>
             </motion.div>
           </motion.div>

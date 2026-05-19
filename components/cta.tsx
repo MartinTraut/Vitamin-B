@@ -64,7 +64,7 @@ function ContactRow({ item }: { item: (typeof contactItems)[number] }) {
   )
 
   const cls =
-    "group flex items-center gap-4 rounded-xl border border-[#E39832]/25 bg-[#E39832]/[0.035] px-4 py-3.5 transition-colors hover:border-[#E39832]/55 hover:bg-[#E39832]/[0.07]"
+    "group flex items-center gap-4 rounded-xl border border-[#E39832]/25 bg-[#E39832]/[0.035] px-4 py-3 transition-colors hover:border-[#E39832]/55 hover:bg-[#E39832]/[0.07]"
 
   return item.href ? (
     <a
@@ -84,7 +84,10 @@ export function CTA() {
   const isInView = useInView(ref, { once: true, margin: "-100px" })
 
   return (
-    <section id="kontakt" className="relative py-16 md:py-32 overflow-hidden">
+    <section
+      id="kontakt"
+      className="relative py-20 md:py-28 scroll-mt-28 md:scroll-mt-40 overflow-hidden"
+    >
       <div className="absolute inset-0 bg-[#050505]" />
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#E39832]/20 to-transparent" />
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-[radial-gradient(circle,rgba(227,152,50,0.06),transparent_70%)] pointer-events-none" />
@@ -104,7 +107,7 @@ export function CTA() {
               initial={{ opacity: 0, y: 20 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.1 }}
-              className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-6"
+              className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4"
               style={{ fontFamily: "var(--font-heading)" }}
             >
               Aus Ihrer Idee
@@ -115,7 +118,7 @@ export function CTA() {
               initial={{ opacity: 0, y: 20 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.2 }}
-              className="text-white/50 text-lg leading-relaxed mb-10"
+              className="text-white/50 text-lg leading-relaxed mb-7"
             >
               Erzählen Sie uns von Ihrem Vorhaben. Wir hören zu, ordnen ein und
               zeigen den Weg von der Vision zur Marke. Das Erstgespräch ist
@@ -126,7 +129,7 @@ export function CTA() {
               initial={{ opacity: 0, y: 20 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.3 }}
-              className="space-y-3 md:space-y-4"
+              className="space-y-2.5 md:space-y-3"
             >
               {contactItems.map((item) => (
                 <ContactRow key={item.label} item={item} />
@@ -140,7 +143,7 @@ export function CTA() {
             animate={isInView ? { opacity: 1, x: 0 } : {}}
             transition={{ delay: 0.3, duration: 0.8 }}
           >
-            <div className="relative flex flex-col p-8 md:p-10 rounded-2xl bg-white/[0.02] border border-white/[0.05] overflow-hidden">
+            <div className="relative flex flex-col p-7 md:p-9 rounded-2xl bg-white/[0.02] border border-white/[0.05] overflow-hidden">
               <div className="absolute -top-24 -right-24 w-72 h-72 bg-[radial-gradient(circle,rgba(37,211,102,0.12),transparent_70%)] pointer-events-none" />
 
               <div className="relative">

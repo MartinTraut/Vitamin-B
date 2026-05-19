@@ -276,9 +276,8 @@ export function Process() {
                 {/* Left: Vertical Timeline (Desktop) */}
                 <div className="hidden lg:block relative">
                   <div className="relative h-[360px]">
-                    {/* Track background */}
-                    <div className="absolute left-3 top-0 bottom-0 w-[2px] bg-white/[0.04] rounded-full" />
-                    {/* Glowing active line */}
+                    {/* Kein sichtbares Track-Konstrukt mehr: nur die
+                        orangene Linie waechst beim Scrollen mit. */}
                     <ProgressLine scale={lineScale} />
 
                     {/* Step dots + labels */}
@@ -315,8 +314,8 @@ export function Process() {
                                 width: isCurrent ? 26 : isPast ? 14 : 7,
                                 height: isCurrent ? 26 : isPast ? 14 : 7,
                                 backgroundColor: isCurrent || isPast ? "#E39832" : "transparent",
-                                borderColor: isCurrent ? "#E39832" : isPast ? "#E39832" : "rgba(255,255,255,0.05)",
-                                opacity: isCurrent || isPast ? 1 : 0.4,
+                                borderColor: isCurrent ? "#E39832" : isPast ? "#E39832" : "transparent",
+                                opacity: isCurrent || isPast ? 1 : 0,
                                 boxShadow: isCurrent
                                   ? "0 0 20px rgba(227,152,50,0.5), 0 0 40px rgba(227,152,50,0.2)"
                                   : isPast

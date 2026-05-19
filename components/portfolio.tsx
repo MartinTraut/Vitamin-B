@@ -1,6 +1,6 @@
 "use client"
 
-import { motion, useScroll, useTransform, useSpring, AnimatePresence } from "framer-motion"
+import { motion, useScroll, useTransform, useSpring, useMotionTemplate, AnimatePresence } from "framer-motion"
 import { useRef, useState, useEffect } from "react"
 import Image from "next/image"
 import { ArrowUpRight, X, ChevronLeft, ChevronRight, Plus } from "lucide-react"
@@ -35,9 +35,7 @@ const projects: {
     cardScaleClass: "scale-[1.35] group-hover:scale-[1.45]",
     gallery: [
       { src: "/projekt-fitnessleasing-gespann.jpg", position: "center" },
-      // TODO: Datei public/projekt-fitnessleasing-heck.jpg ablegen, dann
-      // diese Zeile wieder aktivieren:
-      // { src: "/projekt-fitnessleasing-heck.jpg", position: "center 30%" },
+      { src: "/projekt-fitnessleasing-heck.png", position: "center 30%" },
       { src: "/projekt-fitnessleasing-van.jpg", position: "center 38%" },
     ],
     results: ["Mobiler Showroom auf Rädern", "Einheitliche Flottengestaltung", "Hohe Wiedererkennung im Straßenbild"],
@@ -279,13 +277,16 @@ export function Portfolio() {
   })
 
   // Mobile: kein 3D. Desktop: cinematischer, an den gefederten Scroll
-  // gekoppelter Reveal (3D-Aufrichten, Hochfahren). Kein animierter Blur
-  // mehr: Filter auf einer viewportgroßen Karte = teure GPU-Recomposition
-  // pro Frame. rotateX + scale + opacity reichen für die Tiefe.
+  // gekoppelter Reveal (3D-Aufrichten, Hochfahren, Blur-to-clear).
   const rotate = useTransform(smooth, [0, 0.7], isMobile ? [0, 0] : [16, 0])
   const scale = useTransform(smooth, [0, 0.82], isMobile ? [0.97, 1] : [0.84, 1])
   const y = useTransform(smooth, [0, 0.82], isMobile ? [0, 0] : [70, 0])
   const cardOpacity = useTransform(smooth, [0, 0.12], [0, 1])
+  // Blur-to-clear: nur kurzes Einscharfstellen am Anfang des Reveals,
+  // danach (ab ~25% Scroll) komplett scharf -> nicht "alles verschwommen"
+  // und kaum Frames mit aktivem Filter (performant).
+  const blurPx = useTransform(smooth, [0, 0.25], isMobile ? [0, 0] : [10, 0])
+  const filter = useMotionTemplate`blur(${blurPx}px)`
 
   // Klick auf einen "#portfolio"-Link (Header-Navigation) soll die
   // Scroll-Reveal-Animation automatisch abspielen, statt nur hart zur
@@ -492,8 +493,9 @@ Ein Projekt auswählen und die Details ansehen.
               scale,
               y,
               opacity: cardOpacity,
+              filter,
               transformOrigin: "center top",
-              willChange: "transform, opacity",
+              willChange: "transform, opacity, filter",
             }}
             className="max-w-4xl mx-auto"
           >
