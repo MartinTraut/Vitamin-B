@@ -117,9 +117,9 @@ export function Hero() {
 
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] md:w-[800px] h-[600px] md:h-[800px] bg-[radial-gradient(circle,rgba(227,152,50,0.08)_0%,transparent_70%)] pointer-events-none" />
 
-      <div className="relative z-10 max-w-5xl mx-auto px-5 text-center flex flex-col items-center justify-between min-h-[100svh] pt-32 pb-12 md:pt-40 md:pb-16">
-        {/* Top spacer - smaller to push content up */}
-        <div className="shrink-[6]" />
+      <div className="relative z-10 max-w-5xl mx-auto px-5 text-center flex flex-col items-center justify-center py-28 md:justify-between md:min-h-[100svh] md:py-0 md:pt-40 md:pb-16">
+        {/* Top spacer - desktop only (mobile: feste Hoehe, kein Reflow/Zittern) */}
+        <div className="hidden md:block shrink-[6]" />
 
         {/* Center content */}
         <div>
@@ -222,7 +222,7 @@ export function Hero() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.5 }}
-          className="mt-8 md:mt-10"
+          className="hidden md:block md:mt-10"
         >
           <a href="#leistungen" className="hidden md:flex flex-col items-center gap-2 text-white/30 hover:text-[#E39832] transition-colors">
             <span className="text-xs tracking-widest uppercase">Weiter</span>

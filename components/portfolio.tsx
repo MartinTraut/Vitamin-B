@@ -35,7 +35,9 @@ const projects: {
     cardScaleClass: "scale-[1.35] group-hover:scale-[1.45]",
     gallery: [
       { src: "/projekt-fitnessleasing-gespann.jpg", position: "center" },
-      { src: "/projekt-fitnessleasing-heck.jpg", position: "center 30%" },
+      // TODO: Datei public/projekt-fitnessleasing-heck.jpg ablegen, dann
+      // diese Zeile wieder aktivieren:
+      // { src: "/projekt-fitnessleasing-heck.jpg", position: "center 30%" },
       { src: "/projekt-fitnessleasing-van.jpg", position: "center 38%" },
     ],
     results: ["Mobiler Showroom auf Rädern", "Einheitliche Flottengestaltung", "Hohe Wiedererkennung im Straßenbild"],
@@ -180,10 +182,10 @@ function ProjectModal({ project, onClose }: { project: typeof projects[0]; onClo
         exit={{ opacity: 0, y: 100 }}
         transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full md:max-w-3xl max-h-[92vh] md:max-h-[88vh] overflow-hidden rounded-t-3xl md:rounded-3xl bg-[#0a0a0a] border border-white/[0.08] z-10"
+        className="relative flex flex-col w-full md:max-w-3xl max-h-[92vh] md:max-h-[88vh] overflow-hidden rounded-t-3xl md:rounded-3xl bg-[#0a0a0a] border border-white/[0.08] z-10"
       >
         {/* Drag handle mobile */}
-        <div className="md:hidden flex justify-center pt-3 pb-1">
+        <div className="md:hidden flex justify-center pt-3 pb-1 shrink-0">
           <div className="w-10 h-1 rounded-full bg-white/20" />
         </div>
 
@@ -194,6 +196,7 @@ function ProjectModal({ project, onClose }: { project: typeof projects[0]; onClo
           <X className="w-4 h-4" />
         </button>
 
+        <div className="shrink-0">
         {project.gallery && project.gallery.length > 1 ? (
           <ModalGallery
             images={project.gallery}
@@ -220,8 +223,9 @@ function ProjectModal({ project, onClose }: { project: typeof projects[0]; onClo
             )}
           </div>
         )}
+        </div>
 
-        <div className="p-5 md:p-8 -mt-12 md:-mt-16 relative z-10">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-5 md:p-8 -mt-12 md:-mt-16 relative z-10">
           <span className="text-[#E39832] text-[10px] md:text-xs font-medium tracking-widest uppercase">{project.category}</span>
           <h2 className="text-2xl md:text-3xl font-bold text-white mt-1 mb-2 md:mb-3" style={{ fontFamily: "var(--font-heading)" }}>
             {project.title}
@@ -367,7 +371,7 @@ export function Portfolio() {
       <div
         key={project.title}
         onClick={() => setSelectedProject(project)}
-        className="group relative aspect-[4/3] overflow-hidden rounded-lg md:rounded-2xl cursor-pointer active:scale-[0.98] transition-transform"
+        className="group relative aspect-[4/3] overflow-hidden rounded-lg md:rounded-2xl cursor-pointer ring-1 ring-inset ring-white/[0.06] md:ring-0 active:scale-[0.98] transition-transform"
       >
       <Image
         src={project.image}
@@ -378,12 +382,14 @@ export function Portfolio() {
         sizes="(max-width: 768px) 50vw, 33vw"
         quality={82}
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-transparent opacity-100 md:opacity-45 md:group-hover:opacity-75 transition-opacity duration-500" />
+      {/* Mobile: gleichmaessiger Scrim (zaehmt helle Bilder, kein heller Rand);
+          Desktop: dezenter Hover-Verlauf wie gehabt */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/15 md:from-black/90 md:via-black/45 md:to-transparent opacity-100 md:opacity-45 md:group-hover:opacity-75 transition-opacity duration-500" />
       <div className="absolute inset-0 p-3 md:p-4 flex flex-col justify-end">
-        <span className="text-[#F3B25E] md:text-[#E39832] text-[10px] md:text-xs font-semibold tracking-wider uppercase mb-1 md:mb-0.5 [text-shadow:0_1px_4px_rgba(0,0,0,0.85)] md:[text-shadow:none] md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+        <span className="block truncate text-[#F3B25E] md:text-[#E39832] text-[10px] md:text-xs font-semibold tracking-wider uppercase md:mb-0.5 [text-shadow:0_1px_4px_rgba(0,0,0,0.85)] md:[text-shadow:none] md:opacity-0 md:group-hover:opacity-100 transition-opacity">
           {project.category}
         </span>
-        <h3 className="text-[13px] md:text-base font-bold text-white leading-tight [text-shadow:0_1px_5px_rgba(0,0,0,0.8)] md:[text-shadow:none]">
+        <h3 className="hidden md:block text-base font-bold text-white leading-tight">
           {project.title}
         </h3>
       </div>
