@@ -164,13 +164,17 @@ function ServiceModal({ service, onClose }: { service: Service; onClose: () => v
   const Icon = service.icon
 
   useEffect(() => {
+    // Scroll-Lock ohne Header-Ruckler: html nutzt scrollbar-gutter:stable,
+    // dadurch verschwindet die Scrollbar-Spur beim Sperren nicht und der
+    // fixierte Header verschiebt sich nicht horizontal.
+    const prevOverflow = document.body.style.overflow
     document.body.style.overflow = "hidden"
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose()
     }
     window.addEventListener("keydown", onKey)
     return () => {
-      document.body.style.overflow = ""
+      document.body.style.overflow = prevOverflow
       window.removeEventListener("keydown", onKey)
     }
   }, [onClose])

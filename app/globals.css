@@ -100,6 +100,10 @@
     html {
         @apply font-sans;
         -webkit-text-size-adjust: 100%;
+        /* Scrollbar-Platz dauerhaft reservieren: verhindert Layout-
+           Sprung des fixierten Headers, wenn ein Modal die Scrollbar
+           ausblendet. */
+        scrollbar-gutter: stable;
     }
     section[id] {
         scroll-margin-top: 80px;

@@ -86,7 +86,7 @@ export function Navigation() {
         const eyebrow = el.querySelector<HTMLElement>(".tracking-widest")
         const target = eyebrow ?? el.querySelector("h2") ?? el
         const navEl = document.querySelector("nav")
-        const headerOffset = (navEl ? navEl.offsetHeight : 96) + 24
+        const headerOffset = (navEl ? navEl.offsetHeight : 96) + 56
         top = Math.max(
           0,
           window.scrollY + target.getBoundingClientRect().top - headerOffset,
