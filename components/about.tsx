@@ -92,9 +92,7 @@ Studio
               className="text-3xl sm:text-4xl md:text-4xl font-bold text-white mb-4"
               style={{ fontFamily: "var(--font-heading)" }}
             >
-              Vision to Brand.
-              <br />
-              <span className="text-white/30">Das ist vitaminb.</span>
+              Das ist vitaminb.
             </motion.h2>
             <motion.p
               initial={{ opacity: 0, y: 20 }}

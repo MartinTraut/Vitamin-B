@@ -127,14 +127,14 @@ export function Hero() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-[2.5rem] min-[400px]:text-[3rem] leading-[1.02] sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-6 md:mb-8"
+            className="text-[3.5rem] min-[400px]:text-[4.25rem] leading-[0.95] sm:text-7xl md:text-8xl lg:text-9xl font-bold tracking-tight mb-6 md:mb-8"
             style={{ fontFamily: "var(--font-heading)" }}
           >
-            <span className="text-white">Ihre Vision</span>
+            <span className="text-white">VISION</span>
             <br />
-            <span className="text-white">wird zu Ihrem</span>
+            <span className="text-white/80 italic font-normal lowercase">to</span>
             <br />
-            <span className="text-[#E39832]">Brand.</span>
+            <span className="text-[#E39832]">BRAND</span>
           </motion.h1>
 
           <motion.p

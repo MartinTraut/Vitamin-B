@@ -114,7 +114,7 @@ export default function RootLayout({
                 "Social Media",
                 "Markenstrategie",
               ],
-              telephone: "+4915158779133",
+              telephone: "+4915172896574",
               email: "mail@vitaminb-design.de",
               address: {
                 "@type": "PostalAddress",

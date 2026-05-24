@@ -1,7 +1,7 @@
 "use client"
 
 import { motion, useInView, LayoutGroup } from "framer-motion"
-import { useRef } from "react"
+import { useRef, useState } from "react"
 import {
   Palette,
   Globe,
@@ -14,7 +14,19 @@ import {
 import { cn } from "@/lib/utils"
 import { TextRotate } from "@/components/ui/text-rotate"
 
-const services = [
+type Service = {
+  icon: typeof Palette
+  title: string
+  description: string
+  features: string[]
+  area: string
+  featured?: boolean
+  image?: string
+  imagePosition?: "side" | "bottom"
+  imageFit?: "cover" | "contain"
+}
+
+const services: Service[] = [
   {
     icon: Palette,
     title: "Branding & Corporate Design",
@@ -23,6 +35,8 @@ const services = [
     features: ["Logo Design", "Brand Strategy", "Style Guides", "Naming"],
     area: "lg:col-start-1 lg:row-start-1 lg:col-span-2",
     featured: true,
+    image: "/services/branding.png",
+    imageFit: "contain",
   },
   {
     icon: Globe,
@@ -39,6 +53,8 @@ const services = [
       "Print bleibt greifbar. Vom Geschäftspapier bis zur Großfläche gestalten wir Druckmedien mit Haltung. Präzise, hochwertig produziert und im Einklang mit der Markenidentität.",
     features: ["Geschäftsausstattung", "Broschüren", "Plakate", "Verpackung"],
     area: "lg:col-start-1 lg:row-start-2",
+    image: "/services/print.jpg",
+    imagePosition: "bottom",
   },
   {
     icon: Share2,
@@ -47,6 +63,8 @@ const services = [
       "Im Feed entscheidet ein Moment. Wir entwickeln Inhalte mit klarer visueller Sprache. Konsistent zur Marke, durchdacht statt laut, gemacht, um wiedererkannt zu werden.",
     features: ["Content Design", "Strategie", "Kampagnen", "Templates"],
     area: "lg:col-start-3 lg:row-start-2",
+    image: "/services/social.webp",
+    imagePosition: "bottom",
   },
   {
     icon: Camera,
@@ -55,6 +73,7 @@ const services = [
       "Bilder sprechen schneller als Worte. Wir erzeugen visuelles Material mit Charakter. Echt statt Stockfoto, kuratiert auf die Bildsprache Ihrer Marke.",
     features: ["Produktfotos", "Imagefilm", "Reels", "Bildsprache"],
     area: "lg:col-start-1 lg:row-start-3 lg:col-span-2",
+    image: "/services/fotografie.webp",
   },
   {
     icon: BarChart3,
@@ -63,6 +82,8 @@ const services = [
       "Strategie geht der Gestaltung voraus. Wir analysieren Positionierung und Wahrnehmung, schärfen die Richtung und übersetzen sie in klare, wirksame Maßnahmen.",
     features: ["Positionierung", "Markt & Wettbewerb", "Content-Strategie", "SEO"],
     area: "lg:col-start-3 lg:row-start-3",
+    image: "/services/marketing.jpg",
+    imagePosition: "bottom",
   },
 ]
 
@@ -131,6 +152,7 @@ function ServiceCard({
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: "-60px" })
   const Icon = service.icon
+  const [open, setOpen] = useState(false)
 
   // Mitte erscheint zuerst, dann die Karten gestaffelt "um sie herum"
   const rank = REVEAL_RANK[index] ?? index
@@ -142,17 +164,65 @@ function ServiceCard({
       initial={{ opacity: 0, y: 36, scale: 0.94 }}
       animate={isInView ? { opacity: 1, y: 0, scale: 1 } : {}}
       transition={{ duration: 0.65, delay, ease: [0.22, 1, 0.36, 1] }}
-      className={cn("group relative", service.area)}
+      onClick={() => setOpen((v) => !v)}
+      data-open={open ? "true" : "false"}
+      className={cn("group relative cursor-pointer", service.area)}
     >
       <div
         className={cn(
-          "relative h-full p-7 md:p-8 rounded-2xl bg-white/[0.02] border border-white/[0.06] transition-all duration-500 hover:bg-white/[0.04] hover-aura",
+          "relative h-full p-7 md:p-8 rounded-2xl bg-white/[0.02] border border-white/[0.06] transition-all duration-500 hover:bg-white/[0.04] hover-aura overflow-hidden",
           service.featured ? "glow-border" : "hover-glow hover:border-[#E39832]/30",
         )}
       >
         <div className="absolute inset-0 rounded-2xl bg-[radial-gradient(circle_at_50%_0%,rgba(227,152,50,0.07),transparent_60%)] opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
 
-        <div className="relative z-10 h-full flex flex-col">
+        {service.image && service.imagePosition !== "bottom" && (
+          <div
+            aria-hidden
+            className={cn(
+              "pointer-events-none absolute inset-y-6 right-6 hidden md:block rounded-xl overflow-hidden",
+              service.imageFit === "contain" ? "md:w-[48%]" : "md:w-[38%]",
+            )}
+          >
+            <div
+              className={cn(
+                "absolute inset-0 bg-center bg-no-repeat transition-transform duration-700 group-hover:scale-[1.04]",
+                service.imageFit === "contain" ? "bg-contain" : "bg-cover",
+              )}
+              style={{ backgroundImage: `url(${service.image})` }}
+            />
+            {service.imageFit !== "contain" && (
+              <div className="absolute inset-0 bg-gradient-to-l from-transparent to-black/40" />
+            )}
+          </div>
+        )}
+
+        {service.image && service.imagePosition === "bottom" && (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-6 bottom-6 h-[40%] rounded-xl overflow-hidden"
+          >
+            <div
+              className={cn(
+                "absolute inset-0 bg-center bg-no-repeat transition-transform duration-700 group-hover:scale-[1.04]",
+                service.imageFit === "contain" ? "bg-contain" : "bg-cover",
+              )}
+              style={{ backgroundImage: `url(${service.image})` }}
+            />
+            {service.imageFit !== "contain" && (
+              <div className="absolute inset-0 bg-gradient-to-t from-transparent to-black/30" />
+            )}
+          </div>
+        )}
+
+        <div
+          className={cn(
+            "relative z-10 h-full flex flex-col",
+            service.image && service.imagePosition !== "bottom" && service.imageFit !== "contain" && "md:max-w-[55%]",
+            service.image && service.imagePosition !== "bottom" && service.imageFit === "contain" && "md:max-w-[45%]",
+            service.image && service.imagePosition === "bottom" && "md:pb-[44%]",
+          )}
+        >
           <div className="flex items-start justify-between mb-6">
             <div className="w-12 h-12 rounded-xl bg-[#E39832]/10 flex items-center justify-center group-hover:bg-[#E39832]/20 transition-colors duration-500">
               <Icon className="w-6 h-6 text-[#E39832]" />
@@ -163,7 +233,14 @@ function ServiceCard({
           <h3 className="text-xl font-semibold text-white mb-3 group-hover:text-[#E39832] transition-colors duration-500">
             {service.title}
           </h3>
-          <p className="text-white/40 text-sm leading-relaxed mb-6 group-hover:text-white/55 transition-colors duration-500">
+          <p
+            className={cn(
+              "text-[#E39832]/85 text-sm leading-relaxed overflow-hidden transition-all duration-500 ease-out",
+              "max-h-0 opacity-0 mb-0 -translate-y-1",
+              "group-hover:max-h-48 group-hover:opacity-100 group-hover:mb-6 group-hover:translate-y-0",
+              open && "max-h-48 opacity-100 mb-6 translate-y-0",
+            )}
+          >
             {service.description}
           </p>
 
@@ -208,9 +285,9 @@ export function Services() {
             className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-6"
             style={{ fontFamily: "var(--font-heading)" }}
           >
-            Strategie trifft Gestaltung.
+            Von der Strategie bis zur Gestaltung.
             <br />
-            <span className="text-white/30">Aus einer Hand.</span>
+            <span className="text-white/30">Alles aus einer Hand.</span>
           </motion.h2>
           <motion.div
             initial={{ scaleX: 0 }}

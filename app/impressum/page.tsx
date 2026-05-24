@@ -50,10 +50,10 @@ export default function Impressum() {
             <p>
               Telefon:{" "}
               <a
-                href="tel:+4915158779133"
+                href="tel:+4915172896574"
                 className="text-[#E39832] hover:text-[#E39832] underline underline-offset-2 decoration-[#E39832]/30 transition-colors"
               >
-                +49 151 58779133
+                +49 151 72896574
               </a>
               <br />
               E-Mail:{" "}

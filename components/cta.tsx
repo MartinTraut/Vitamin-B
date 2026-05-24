@@ -23,7 +23,7 @@ const contactItems: {
   external?: boolean
   iconClass?: string
 }[] = [
-  { icon: Phone, label: "Telefon", value: "+49 151 58779133", href: "tel:+4915158779133" },
+  { icon: Phone, label: "Telefon", value: "+49 151 72896574", href: "tel:+4915172896574" },
   {
     icon: WhatsAppGlyph,
     label: "WhatsApp",
@@ -35,7 +35,7 @@ const contactItems: {
   {
     icon: Mail,
     label: "E Mail",
-    value: "mail (at) vitaminb-design.de",
+    value: "mail@vitaminb-design.de",
     href: "mailto:mail@vitaminb-design.de",
   },
   {
