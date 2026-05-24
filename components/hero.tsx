@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { motion } from "framer-motion"
 import { ArrowRight, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { scrollToSection } from "@/lib/utils"
 
 function ParticleField() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -159,7 +160,13 @@ export function Hero() {
               size="lg"
               className="bg-[#E39832] [a]:hover:bg-[#E39832] hover:brightness-110 text-white rounded-full px-6 md:px-8 h-12 md:h-14 text-sm md:text-base group w-full sm:w-auto shadow-[0_0_28px_rgba(227,152,50,0.32)] hover:shadow-[0_0_46px_rgba(227,152,50,0.55)] transition-shadow duration-300"
             >
-              <a href="#kontakt">
+              <a
+                href="#kontakt"
+                onClick={(e) => {
+                  e.preventDefault()
+                  scrollToSection("#kontakt")
+                }}
+              >
                 Erstgespräch vereinbaren
                 <ArrowRight className="ml-2 h-4 w-4 md:h-5 md:w-5 transition-transform group-hover:translate-x-1" />
               </a>

@@ -419,7 +419,7 @@ export function Portfolio() {
             style={{ fontFamily: "var(--font-heading)" }}
           >
             <span className="text-white">Wirkung,</span>{" "}
-            <span className="text-white/30">die man sieht.</span>
+            <span className="text-[#E39832]">die man sieht.</span>
           </motion.h2>
           <p className="text-white/40 text-sm">
             Ein Projekt antippen und die Details ansehen.
@@ -472,7 +472,7 @@ Arbeiten
             style={{ fontFamily: "var(--font-heading)" }}
           >
             <span className="text-white">Wirkung,</span>{" "}
-            <span className="text-white/30">die man sieht.</span>
+            <span className="text-[#E39832]">die man sieht.</span>
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 20 }}

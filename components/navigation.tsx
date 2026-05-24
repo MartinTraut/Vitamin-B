@@ -83,15 +83,13 @@ export function Navigation() {
     } else {
       const el = document.getElementById(url.replace("#", ""))
       if (el) {
-        const heading = el.querySelector("h2") ?? el
+        const eyebrow = el.querySelector<HTMLElement>(".tracking-widest")
+        const target = eyebrow ?? el.querySelector("h2") ?? el
         const navEl = document.querySelector("nav")
-        const headerOffset = (navEl ? navEl.offsetHeight : 96) + 16
+        const headerOffset = (navEl ? navEl.offsetHeight : 96) + 24
         top = Math.max(
           0,
-          window.scrollY +
-            heading.getBoundingClientRect().top -
-            headerOffset -
-            36,
+          window.scrollY + target.getBoundingClientRect().top - headerOffset,
         )
       }
     }

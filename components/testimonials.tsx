@@ -53,7 +53,7 @@ Stimmen
             style={{ fontFamily: "var(--font-heading)" }}
           >
             <span className="text-white">Wirkung,</span>{" "}
-            <span className="text-white/30">die bestätigt wird.</span>
+            <span className="text-[#E39832]">die bestätigt wird.</span>
           </motion.h2>
         </div>
 

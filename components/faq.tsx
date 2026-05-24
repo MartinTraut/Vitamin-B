@@ -107,7 +107,7 @@ export function FAQ() {
           >
             Sie fragen.
             <br />
-            <span className="text-white/30">Wir antworten.</span>
+            <span className="text-[#E39832]">Wir antworten.</span>
           </motion.h2>
         </div>
 

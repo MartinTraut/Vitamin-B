@@ -1,7 +1,7 @@
 "use client"
 
-import { motion, useInView, LayoutGroup } from "framer-motion"
-import { useRef, useState } from "react"
+import { motion, useInView, AnimatePresence } from "framer-motion"
+import { useEffect, useRef, useState } from "react"
 import {
   Palette,
   Globe,
@@ -10,252 +10,248 @@ import {
   Camera,
   BarChart3,
   ArrowUpRight,
+  X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { TextRotate } from "@/components/ui/text-rotate"
 
 type Service = {
   icon: typeof Palette
   title: string
+  short: string
   description: string
   features: string[]
-  area: string
-  featured?: boolean
   image?: string
-  imagePosition?: "side" | "bottom"
   imageFit?: "cover" | "contain"
+  imageObjectPosition?: string
 }
 
 const services: Service[] = [
   {
     icon: Palette,
     title: "Branding & Corporate Design",
+    short: "Identität mit System.",
     description:
       "Eine Marke ist kein Logo. Sie ist, wie man Sie wahrnimmt. Wir entwickeln Identitäten mit System. Vom strategischen Fundament bis zum konsistenten Erscheinungsbild, das wiedererkannt wird.",
     features: ["Logo Design", "Brand Strategy", "Style Guides", "Naming"],
-    area: "lg:col-start-1 lg:row-start-1 lg:col-span-2",
-    featured: true,
     image: "/services/branding.png",
-    imageFit: "contain",
+    imageFit: "cover",
   },
   {
     icon: Globe,
     title: "Webdesign & Entwicklung",
+    short: "Auftritte, die in Sekunden wirken.",
     description:
       "Die Website ist der erste Eindruck Ihrer Marke. Wir gestalten digitale Auftritte, die in Sekunden wirken. Klar strukturiert, schnell und gebaut, um Besucher zu führen.",
     features: ["UI/UX Design", "Responsive", "SEO", "Performance"],
-    area: "lg:col-start-3 lg:row-start-1",
+    image: "/services/webdesign.png",
+    imageFit: "cover",
   },
   {
     icon: Printer,
     title: "Print & Drucksachen",
+    short: "Greifbar, präzise, hochwertig.",
     description:
       "Print bleibt greifbar. Vom Geschäftspapier bis zur Großfläche gestalten wir Druckmedien mit Haltung. Präzise, hochwertig produziert und im Einklang mit der Markenidentität.",
     features: ["Geschäftsausstattung", "Broschüren", "Plakate", "Verpackung"],
-    area: "lg:col-start-1 lg:row-start-2",
     image: "/services/print.jpg",
-    imagePosition: "bottom",
   },
   {
     icon: Share2,
     title: "Social Media",
+    short: "Wiedererkennung im Feed.",
     description:
       "Im Feed entscheidet ein Moment. Wir entwickeln Inhalte mit klarer visueller Sprache. Konsistent zur Marke, durchdacht statt laut, gemacht, um wiedererkannt zu werden.",
     features: ["Content Design", "Strategie", "Kampagnen", "Templates"],
-    area: "lg:col-start-3 lg:row-start-2",
     image: "/services/social.webp",
-    imagePosition: "bottom",
   },
   {
     icon: Camera,
     title: "Fotografie & Video",
+    short: "Echtes Bildmaterial mit Charakter.",
     description:
       "Bilder sprechen schneller als Worte. Wir erzeugen visuelles Material mit Charakter. Echt statt Stockfoto, kuratiert auf die Bildsprache Ihrer Marke.",
     features: ["Produktfotos", "Imagefilm", "Reels", "Bildsprache"],
-    area: "lg:col-start-1 lg:row-start-3 lg:col-span-2",
     image: "/services/fotografie.webp",
   },
   {
     icon: BarChart3,
     title: "Marketing & Beratung",
+    short: "Strategie vor Gestaltung.",
     description:
       "Strategie geht der Gestaltung voraus. Wir analysieren Positionierung und Wahrnehmung, schärfen die Richtung und übersetzen sie in klare, wirksame Maßnahmen.",
     features: ["Positionierung", "Markt & Wettbewerb", "Content-Strategie", "SEO"],
-    area: "lg:col-start-3 lg:row-start-3",
     image: "/services/marketing.jpg",
-    imagePosition: "bottom",
   },
 ]
-
-const rotatingWords = ["Hand", "Vision", "Strategie", "Quelle"]
-
-// Erscheinungs-Reihenfolge "um die Mitte herum" (im Uhrzeigersinn):
-// oben-links, oben-rechts, rechts, unten-rechts, unten-links, links
-// serviceIndex -> Rang (Mitte = vor allen)
-const REVEAL_RANK: Record<number, number> = { 0: 0, 1: 1, 3: 2, 5: 3, 4: 4, 2: 5 }
-
-function FeatureTile() {
-  const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, margin: "-80px" })
-  return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, scale: 0.92 }}
-      animate={isInView ? { opacity: 1, scale: 1 } : {}}
-      transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-      className="glow-border lg:col-start-2 lg:row-start-2 group relative rounded-2xl overflow-hidden bg-white/[0.02] border border-white/[0.06]"
-    >
-      <div className="absolute inset-0 bg-grid opacity-[0.18]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(227,152,50,0.10),transparent_70%)]" />
-      <div className="relative z-10 h-full min-h-[200px] flex flex-col justify-center items-center text-center p-8">
-        <h3
-          className="text-2xl md:text-3xl lg:text-4xl font-bold text-white leading-[1.18] px-2"
-          style={{ fontFamily: "var(--font-heading)" }}
-        >
-          Alles aus
-          <br />
-          <LayoutGroup>
-            <motion.span className="inline-flex items-baseline gap-[0.28em]" layout>
-              <motion.span
-                layout
-                transition={{ type: "spring", damping: 30, stiffness: 400 }}
-              >
-                einer
-              </motion.span>
-              <TextRotate
-                texts={rotatingWords}
-                mainClassName="text-[#E39832] overflow-hidden justify-center"
-                staggerFrom="last"
-                initial={{ y: "100%", opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: "-120%", opacity: 0 }}
-                staggerDuration={0.025}
-                splitLevelClassName="overflow-hidden pb-1"
-                transition={{ type: "spring", damping: 30, stiffness: 400 }}
-                rotationInterval={2400}
-              />
-            </motion.span>
-          </LayoutGroup>
-        </h3>
-      </div>
-    </motion.div>
-  )
-}
 
 function ServiceCard({
   service,
   index,
+  onOpen,
 }: {
-  service: (typeof services)[0]
+  service: Service
   index: number
+  onOpen: () => void
 }) {
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: "-60px" })
   const Icon = service.icon
-  const [open, setOpen] = useState(false)
+  const delay = 0.12 + (index % 3) * 0.08 + Math.floor(index / 3) * 0.06
 
-  // Mitte erscheint zuerst, dann die Karten gestaffelt "um sie herum"
-  const rank = REVEAL_RANK[index] ?? index
-  const delay = 0.18 + rank * 0.09
+  return (
+    <motion.button
+      ref={ref}
+      type="button"
+      onClick={onOpen}
+      initial={{ opacity: 0, y: 28, scale: 0.96 }}
+      animate={isInView ? { opacity: 1, y: 0, scale: 1 } : {}}
+      transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}
+      aria-label={`Mehr über ${service.title} erfahren`}
+      className="group relative w-full h-full text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E39832]/60 rounded-2xl"
+    >
+      <div className="relative h-full flex flex-col rounded-2xl bg-white/[0.02] border border-white/[0.06] overflow-hidden transition-all duration-500 hover:bg-white/[0.04] hover:border-[#E39832]/30 hover-glow">
+        {/* Header: Icon + Titel nebeneinander */}
+        <div className="relative z-10 flex items-center justify-between gap-3 p-5 md:p-6 pb-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="shrink-0 w-10 h-10 md:w-11 md:h-11 rounded-xl bg-[#E39832]/10 flex items-center justify-center group-hover:bg-[#E39832]/20 transition-colors duration-500">
+              <Icon className="w-5 h-5 md:w-[22px] md:h-[22px] text-[#E39832]" />
+            </div>
+            <h3
+              className="text-base md:text-lg font-semibold text-white leading-tight group-hover:text-[#E39832] transition-colors duration-500 truncate"
+              style={{ fontFamily: "var(--font-heading)" }}
+            >
+              {service.title}
+            </h3>
+          </div>
+          <ArrowUpRight className="shrink-0 w-5 h-5 text-white/20 group-hover:text-[#E39832] transition-all duration-500 group-hover:translate-x-1 group-hover:-translate-y-1" />
+        </div>
+
+        {/* Bild — fixes Verhältnis, nie beschnitten */}
+        {service.image && (
+          <div className="px-5 md:px-6">
+            <div className="relative w-full aspect-[16/10] overflow-hidden rounded-xl bg-black/40 border border-white/[0.04]">
+              <div
+                className={cn(
+                  "absolute inset-0 bg-center bg-no-repeat transition-transform duration-700 group-hover:scale-[1.04]",
+                  service.imageFit === "contain" ? "bg-contain" : "bg-cover",
+                )}
+                style={{
+                  backgroundImage: `url(${service.image})`,
+                  backgroundPosition: service.imageObjectPosition ?? "center",
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Infobox: kompakte Chips */}
+        <div className="relative z-10 mt-auto flex flex-wrap gap-2 p-5 md:p-6 pt-4">
+          {service.features.map((feature) => (
+            <span
+              key={feature}
+              className="text-xs px-3 py-1 rounded-full bg-white/5 text-white/50 border border-white/5 group-hover:border-[#E39832]/20 group-hover:text-white/75 transition-all duration-500"
+            >
+              {feature}
+            </span>
+          ))}
+        </div>
+      </div>
+    </motion.button>
+  )
+}
+
+function ServiceModal({ service, onClose }: { service: Service; onClose: () => void }) {
+  const Icon = service.icon
+
+  useEffect(() => {
+    document.body.style.overflow = "hidden"
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose()
+    }
+    window.addEventListener("keydown", onKey)
+    return () => {
+      document.body.style.overflow = ""
+      window.removeEventListener("keydown", onKey)
+    }
+  }, [onClose])
 
   return (
     <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 36, scale: 0.94 }}
-      animate={isInView ? { opacity: 1, y: 0, scale: 1 } : {}}
-      transition={{ duration: 0.65, delay, ease: [0.22, 1, 0.36, 1] }}
-      onClick={() => setOpen((v) => !v)}
-      data-open={open ? "true" : "false"}
-      className={cn("group relative cursor-pointer", service.area)}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+      onClick={onClose}
     >
-      <div
-        className={cn(
-          "relative h-full p-7 md:p-8 rounded-2xl bg-white/[0.02] border border-white/[0.06] transition-all duration-500 hover:bg-white/[0.04] hover-aura overflow-hidden",
-          service.featured ? "glow-border" : "hover-glow hover:border-[#E39832]/30",
-        )}
+      <div className="absolute inset-0 bg-black/85 backdrop-blur-sm" />
+      <motion.div
+        initial={{ opacity: 0, y: 60 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 60 }}
+        transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+        onClick={(e) => e.stopPropagation()}
+        className="relative flex flex-col w-full md:max-w-3xl h-[86svh] md:h-auto md:max-h-[88vh] overflow-hidden rounded-3xl bg-[#0a0a0a] border border-white/[0.08] z-10"
       >
-        <div className="absolute inset-0 rounded-2xl bg-[radial-gradient(circle_at_50%_0%,rgba(227,152,50,0.07),transparent_60%)] opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-
-        {service.image && service.imagePosition !== "bottom" && (
-          <div
-            aria-hidden
-            className={cn(
-              "pointer-events-none absolute inset-y-6 right-6 hidden md:block rounded-xl overflow-hidden",
-              service.imageFit === "contain" ? "md:w-[48%]" : "md:w-[38%]",
-            )}
-          >
-            <div
-              className={cn(
-                "absolute inset-0 bg-center bg-no-repeat transition-transform duration-700 group-hover:scale-[1.04]",
-                service.imageFit === "contain" ? "bg-contain" : "bg-cover",
-              )}
-              style={{ backgroundImage: `url(${service.image})` }}
-            />
-            {service.imageFit !== "contain" && (
-              <div className="absolute inset-0 bg-gradient-to-l from-transparent to-black/40" />
-            )}
-          </div>
-        )}
-
-        {service.image && service.imagePosition === "bottom" && (
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-x-6 bottom-6 h-[40%] rounded-xl overflow-hidden"
-          >
-            <div
-              className={cn(
-                "absolute inset-0 bg-center bg-no-repeat transition-transform duration-700 group-hover:scale-[1.04]",
-                service.imageFit === "contain" ? "bg-contain" : "bg-cover",
-              )}
-              style={{ backgroundImage: `url(${service.image})` }}
-            />
-            {service.imageFit !== "contain" && (
-              <div className="absolute inset-0 bg-gradient-to-t from-transparent to-black/30" />
-            )}
-          </div>
-        )}
-
-        <div
-          className={cn(
-            "relative z-10 h-full flex flex-col",
-            service.image && service.imagePosition !== "bottom" && service.imageFit !== "contain" && "md:max-w-[55%]",
-            service.image && service.imagePosition !== "bottom" && service.imageFit === "contain" && "md:max-w-[45%]",
-            service.image && service.imagePosition === "bottom" && "md:pb-[44%]",
-          )}
+        <button
+          onClick={onClose}
+          aria-label="Schließen"
+          className="absolute top-4 right-4 z-30 w-9 h-9 rounded-full bg-[#E39832] shadow-lg shadow-black/30 flex items-center justify-center text-white hover:brightness-110 transition-all"
         >
-          <div className="flex items-start justify-between mb-6">
-            <div className="w-12 h-12 rounded-xl bg-[#E39832]/10 flex items-center justify-center group-hover:bg-[#E39832]/20 transition-colors duration-500">
-              <Icon className="w-6 h-6 text-[#E39832]" />
+          <X className="w-4 h-4" />
+        </button>
+
+        {service.image && (
+          <div className="relative shrink-0 w-full h-56 md:h-80 overflow-hidden bg-black/40">
+            <div
+              className={cn(
+                "absolute inset-0 bg-center bg-no-repeat",
+                service.imageFit === "contain" ? "bg-contain" : "bg-cover",
+              )}
+              style={{
+                backgroundImage: `url(${service.image})`,
+                backgroundPosition: service.imageObjectPosition ?? "center",
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/30 to-transparent" />
+          </div>
+        )}
+
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-6 md:p-8 relative z-10">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="shrink-0 w-11 h-11 rounded-xl bg-[#E39832]/10 flex items-center justify-center">
+              <Icon className="w-[22px] h-[22px] text-[#E39832]" />
             </div>
-            <ArrowUpRight className="w-5 h-5 text-white/10 group-hover:text-[#E39832] transition-all duration-500 group-hover:translate-x-1 group-hover:-translate-y-1" />
+            <h2
+              className="text-2xl md:text-3xl font-bold text-white leading-tight"
+              style={{ fontFamily: "var(--font-heading)" }}
+            >
+              {service.title}
+            </h2>
           </div>
 
-          <h3 className="text-xl font-semibold text-white mb-3 group-hover:text-[#E39832] transition-colors duration-500">
-            {service.title}
-          </h3>
-          <p
-            className={cn(
-              "text-[#E39832]/85 text-sm leading-relaxed overflow-hidden transition-all duration-500 ease-out",
-              "max-h-0 opacity-0 mb-0 -translate-y-1",
-              "group-hover:max-h-48 group-hover:opacity-100 group-hover:mb-6 group-hover:translate-y-0",
-              open && "max-h-48 opacity-100 mb-6 translate-y-0",
-            )}
-          >
+          <p className="text-[#E39832] text-sm md:text-base font-medium mb-4">
+            {service.short}
+          </p>
+
+          <p className="text-white/65 text-base md:text-lg leading-relaxed mb-6 md:mb-8">
             {service.description}
           </p>
 
-          <div className="mt-auto flex flex-wrap gap-2">
-            {service.features.map((feature) => (
-              <span
-                key={feature}
-                className="text-xs px-3 py-1 rounded-full bg-white/5 text-white/40 border border-white/5 group-hover:border-white/10 group-hover:text-white/50 transition-all duration-500"
+          <h4 className="text-white text-xs font-semibold mb-3 uppercase tracking-wider">
+            Was dazugehört
+          </h4>
+          <div className="grid grid-cols-2 gap-2 md:gap-3 pb-2">
+            {service.features.map((f) => (
+              <div
+                key={f}
+                className="px-4 py-3 rounded-xl bg-[#E39832]/5 border border-[#E39832]/15 text-white/75 text-sm"
               >
-                {feature}
-              </span>
+                {f}
+              </div>
             ))}
           </div>
         </div>
-      </div>
+      </motion.div>
     </motion.div>
   )
 }
@@ -263,6 +259,7 @@ function ServiceCard({
 export function Services() {
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: "-100px" })
+  const [selected, setSelected] = useState<Service | null>(null)
 
   return (
     <section id="leistungen" className="relative py-16 md:py-32 overflow-hidden">
@@ -287,7 +284,7 @@ export function Services() {
           >
             Von der Strategie bis zur Gestaltung.
             <br />
-            <span className="text-white/30">Alles aus einer Hand.</span>
+            <span className="text-[#E39832]">Alles aus einer Hand.</span>
           </motion.h2>
           <motion.div
             initial={{ scaleX: 0 }}
@@ -304,19 +301,27 @@ export function Services() {
           >
             Ob neue Marke oder geschärftes Profil. Jede Disziplin folgt derselben
             Logik: erst die Strategie, dann die Gestaltung, dann die Wirkung.
+            <span className="block mt-2 text-white/35 text-sm">Tippen Sie eine Leistung an für Details.</span>
           </motion.p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 lg:grid-rows-3 lg:auto-rows-fr gap-4">
-          {services.slice(0, 3).map((service, i) => (
-            <ServiceCard key={service.title} service={service} index={i} />
-          ))}
-          <FeatureTile />
-          {services.slice(3).map((service, i) => (
-            <ServiceCard key={service.title} service={service} index={i + 3} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 auto-rows-fr">
+          {services.map((service, i) => (
+            <ServiceCard
+              key={service.title}
+              service={service}
+              index={i}
+              onOpen={() => setSelected(service)}
+            />
           ))}
         </div>
       </div>
+
+      <AnimatePresence>
+        {selected && (
+          <ServiceModal service={selected} onClose={() => setSelected(null)} />
+        )}
+      </AnimatePresence>
     </section>
   )
 }

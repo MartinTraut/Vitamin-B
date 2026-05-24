@@ -220,7 +220,7 @@ export function Process() {
                 style={{ fontFamily: "var(--font-heading)" }}
               >
                 <span className="text-white">Von der Vision</span>{" "}
-                <span className="text-white/30">zur Marke.</span>
+                <span className="text-[#E39832]">zur Marke.</span>
               </h2>
             </div>
             <div className="space-y-5">
@@ -265,7 +265,7 @@ export function Process() {
                   style={{ fontFamily: "var(--font-heading)" }}
                 >
                   <span className="text-white">Von der Vision</span>{" "}
-                  <span className="text-white/30">zur Marke.</span>
+                  <span className="text-[#E39832]">zur Marke.</span>
                 </h2>
               </div>
 
