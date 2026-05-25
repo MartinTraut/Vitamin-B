@@ -171,12 +171,9 @@ body {
     color: #E39832;
 }
 
-/* Grid pattern background */
+/* Grid pattern background — deaktiviert (visuell zu unruhig) */
 .bg-grid {
-    background-image:
-        linear-gradient(rgba(227,152,50, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(227,152,50, 0.03) 1px, transparent 1px);
-    background-size: 60px 60px;
+    background-image: none;
 }
 
 /* Noise texture overlay */

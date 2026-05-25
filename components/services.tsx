@@ -1,7 +1,8 @@
 "use client"
 
-import { motion, useInView, AnimatePresence } from "framer-motion"
+import { motion, useInView, AnimatePresence, LayoutGroup } from "framer-motion"
 import { useEffect, useRef, useState } from "react"
+import Image from "next/image"
 import {
   Palette,
   Globe,
@@ -13,6 +14,7 @@ import {
   X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { TextRotate } from "@/components/ui/text-rotate"
 
 type Service = {
   icon: typeof Palette
@@ -20,10 +22,18 @@ type Service = {
   short: string
   description: string
   features: string[]
+  area: string
+  featured?: boolean
+  wide?: boolean
   image?: string
   imageFit?: "cover" | "contain"
   imageObjectPosition?: string
 }
+
+const rotatingWords = ["Hand", "Vision", "Strategie", "Quelle"]
+
+// Erscheinungs-Reihenfolge "um die Mitte herum" (im Uhrzeigersinn):
+const REVEAL_RANK: Record<number, number> = { 0: 0, 1: 1, 3: 2, 5: 3, 4: 4, 2: 5 }
 
 const services: Service[] = [
   {
@@ -33,7 +43,10 @@ const services: Service[] = [
     description:
       "Eine Marke ist kein Logo. Sie ist, wie man Sie wahrnimmt. Wir entwickeln Identitäten mit System. Vom strategischen Fundament bis zum konsistenten Erscheinungsbild, das wiedererkannt wird.",
     features: ["Logo Design", "Brand Strategy", "Style Guides", "Naming"],
-    image: "/services/branding.png",
+    area: "lg:col-start-1 lg:row-start-1 lg:col-span-2",
+    featured: true,
+    wide: true,
+    image: "/services/branding-vitaminb.png",
     imageFit: "cover",
   },
   {
@@ -43,7 +56,8 @@ const services: Service[] = [
     description:
       "Die Website ist der erste Eindruck Ihrer Marke. Wir gestalten digitale Auftritte, die in Sekunden wirken. Klar strukturiert, schnell und gebaut, um Besucher zu führen.",
     features: ["UI/UX Design", "Responsive", "SEO", "Performance"],
-    image: "/services/webdesign.png",
+    area: "lg:col-start-3 lg:row-start-1",
+    image: "/services/webdesign-vitaminb.png",
     imageFit: "cover",
   },
   {
@@ -53,7 +67,9 @@ const services: Service[] = [
     description:
       "Print bleibt greifbar. Vom Geschäftspapier bis zur Großfläche gestalten wir Druckmedien mit Haltung. Präzise, hochwertig produziert und im Einklang mit der Markenidentität.",
     features: ["Geschäftsausstattung", "Broschüren", "Plakate", "Verpackung"],
-    image: "/services/print.jpg",
+    area: "lg:col-start-1 lg:row-start-2",
+    image: "/services/branding.png",
+    imageFit: "cover",
   },
   {
     icon: Share2,
@@ -62,6 +78,7 @@ const services: Service[] = [
     description:
       "Im Feed entscheidet ein Moment. Wir entwickeln Inhalte mit klarer visueller Sprache. Konsistent zur Marke, durchdacht statt laut, gemacht, um wiedererkannt zu werden.",
     features: ["Content Design", "Strategie", "Kampagnen", "Templates"],
+    area: "lg:col-start-3 lg:row-start-2",
     image: "/services/social.webp",
   },
   {
@@ -71,7 +88,11 @@ const services: Service[] = [
     description:
       "Bilder sprechen schneller als Worte. Wir erzeugen visuelles Material mit Charakter. Echt statt Stockfoto, kuratiert auf die Bildsprache Ihrer Marke.",
     features: ["Produktfotos", "Imagefilm", "Reels", "Bildsprache"],
-    image: "/services/fotografie.webp",
+    area: "lg:col-start-1 lg:row-start-3 lg:col-span-2",
+    wide: true,
+    image: "/services/fotografie-vitaminb.jpg",
+    imageFit: "cover",
+    imageObjectPosition: "center",
   },
   {
     icon: BarChart3,
@@ -80,9 +101,57 @@ const services: Service[] = [
     description:
       "Strategie geht der Gestaltung voraus. Wir analysieren Positionierung und Wahrnehmung, schärfen die Richtung und übersetzen sie in klare, wirksame Maßnahmen.",
     features: ["Positionierung", "Markt & Wettbewerb", "Content-Strategie", "SEO"],
+    area: "lg:col-start-3 lg:row-start-3",
     image: "/services/marketing.jpg",
   },
 ]
+
+function FeatureTile() {
+  const ref = useRef(null)
+  const isInView = useInView(ref, { once: true, margin: "-80px" })
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, scale: 0.92 }}
+      animate={isInView ? { opacity: 1, scale: 1 } : {}}
+      transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+      className="lg:col-start-2 lg:row-start-2 group relative rounded-2xl overflow-hidden bg-white/[0.02] border border-white/[0.06] hover-glow"
+    >
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(227,152,50,0.10),transparent_70%)]" />
+      <div className="relative z-10 h-full min-h-[200px] flex flex-col justify-center items-center text-center p-8">
+        <h3
+          className="text-2xl md:text-3xl lg:text-4xl font-bold text-white leading-[1.18] px-2"
+          style={{ fontFamily: "var(--font-heading)" }}
+        >
+          Alles aus
+          <br />
+          <LayoutGroup>
+            <motion.span className="inline-flex items-baseline gap-[0.28em]" layout>
+              <motion.span
+                layout
+                transition={{ type: "spring", damping: 30, stiffness: 400 }}
+              >
+                einer
+              </motion.span>
+              <TextRotate
+                texts={rotatingWords}
+                mainClassName="text-[#E39832] overflow-hidden justify-center"
+                staggerFrom="last"
+                initial={{ y: "100%", opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: "-120%", opacity: 0 }}
+                staggerDuration={0.025}
+                splitLevelClassName="overflow-hidden pb-1"
+                transition={{ type: "spring", damping: 30, stiffness: 400 }}
+                rotationInterval={2400}
+              />
+            </motion.span>
+          </LayoutGroup>
+        </h3>
+      </div>
+    </motion.div>
+  )
+}
 
 function ServiceCard({
   service,
@@ -96,7 +165,8 @@ function ServiceCard({
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: "-60px" })
   const Icon = service.icon
-  const delay = 0.12 + (index % 3) * 0.08 + Math.floor(index / 3) * 0.06
+  const rank = REVEAL_RANK[index] ?? index
+  const delay = 0.18 + rank * 0.09
 
   return (
     <motion.button
@@ -107,9 +177,17 @@ function ServiceCard({
       animate={isInView ? { opacity: 1, y: 0, scale: 1 } : {}}
       transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}
       aria-label={`Mehr über ${service.title} erfahren`}
-      className="group relative w-full h-full text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E39832]/60 rounded-2xl"
+      className={cn(
+        "group relative w-full h-full text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E39832]/60 rounded-2xl",
+        service.area,
+      )}
     >
-      <div className="relative h-full flex flex-col rounded-2xl bg-white/[0.02] border border-white/[0.06] overflow-hidden transition-all duration-500 hover:bg-white/[0.04] hover:border-[#E39832]/30 hover-glow">
+      <div
+        className={cn(
+          "relative h-full flex flex-col rounded-2xl bg-white/[0.02] border border-white/[0.06] overflow-hidden transition-all duration-500 hover:bg-white/[0.04] hover-glow",
+          service.featured ? "glow-border" : "hover:border-[#E39832]/30",
+        )}
+      >
         {/* Header: Icon + Titel nebeneinander */}
         <div className="relative z-10 flex items-center justify-between gap-3 p-5 md:p-6 pb-4">
           <div className="flex items-center gap-3 min-w-0">
@@ -126,35 +204,78 @@ function ServiceCard({
           <ArrowUpRight className="shrink-0 w-5 h-5 text-white/20 group-hover:text-[#E39832] transition-all duration-500 group-hover:translate-x-1 group-hover:-translate-y-1" />
         </div>
 
-        {/* Bild — fixes Verhältnis, nie beschnitten */}
-        {service.image && (
-          <div className="px-5 md:px-6">
-            <div className="relative w-full aspect-[16/10] overflow-hidden rounded-xl bg-black/40 border border-white/[0.04]">
+        {service.wide ? (
+          /* Wide-Layout: Bild links, Chips rechts vertikal gestapelt */
+          <div className="flex-1 min-h-[200px] flex gap-4 md:gap-5 px-5 md:px-6 pb-5 md:pb-6">
+            <div className="relative z-10 flex flex-col justify-center gap-3 md:gap-4 w-[34%] max-w-[200px] shrink-0">
+              {service.features.map((feature) => (
+                <span
+                  key={feature}
+                  className="inline-flex items-center gap-2 text-[11px] md:text-xs font-medium tracking-wide px-3 py-2 rounded-full bg-gradient-to-b from-white/[0.06] to-white/[0.02] text-white/75 border border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] group-hover:border-[#E39832]/40 group-hover:from-[#E39832]/[0.12] group-hover:to-[#E39832]/[0.04] group-hover:text-white transition-all duration-500"
+                >
+                  <span className="w-1 h-1 rounded-full bg-[#E39832] shadow-[0_0_6px_rgba(227,152,50,0.6)] shrink-0" />
+                  <span className="truncate">{feature}</span>
+                </span>
+              ))}
+            </div>
+            {service.image && (
               <div
                 className={cn(
-                  "absolute inset-0 bg-center bg-no-repeat transition-transform duration-700 group-hover:scale-[1.04]",
-                  service.imageFit === "contain" ? "bg-contain" : "bg-cover",
+                  "flex-1 min-w-0 relative overflow-hidden",
+                  service.imageFit === "contain"
+                    ? ""
+                    : "rounded-2xl bg-black/40 border border-white/[0.04]",
                 )}
-                style={{
-                  backgroundImage: `url(${service.image})`,
-                  backgroundPosition: service.imageObjectPosition ?? "center",
-                }}
-              />
-            </div>
+              >
+                <Image
+                  src={service.image}
+                  alt={service.title}
+                  fill
+                  sizes="(min-width: 1024px) 40vw, (min-width: 768px) 50vw, 100vw"
+                  className={cn(
+                    "transition-transform duration-700 group-hover:scale-[1.04]",
+                    service.imageFit === "contain" ? "object-contain" : "object-cover",
+                  )}
+                  style={{ objectPosition: service.imageObjectPosition ?? "center" }}
+                />
+              </div>
+            )}
           </div>
-        )}
+        ) : (
+          <>
+            {/* Bild — wächst flexibel, gleicht Card-Hoehen aus */}
+            {service.image && (
+              <div className="px-5 md:px-6 flex-1 min-h-[180px] flex">
+                <div className="relative w-full overflow-hidden rounded-2xl bg-black/40 border border-white/[0.04]">
+                  <Image
+                    src={service.image}
+                    alt={service.title}
+                    fill
+                    sizes="(min-width: 1024px) 28vw, (min-width: 768px) 45vw, 90vw"
+                    className={cn(
+                      "transition-transform duration-700 group-hover:scale-[1.04]",
+                      service.imageFit === "contain" ? "object-contain" : "object-cover",
+                    )}
+                    style={{ objectPosition: service.imageObjectPosition ?? "center" }}
+                  />
+                </div>
+              </div>
+            )}
 
-        {/* Infobox: kompakte Chips */}
-        <div className="relative z-10 mt-auto flex flex-wrap gap-2 p-5 md:p-6 pt-4">
-          {service.features.map((feature) => (
-            <span
-              key={feature}
-              className="text-xs px-3 py-1 rounded-full bg-white/5 text-white/50 border border-white/5 group-hover:border-[#E39832]/20 group-hover:text-white/75 transition-all duration-500"
-            >
-              {feature}
-            </span>
-          ))}
-        </div>
+            {/* Infobox: Premium Chips mit Markenakzent */}
+            <div className="relative z-10 mt-auto flex flex-wrap gap-2 p-5 md:p-6 pt-4">
+              {service.features.map((feature) => (
+                <span
+                  key={feature}
+                  className="inline-flex items-center gap-1.5 text-[11px] md:text-xs font-medium tracking-wide px-3 py-1.5 rounded-full bg-gradient-to-b from-white/[0.06] to-white/[0.02] text-white/75 border border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] group-hover:border-[#E39832]/40 group-hover:from-[#E39832]/[0.12] group-hover:to-[#E39832]/[0.04] group-hover:text-white transition-all duration-500"
+                >
+                  <span className="w-1 h-1 rounded-full bg-[#E39832] shadow-[0_0_6px_rgba(227,152,50,0.6)]" />
+                  {feature}
+                </span>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </motion.button>
   )
@@ -206,21 +327,25 @@ function ServiceModal({ service, onClose }: { service: Service; onClose: () => v
 
         {service.image && (
           <div className="relative shrink-0 w-full h-56 md:h-80 overflow-hidden bg-black/40">
-            <div
+            <Image
+              src={service.image}
+              alt={service.title}
+              fill
+              sizes="(min-width: 768px) 768px, 100vw"
               className={cn(
-                "absolute inset-0 bg-center bg-no-repeat",
-                service.imageFit === "contain" ? "bg-contain" : "bg-cover",
+                service.imageFit === "contain" ? "object-contain" : "object-cover",
               )}
-              style={{
-                backgroundImage: `url(${service.image})`,
-                backgroundPosition: service.imageObjectPosition ?? "center",
-              }}
+              style={{ objectPosition: service.imageObjectPosition ?? "center" }}
+              priority
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/30 to-transparent" />
           </div>
         )}
 
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-6 md:p-8 relative z-10">
+        <div
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-6 md:p-8 relative z-10 [&::-webkit-scrollbar]:hidden"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        >
           <div className="flex items-center gap-3 mb-4">
             <div className="shrink-0 w-11 h-11 rounded-xl bg-[#E39832]/10 flex items-center justify-center">
               <Icon className="w-[22px] h-[22px] text-[#E39832]" />
@@ -309,12 +434,21 @@ export function Services() {
           </motion.p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 auto-rows-fr">
-          {services.map((service, i) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 lg:grid-rows-3 lg:auto-rows-fr gap-4 md:gap-5">
+          {services.slice(0, 3).map((service, i) => (
             <ServiceCard
               key={service.title}
               service={service}
               index={i}
+              onOpen={() => setSelected(service)}
+            />
+          ))}
+          <FeatureTile />
+          {services.slice(3).map((service, i) => (
+            <ServiceCard
+              key={service.title}
+              service={service}
+              index={i + 3}
               onOpen={() => setSelected(service)}
             />
           ))}
