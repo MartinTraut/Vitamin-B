@@ -115,7 +115,7 @@ function FeatureTile() {
       initial={{ opacity: 0, scale: 0.92 }}
       animate={isInView ? { opacity: 1, scale: 1 } : {}}
       transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-      className="lg:col-start-2 lg:row-start-2 group relative rounded-2xl overflow-hidden bg-white/[0.02] border border-white/[0.06] hover-glow"
+      className="glow-border lg:col-start-2 lg:row-start-2 group relative rounded-2xl overflow-hidden bg-white/[0.02] border border-white/[0.06]"
     >
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(227,152,50,0.10),transparent_70%)]" />
       <div className="relative z-10 h-full min-h-[200px] flex flex-col justify-center items-center text-center p-8">
@@ -182,12 +182,7 @@ function ServiceCard({
         service.area,
       )}
     >
-      <div
-        className={cn(
-          "relative h-full flex flex-col rounded-2xl bg-white/[0.02] border border-white/[0.06] overflow-hidden transition-all duration-500 hover:bg-white/[0.04] hover-glow",
-          service.featured ? "glow-border" : "hover:border-[#E39832]/30",
-        )}
-      >
+      <div className="glow-border isolate relative h-full flex flex-col rounded-2xl bg-white/[0.02] border border-white/[0.06] overflow-hidden transition-colors duration-500 hover:bg-white/[0.04] [transform:translateZ(0)] [backface-visibility:hidden]">
         {/* Header: Icon + Titel nebeneinander */}
         <div className="relative z-10 flex items-center justify-between gap-3 p-5 md:p-6 pb-4">
           <div className="flex items-center gap-3 min-w-0">
@@ -305,15 +300,16 @@ function ServiceModal({ service, onClose }: { service: Service; onClose: () => v
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
+      transition={{ duration: 0.15, ease: "easeOut" }}
       className="fixed inset-0 z-[100] flex items-center justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
       onClick={onClose}
     >
       <div className="absolute inset-0 bg-black/85 backdrop-blur-sm" />
       <motion.div
-        initial={{ opacity: 0, y: 60 }}
+        initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 60 }}
-        transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+        exit={{ opacity: 0, y: 20 }}
+        transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
         onClick={(e) => e.stopPropagation()}
         className="relative flex flex-col w-full md:max-w-3xl h-[86svh] md:h-auto md:max-h-[88vh] overflow-hidden rounded-3xl bg-[#0a0a0a] border border-white/[0.08] z-10"
       >
