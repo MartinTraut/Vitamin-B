@@ -151,5 +151,9 @@ export function buildDemoData(): Database {
       email: "info@vitaminb-design.de",
       phone: "07139 123 456",
     },
+    whiteboards: [
+      { id: "wb1", name: "Ideen & Brainstorming", createdAt: now },
+      { id: "wb2", name: "Messestand-Konzept", person: "robert", createdAt: now },
+    ],
   }
 }

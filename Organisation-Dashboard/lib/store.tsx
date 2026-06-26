@@ -23,6 +23,7 @@ import type {
   Task,
   TaskStatus,
   Transaction,
+  Whiteboard,
 } from "./types"
 import { buildDemoData } from "./demo-data"
 import { nextNumber } from "./totals"
@@ -67,6 +68,10 @@ interface StoreValue {
   addTransaction: (input: Omit<Transaction, "id">) => void
   removeTransaction: (id: string) => void
   updateCompany: (patch: Partial<CompanySettings>) => void
+  // Whiteboard
+  addWhiteboard: (input: Omit<Whiteboard, "id" | "createdAt">) => string
+  renameWhiteboard: (id: string, name: string) => void
+  removeWhiteboard: (id: string) => void
 }
 
 const StoreContext = createContext<StoreValue | null>(null)
@@ -320,6 +325,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setDb((prev) => ({ ...prev, transactions: prev.transactions.filter((t) => t.id !== id) })),
       updateCompany: (patch) =>
         setDb((prev) => ({ ...prev, company: { ...prev.company, ...patch } })),
+
+      // Whiteboard
+      addWhiteboard: (input) => {
+        const id = nanoid(8)
+        setDb((prev) => ({
+          ...prev,
+          whiteboards: [...prev.whiteboards, { ...input, id, createdAt: new Date().toISOString() }],
+        }))
+        return id
+      },
+      renameWhiteboard: (id, name) =>
+        setDb((prev) => ({
+          ...prev,
+          whiteboards: prev.whiteboards.map((w) => (w.id === id ? { ...w, name } : w)),
+        })),
+      removeWhiteboard: (id) =>
+        setDb((prev) => ({ ...prev, whiteboards: prev.whiteboards.filter((w) => w.id !== id) })),
     }),
     [db, activePerson],
   )

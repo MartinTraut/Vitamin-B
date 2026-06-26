@@ -35,6 +35,11 @@ type Doc = Quote | Invoice
 function newId() {
   return Math.random().toString(36).slice(2, 8)
 }
+// Zahlenfeld robust parsen: leere oder ungültige Eingabe → 0 (nie NaN in Beträge).
+function num0(value: string): number {
+  const n = Number(value)
+  return Number.isFinite(n) ? n : 0
+}
 function todayISO() {
   return new Date().toISOString().slice(0, 10)
 }
@@ -274,7 +279,7 @@ function Editor({
               />
               <input
                 type="number" min={0} value={it.qty}
-                onChange={(e) => updateItem(it.id, { qty: Number(e.target.value) })}
+                onChange={(e) => updateItem(it.id, { qty: num0(e.target.value) })}
                 className="h-9 rounded-lg border border-border bg-white/[0.03] px-2 text-right text-sm outline-none focus:border-primary/50"
               />
               <select
@@ -286,7 +291,7 @@ function Editor({
               </select>
               <input
                 type="number" min={0} step="0.01" value={it.price}
-                onChange={(e) => updateItem(it.id, { price: Number(e.target.value) })}
+                onChange={(e) => updateItem(it.id, { price: num0(e.target.value) })}
                 className="h-9 rounded-lg border border-border bg-white/[0.03] px-2 text-right text-sm outline-none focus:border-primary/50"
               />
               <select
@@ -442,7 +447,7 @@ function PrintDoc({
         <div style={{ textAlign: "right" }}>
           <div style={{ fontSize: 20, fontWeight: 800 }}>{title}</div>
           <div>Nr. {doc.number}</div>
-          <div>Datum: {dateDE(isQuote ? (doc as Quote).validUntil : (doc as Invoice).issueDate).replace(/^\w+, /, "")}</div>
+          <div>Datum: {dateDE(isQuote ? (doc as Quote).createdAt.slice(0, 10) : (doc as Invoice).issueDate).replace(/^\w+, /, "")}</div>
           {isQuote
             ? <div>Gültig bis: {dateDE((doc as Quote).validUntil).replace(/^\w+, /, "")}</div>
             : <div>Fällig bis: {dateDE((doc as Invoice).dueDate).replace(/^\w+, /, "")}</div>}

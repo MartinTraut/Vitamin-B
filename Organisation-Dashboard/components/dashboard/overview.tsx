@@ -19,7 +19,7 @@ import {
   CATEGORY_LABEL,
   type CashflowEvent,
 } from "@/lib/types"
-import { eur, dateDE } from "@/lib/format"
+import { eur0, dateDE } from "@/lib/format"
 import { occurrencesInRange, todayISO, addDaysISO } from "@/lib/recurrence"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -98,8 +98,8 @@ export function Overview() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat icon={CheckSquare} label="Offene Aufgaben" value={String(data.openTasks.length)} accent="#E39832" />
         <Stat icon={CalendarClock} label="Termine (7 T.)" value={String(data.upcoming.length)} accent="#3b82f6" />
-        <Stat icon={TrendingUp} label="Einnahmen / Mt." value={eur(data.income)} accent={INCOME} />
-        <Stat icon={TrendingDown} label="Ausgaben / Mt." value={eur(data.expense)} accent={EXPENSE} />
+        <Stat icon={TrendingUp} label="Einnahmen / Mt." value={eur0(data.income)} accent={INCOME} />
+        <Stat icon={TrendingDown} label="Ausgaben / Mt." value={eur0(data.expense)} accent={EXPENSE} />
       </div>
 
       {/* Reihe 1: Chart (oben) + Termine */}
@@ -109,7 +109,7 @@ export function Overview() {
             <div className="flex items-baseline gap-3">
               <CardTitle>Einnahmen & Ausgaben</CardTitle>
               <span className="text-xs text-muted-foreground">
-                Gewinn akt. Monat: <span className="font-semibold" style={{ color: INCOME }}>{eur(data.profit)}</span>
+                Gewinn akt. Monat: <span className="font-semibold" style={{ color: INCOME }}>{eur0(data.profit)}</span>
               </span>
             </div>
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -153,7 +153,7 @@ export function Overview() {
             <div className="text-right">
               <span className="text-xs text-muted-foreground">Saldo </span>
               <span className="font-heading text-base font-bold" style={{ color: data.net >= 0 ? INCOME : EXPENSE }}>
-                {data.net >= 0 ? "+" : ""}{eur(data.net)}
+                {data.net >= 0 ? "+" : ""}{eur0(data.net)}
               </span>
             </div>
           </CardHeader>
@@ -227,7 +227,7 @@ function CashflowColumn({
           <span className="flex h-5 w-5 items-center justify-center rounded-md" style={{ backgroundColor: `${color}1f` }}>{icon}</span>
           {title}
         </div>
-        <div className="text-[15px] font-bold" style={{ color }}>{sign}{eur(total)}</div>
+        <div className="text-[15px] font-bold" style={{ color }}>{sign}{eur0(total)}</div>
       </div>
       <div className="space-y-1.5">
         {items.length === 0 && (
@@ -247,7 +247,7 @@ function CashflowColumn({
                   )}
                 </div>
               </div>
-              <div className="shrink-0 text-[15px] font-semibold" style={{ color: potential ? POTENTIAL : color }}>{sign}{eur(c.amount)}</div>
+              <div className="shrink-0 text-[15px] font-semibold" style={{ color: potential ? POTENTIAL : color }}>{sign}{eur0(c.amount)}</div>
             </div>
           )
         })}

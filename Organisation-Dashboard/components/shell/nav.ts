@@ -40,7 +40,7 @@ export const NAV: NavGroup[] = [
     items: [
       { href: "/aufgaben", label: "Aufgaben", subtitle: "To-Dos & Listen", icon: CheckSquare },
       { href: "/kalender", label: "Kalender", subtitle: "Termine & Fristen", icon: Calendar },
-      { href: "/whiteboard", label: "Whiteboard", subtitle: "Ideen & Mindmaps", icon: PenTool, soon: true },
+      { href: "/whiteboard", label: "Whiteboard", subtitle: "Ideen & Mindmaps", icon: PenTool },
     ],
   },
   {
@@ -64,7 +64,7 @@ export const NAV: NavGroup[] = [
     label: "System",
     accent: "#9ca3af",
     items: [
-      { href: "/einstellungen", label: "Einstellungen", subtitle: "Team & Firma", icon: Settings, soon: true },
+      { href: "/einstellungen", label: "Einstellungen", subtitle: "Team & Firma", icon: Settings },
     ],
   },
 ]

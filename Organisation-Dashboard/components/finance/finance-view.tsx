@@ -9,7 +9,7 @@ import {
   type TxType,
   type Transaction,
 } from "@/lib/types"
-import { eur, dateDE } from "@/lib/format"
+import { eur, eur0, dateDE } from "@/lib/format"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { FinanceChart } from "@/components/dashboard/charts"
@@ -51,10 +51,10 @@ export function FinanceView() {
     <div className="space-y-4">
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi icon={TrendingUp} label="Einnahmen" value={eur(m.sumIncome)} accent={INCOME} />
-        <Kpi icon={TrendingDown} label="Ausgaben" value={eur(m.sumExpense)} accent={EXPENSE} />
-        <Kpi icon={Wallet} label="Gewinn" value={eur(m.profit)} accent={m.profit >= 0 ? INCOME : EXPENSE} />
-        <Kpi icon={Receipt} label="USt-Zahllast" value={eur(m.zahllast)} accent="#E39832" />
+        <Kpi icon={TrendingUp} label="Einnahmen" value={eur0(m.sumIncome)} accent={INCOME} />
+        <Kpi icon={TrendingDown} label="Ausgaben" value={eur0(m.sumExpense)} accent={EXPENSE} />
+        <Kpi icon={Wallet} label="Gewinn" value={eur0(m.profit)} accent={m.profit >= 0 ? INCOME : EXPENSE} />
+        <Kpi icon={Receipt} label="USt-Zahllast" value={eur0(m.zahllast)} accent="#E39832" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">

@@ -25,7 +25,7 @@ import {
   type Customer,
   type ProjectStatus,
 } from "@/lib/types"
-import { eur } from "@/lib/format"
+import { eur0 } from "@/lib/format"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -203,8 +203,8 @@ function CustomerDetail({
 
         {/* Zahlen */}
         <div className="grid grid-cols-2 gap-3">
-          <MiniStat label="Offene Deals" value={eur(dealsOpen)} accent="#E39832" />
-          <MiniStat label="Gewonnen" value={eur(dealsWon)} accent="#34d399" />
+          <MiniStat label="Offene Deals" value={eur0(dealsOpen)} accent="#E39832" />
+          <MiniStat label="Gewonnen" value={eur0(dealsWon)} accent="#34d399" />
           <MiniStat label="Projekte" value={String(projects.length)} accent="#3b82f6" />
           <MiniStat label="Deals gesamt" value={String(deals.length)} accent="#a855f7" />
         </div>
@@ -222,7 +222,7 @@ function CustomerDetail({
                 <div className="h-8 w-1 rounded-full" style={{ backgroundColor: DEAL_STAGE_COLOR[d.stage] }} />
                 <span className="flex-1 truncate text-sm">{d.title}</span>
                 <Badge color={DEAL_STAGE_COLOR[d.stage]}>{DEAL_STAGE_LABEL[d.stage]}</Badge>
-                <span className="text-sm font-semibold">{eur(d.value)}</span>
+                <span className="text-sm font-semibold">{eur0(d.value)}</span>
               </div>
             ))}
           </div>

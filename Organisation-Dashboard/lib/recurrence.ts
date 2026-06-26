@@ -29,24 +29,41 @@ export function diffDays(a: string, b: string): number {
   return Math.round(ms / 86400000)
 }
 
-// Datum um ein Wiederholungs-Intervall weiterschalten.
-function step(iso: string, appt: Appointment): string {
-  const d = parseISO(iso)
+// Letzter Tag des Monats (Monat 0-basiert).
+function daysInMonth(year: number, month: number): number {
+  return new Date(year, month + 1, 0).getDate()
+}
+
+// k-tes Vorkommen ab dem Anker. Index-basiert (statt iterativem setMonth),
+// damit Monatsenden nicht driften: ein 31. wird in kurzen Monaten auf den
+// Monatsletzten geklemmt und bleibt im nächsten langen Monat wieder der 31.
+function nthOccurrence(appt: Appointment, k: number): string {
+  const anchor = parseISO(appt.date)
   const n = Math.max(1, appt.recurrence.interval)
   switch (appt.recurrence.freq) {
-    case "weekly":
-      d.setDate(d.getDate() + 7 * n)
-      break
-    case "monthly":
-      d.setMonth(d.getMonth() + n)
-      break
-    case "yearly":
-      d.setFullYear(d.getFullYear() + n)
-      break
+    case "weekly": {
+      const d = new Date(anchor)
+      d.setDate(d.getDate() + 7 * n * k)
+      return toISO(d)
+    }
+    case "monthly": {
+      const year = anchor.getFullYear()
+      const month = anchor.getMonth() + n * k
+      const target = new Date(year, month, 1)
+      target.setDate(Math.min(anchor.getDate(), daysInMonth(target.getFullYear(), target.getMonth())))
+      return toISO(target)
+    }
+    case "yearly": {
+      const year = anchor.getFullYear() + n * k
+      const month = anchor.getMonth()
+      const target = new Date(year, month, 1)
+      // Schaltjahr-Anker (29.02.) fällt in Nicht-Schaltjahren auf den 28.02.
+      target.setDate(Math.min(anchor.getDate(), daysInMonth(year, month)))
+      return toISO(target)
+    }
     default:
-      return iso
+      return appt.date
   }
-  return toISO(d)
 }
 
 // Alle Vorkommen eines Termins in einem Datumsbereich [from, to].
@@ -60,17 +77,17 @@ export function occurrencesInRange(
     if (appt.date >= from && appt.date <= to) result.push(appt.date)
     return result
   }
-  let cur = appt.date
-  let guard = 0
+  let k = 0
+  let cur = nthOccurrence(appt, 0)
   // Bis zum Bereichsanfang vorspulen.
-  while (cur < from && guard < 5000) {
-    cur = step(cur, appt)
-    guard++
+  while (cur < from && k < 5000) {
+    k++
+    cur = nthOccurrence(appt, k)
   }
-  while (cur <= to && guard < 5000) {
+  while (cur <= to && k < 5000) {
     result.push(cur)
-    cur = step(cur, appt)
-    guard++
+    k++
+    cur = nthOccurrence(appt, k)
   }
   return result
 }

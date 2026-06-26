@@ -1,6 +1,17 @@
 // Formatierungs-Helfer (DE-Locale).
 
+// Exakter Geldbetrag mit Cent — für Belege & Buchhaltung (Rechnungen, Angebote, Ledger).
 export function eur(value: number): string {
+  return new Intl.NumberFormat("de-DE", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value)
+}
+
+// Gerundeter Betrag ohne Cent — für glanceable KPI-Kacheln & Schätzungen (Dashboard, Pipeline).
+export function eur0(value: number): string {
   return new Intl.NumberFormat("de-DE", {
     style: "currency",
     currency: "EUR",

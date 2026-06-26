@@ -124,7 +124,9 @@ export function CalendarView() {
     [myAppts, weekDays],
   )
 
-  const selectedEvents = (view === "week" ? weekEvents : monthEvents).get(selected) ?? []
+  // Day- und Week-View lesen beide aus weekEvents (deckt selected garantiert ab);
+  // nur die Monatsansicht nutzt das 42-Zellen-Grid.
+  const selectedEvents = (view === "month" ? monthEvents : weekEvents).get(selected) ?? []
 
   function moveMonth(delta: number) {
     setCursor((c) => {

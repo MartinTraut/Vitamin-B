@@ -305,6 +305,15 @@ export interface CompanySettings {
   phone: string
 }
 
+/* ---------- Whiteboard ---------- */
+
+export interface Whiteboard {
+  id: string
+  name: string
+  person?: Person // optional zugeordnet, sonst Team
+  createdAt: string
+}
+
 export interface Database {
   tasks: Task[]
   lists: TaskList[]
@@ -319,4 +328,5 @@ export interface Database {
   transactions: Transaction[]
   templates: Template[]
   company: CompanySettings
+  whiteboards: Whiteboard[]
 }

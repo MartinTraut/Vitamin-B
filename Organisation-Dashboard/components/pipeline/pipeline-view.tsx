@@ -30,7 +30,7 @@ import {
   type Deal,
   type DealStage,
 } from "@/lib/types"
-import { eur } from "@/lib/format"
+import { eur0 } from "@/lib/format"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -95,8 +95,8 @@ export function PipelineView() {
       {/* Kopf */}
       <Card className="flex flex-wrap items-center justify-between gap-4 p-4">
         <div className="flex items-center gap-6">
-          <Metric label="Offene Pipeline" value={eur(totalOpen)} accent="#E39832" />
-          <Metric label="Gewonnen" value={eur(totalWon)} accent="#34d399" />
+          <Metric label="Offene Pipeline" value={eur0(totalOpen)} accent="#E39832" />
+          <Metric label="Gewonnen" value={eur0(totalWon)} accent="#34d399" />
           <Metric label="Deals" value={String(db.deals.length)} accent="#a855f7" />
         </div>
         <Button onClick={() => setAdding((v) => !v)}>
@@ -166,7 +166,7 @@ function Column({ stage, count, sum, children }: { stage: DealStage; count: numb
           </div>
           <span className="rounded-full px-2 py-0.5 text-xs font-bold" style={{ backgroundColor: `${accent}24`, color: accent }}>{count}</span>
         </div>
-        <div className="mt-1 text-[13px] font-semibold tabular-nums" style={{ color: accent }}>{eur(sum)}</div>
+        <div className="mt-1 text-[13px] font-semibold tabular-nums" style={{ color: accent }}>{eur0(sum)}</div>
       </div>
       <div className="flex-1 space-y-2.5 p-3">{children}</div>
     </div>
@@ -207,7 +207,7 @@ function DealCardInner({
           <div className="text-sm font-medium leading-snug">{deal.title}</div>
           <div className="mt-0.5 truncate text-xs text-muted-foreground">{customer}</div>
           <div className="mt-2 flex items-center justify-between gap-2">
-            <span className="font-heading text-base font-bold">{eur(deal.value)}</span>
+            <span className="font-heading text-base font-bold">{eur0(deal.value)}</span>
             {person && (
               <span className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold" style={{ backgroundColor: `${person.color}26`, color: person.color }} title={person.name}>
                 {person.initials}

@@ -10,7 +10,7 @@ import {
   YAxis,
 } from "recharts"
 import type { FinanceMonth } from "@/lib/types"
-import { eur } from "@/lib/format"
+import { eur0 } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 export function FinanceChart({
@@ -47,7 +47,7 @@ export function FinanceChart({
             }}
             labelStyle={{ color: "#f5f5f5", fontWeight: 600 }}
             formatter={(value, name) => [
-              eur(Number(value)),
+              eur0(Number(value)),
               name === "income" ? "Einnahmen" : "Ausgaben",
             ]}
           />
