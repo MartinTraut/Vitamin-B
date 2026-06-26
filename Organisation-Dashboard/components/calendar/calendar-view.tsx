@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { ChevronLeft, ChevronRight, Plus, Trash2, Check, CalendarDays, Clock, Sun } from "lucide-react"
+import { motion, AnimatePresence, type PanInfo } from "framer-motion"
+import { ChevronLeft, ChevronRight, Plus, Trash2, Check, CalendarDays, Clock, Sun, RotateCcw } from "lucide-react"
 import { useStore } from "@/lib/store"
 import {
   PEOPLE,
@@ -20,7 +21,7 @@ const WD = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
 const CATEGORIES = Object.keys(CATEGORY_LABEL) as AppointmentCategory[]
 
 // Wochen-Zeitraster
-const START_HOUR = 7
+const START_HOUR = 6
 const END_HOUR = 22 // exklusiv → letzte Zeile 21:00
 const HOURS = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => START_HOUR + i)
 const ROW_H = 52 // px pro Stunde
@@ -167,7 +168,7 @@ export function CalendarView() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex h-full min-h-0 flex-col gap-4">
       {/* Kopfzeile: Navigation + View-Switch */}
       <Card className="flex flex-wrap items-center justify-between gap-3 p-4">
         <div className="flex items-center gap-2">
@@ -189,8 +190,8 @@ export function CalendarView() {
         </div>
       </Card>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-3">
+        <div className="flex min-h-0 flex-col lg:col-span-2">
           {view === "month" ? (
             <MonthGrid
               grid={grid}
@@ -213,7 +214,7 @@ export function CalendarView() {
         </div>
 
         {/* Tages-Panel */}
-        <Card className="flex h-fit flex-col">
+        <Card className="flex h-full min-h-0 flex-col">
           <div className="flex items-center justify-between border-b border-border p-4">
             <div>
               <div className="text-xs text-muted-foreground">Ausgewählter Tag</div>
@@ -253,49 +254,48 @@ export function CalendarView() {
             />
           )}
 
-          <div className="flex-1 space-y-2 p-4">
+          <div className="flex-1 space-y-2 overflow-y-auto p-4">
             {selectedEvents.length === 0 && !draft && !editEvt && (
               <p className="py-8 text-center text-sm text-muted-foreground">Keine Termine an diesem Tag.</p>
             )}
-            {[...selectedEvents]
-              .sort((a, b) => (a.time ?? "").localeCompare(b.time ?? ""))
-              .map((e, i) => {
-                const active = editEvt?.id === e.id
-                return (
-                  <div
-                    key={e.id + i}
-                    className={cn(
-                      "group flex items-start gap-3 rounded-xl border bg-white/[0.02] p-3 transition-colors",
-                      active ? "border-primary/50 bg-primary/[0.06]" : "border-border",
-                    )}
-                  >
-                    <div className="mt-0.5 h-9 w-1 rounded-full" style={{ backgroundColor: CATEGORY_COLOR[e.category] }} />
-                    <button
-                      onClick={() => { setDraft(null); setEditEvt(active ? null : e) }}
-                      className="min-w-0 flex-1 text-left"
-                      title="Termin bearbeiten"
-                    >
-                      <div className={cn("text-sm font-medium", e.done && "text-muted-foreground line-through")}>{e.title}</div>
-                      <div className="mt-1 flex flex-wrap items-center gap-2">
-                        {e.time && (
-                          <span className="text-xs text-muted-foreground">
-                            {e.time}{e.endTime ? `–${e.endTime}` : ""}
-                          </span>
-                        )}
-                        <Badge color={CATEGORY_COLOR[e.category]}>{CATEGORY_LABEL[e.category]}</Badge>
-                      </div>
-                    </button>
-                    <div className="flex shrink-0 items-center gap-1">
-                      <button onClick={() => toggleAppointmentDone(e.id, selected)} title="Erledigt" className="rounded-md p-1.5 text-muted-foreground hover:bg-white/[0.06] hover:text-success">
-                        <Check className="h-3.5 w-3.5" />
-                      </button>
-                      <button onClick={() => removeAppointment(e.id)} title="Löschen" className="rounded-md p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/15 hover:text-destructive group-hover:opacity-100">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+            {(() => {
+              const open = selectedEvents.filter((e) => !e.done).sort((a, b) => (a.time ?? "").localeCompare(b.time ?? ""))
+              const done = selectedEvents.filter((e) => e.done).sort((a, b) => (a.time ?? "").localeCompare(b.time ?? ""))
+              return (
+                <>
+                  <AnimatePresence initial={false}>
+                    {open.map((e) => (
+                      <DayEventRow
+                        key={e.id}
+                        e={e}
+                        active={editEvt?.id === e.id}
+                        onToggle={() => toggleAppointmentDone(e.id, selected)}
+                        onRemove={() => removeAppointment(e.id)}
+                        onEdit={() => { setDraft(null); setEditEvt(editEvt?.id === e.id ? null : e) }}
+                      />
+                    ))}
+                  </AnimatePresence>
+
+                  {done.length > 0 && (
+                    <div className="flex items-center gap-2 px-1 pb-1 pt-3 text-xs font-semibold uppercase tracking-wider text-success">
+                      <Check className="h-3.5 w-3.5" /> Erledigt · {done.length}
                     </div>
-                  </div>
-                )
-              })}
+                  )}
+                  <AnimatePresence initial={false}>
+                    {done.map((e) => (
+                      <DayEventRow
+                        key={e.id}
+                        e={e}
+                        active={editEvt?.id === e.id}
+                        onToggle={() => toggleAppointmentDone(e.id, selected)}
+                        onRemove={() => removeAppointment(e.id)}
+                        onEdit={() => { setDraft(null); setEditEvt(editEvt?.id === e.id ? null : e) }}
+                      />
+                    ))}
+                  </AnimatePresence>
+                </>
+              )
+            })()}
           </div>
         </Card>
       </div>
@@ -305,6 +305,105 @@ export function CalendarView() {
         Kalender von <span style={{ color: person.color }}>{person.name}</span> · oben links die Person wechseln
       </p>
     </div>
+  )
+}
+
+/* ---------- Animierte, swipebare Termin-Zeile ---------- */
+
+function DayEventRow({
+  e,
+  active,
+  onToggle,
+  onRemove,
+  onEdit,
+}: {
+  e: DayEvent
+  active: boolean
+  onToggle: () => void
+  onRemove: () => void
+  onEdit: () => void
+}) {
+  const done = e.done
+  const color = CATEGORY_COLOR[e.category]
+  const bg = active ? "rgba(227,152,50,0.08)" : done ? "rgba(52,211,153,0.06)" : "#0d0d0d"
+
+  function handleDragEnd(_: unknown, info: PanInfo) {
+    if (info.offset.x > 92) onToggle()
+    else if (info.offset.x < -92) onRemove()
+  }
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, height: 0, marginTop: 0, transition: { duration: 0.2 } }}
+      transition={{ type: "spring", stiffness: 480, damping: 38 }}
+      className="relative overflow-hidden rounded-xl"
+    >
+      {/* Swipe-Hinweise im Hintergrund */}
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-between rounded-xl bg-[#0a0a0a] px-4 text-sm font-bold">
+        <span className="flex items-center gap-1.5 text-success">
+          {done ? <RotateCcw className="h-4 w-4" /> : <Check className="h-4 w-4" />}
+          {done ? "Offen" : "Erledigt"}
+        </span>
+        <span className="flex items-center gap-1.5 text-destructive">
+          Löschen <Trash2 className="h-4 w-4" />
+        </span>
+      </div>
+
+      <motion.div
+        drag="x"
+        dragDirectionLock
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={0.5}
+        onDragEnd={handleDragEnd}
+        whileDrag={{ cursor: "grabbing" }}
+        className={cn(
+          "relative flex touch-pan-y items-center gap-3 rounded-xl border p-3",
+          active ? "border-primary/50" : "border-border",
+        )}
+        style={{ backgroundColor: bg, boxShadow: `inset 3px 0 0 0 ${done ? "#34d399" : color}` }}
+      >
+        {/* Check-Button (animiert) */}
+        <button
+          onClick={onToggle}
+          title={done ? "Rückgängig machen" : "Als erledigt markieren"}
+          className={cn(
+            "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+            done ? "border-success bg-success text-[#06281c]" : "border-border text-transparent hover:border-success",
+          )}
+        >
+          <motion.span initial={false} animate={{ scale: done ? 1 : 0 }} transition={{ type: "spring", stiffness: 600, damping: 20 }}>
+            <Check className="h-4 w-4" strokeWidth={3} />
+          </motion.span>
+        </button>
+
+        {/* Inhalt (Klick = bearbeiten) */}
+        <button onClick={onEdit} className="min-w-0 flex-1 text-left" title="Termin bearbeiten">
+          <div className={cn("text-sm font-medium transition-colors", done && "text-muted-foreground line-through")}>{e.title}</div>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            {e.time && (
+              <span className="text-xs text-muted-foreground">
+                {e.time}{e.endTime ? `–${e.endTime}` : ""}
+              </span>
+            )}
+            <Badge color={color}>{CATEGORY_LABEL[e.category]}</Badge>
+          </div>
+        </button>
+
+        {/* Aktion rechts */}
+        {done ? (
+          <button onClick={onToggle} title="Rückgängig" className="shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground">
+            <RotateCcw className="h-4 w-4" />
+          </button>
+        ) : (
+          <button onClick={onRemove} title="Löschen" className="shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive">
+            <Trash2 className="h-4 w-4" />
+          </button>
+        )}
+      </motion.div>
+    </motion.div>
   )
 }
 
@@ -341,15 +440,15 @@ function MonthGrid({
   onSelect: (d: string) => void
 }) {
   return (
-    <Card className="overflow-hidden">
-      <div className="grid grid-cols-7 border-b border-border bg-white/[0.02]">
+    <Card className="flex h-full flex-col overflow-hidden">
+      <div className="grid shrink-0 grid-cols-7 border-b border-border bg-white/[0.02]">
         {WD.map((d) => (
-          <div key={d} className="py-2.5 text-center text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+          <div key={d} className="py-3 text-center text-xs font-bold uppercase tracking-wider text-muted-foreground">
             {d}
           </div>
         ))}
       </div>
-      <div className="grid grid-cols-7">
+      <div className="grid flex-1 grid-cols-7" style={{ gridTemplateRows: "repeat(6, minmax(0, 1fr))" }}>
         {grid.map((date, idx) => {
           const inMonth = parseISO(date).getMonth() === month
           const isToday = date === today
@@ -360,34 +459,44 @@ function MonthGrid({
               key={date}
               onClick={() => onSelect(date)}
               className={cn(
-                "flex min-h-[104px] flex-col gap-1 border-b border-r border-border/60 p-2 text-left transition-colors",
+                "flex min-h-[96px] flex-col gap-1.5 overflow-hidden border-b border-r border-border/60 p-2 text-left transition-colors",
                 idx % 7 === 6 && "border-r-0",
                 idx >= 35 && "border-b-0",
                 isSelected ? "bg-primary/10 ring-1 ring-inset ring-primary/50" : "hover:bg-white/[0.03]",
-                !inMonth && "bg-black/20 opacity-45",
+                !inMonth && "bg-black/20 opacity-40",
               )}
             >
-              <span
-                className={cn(
-                  "flex h-7 w-7 items-center justify-center rounded-lg text-sm font-semibold",
-                  isToday && "bg-primary text-primary-foreground",
-                  !isToday && isSelected && "text-primary",
+              <div className="flex shrink-0 items-center justify-between">
+                <span
+                  className={cn(
+                    "flex h-7 w-7 items-center justify-center rounded-lg text-sm font-bold",
+                    isToday && "bg-primary text-primary-foreground",
+                    !isToday && isSelected && "text-primary",
+                  )}
+                >
+                  {parseISO(date).getDate()}
+                </span>
+                {evs.length > 1 && (
+                  <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold text-primary">
+                    {evs.length} Termine
+                  </span>
                 )}
-              >
-                {parseISO(date).getDate()}
-              </span>
-              <div className="space-y-1">
-                {evs.slice(0, 3).map((e, i) => (
+              </div>
+              <div className="min-h-0 flex-1 space-y-1 overflow-hidden">
+                {evs.slice(0, 4).map((e, i) => (
                   <div
                     key={e.id + i}
-                    className="flex items-center gap-1 truncate rounded-md px-1.5 py-1 text-[11px] font-medium"
-                    style={{ backgroundColor: `${CATEGORY_COLOR[e.category]}22`, color: CATEGORY_COLOR[e.category] }}
+                    className="flex items-center gap-1.5 truncate rounded-md px-1.5 py-1 text-xs font-medium leading-tight"
+                    style={{ backgroundColor: `${CATEGORY_COLOR[e.category]}1f`, color: CATEGORY_COLOR[e.category] }}
                   >
-                    {e.time && <span className="opacity-80">{e.time}</span>}
+                    <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: CATEGORY_COLOR[e.category] }} />
+                    {e.time && <span className="shrink-0 tabular-nums opacity-90">{e.time}</span>}
                     <span className="truncate">{e.title}</span>
                   </div>
                 ))}
-                {evs.length > 3 && <div className="px-1 text-[10px] text-muted-foreground">+{evs.length - 3} mehr</div>}
+                {evs.length > 4 && (
+                  <div className="px-1 text-[11px] font-medium text-muted-foreground">+{evs.length - 4} weitere</div>
+                )}
               </div>
             </button>
           )

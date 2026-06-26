@@ -11,18 +11,23 @@ import {
 import { nanoid } from "nanoid"
 import type {
   Appointment,
+  CompanySettings,
   Customer,
   Database,
   Deal,
   DealStage,
+  Invoice,
   Person,
   Project,
+  Quote,
   Task,
   TaskStatus,
+  Transaction,
 } from "./types"
 import { buildDemoData } from "./demo-data"
+import { nextNumber } from "./totals"
 
-const DB_KEY = "vitaminb-os-db-v1"
+const DB_KEY = "vitaminb-os-db-v2"
 const PERSON_KEY = "vitaminb-active-person"
 
 interface StoreValue {
@@ -50,6 +55,18 @@ interface StoreValue {
   moveDeal: (id: string, stage: DealStage) => void
   reorderDeals: (next: Deal[]) => void
   removeDeal: (id: string) => void
+  // Belege
+  addQuote: (input: Omit<Quote, "id" | "createdAt" | "number">) => void
+  updateQuote: (id: string, patch: Partial<Omit<Quote, "id" | "createdAt">>) => void
+  removeQuote: (id: string) => void
+  convertQuoteToInvoice: (quoteId: string) => void
+  addInvoice: (input: Omit<Invoice, "id" | "createdAt" | "number">) => void
+  updateInvoice: (id: string, patch: Partial<Omit<Invoice, "id" | "createdAt">>) => void
+  removeInvoice: (id: string) => void
+  // Finanzen
+  addTransaction: (input: Omit<Transaction, "id">) => void
+  removeTransaction: (id: string) => void
+  updateCompany: (patch: Partial<CompanySettings>) => void
 }
 
 const StoreContext = createContext<StoreValue | null>(null)
@@ -223,6 +240,86 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           ...prev,
           deals: prev.deals.filter((d) => d.id !== id),
         })),
+
+      // Belege
+      addQuote: (input) =>
+        setDb((prev) => ({
+          ...prev,
+          quotes: [
+            {
+              ...input,
+              id: nanoid(8),
+              number: nextNumber(prev.quotes.map((q) => q.number), new Date().getFullYear()),
+              createdAt: new Date().toISOString(),
+            },
+            ...prev.quotes,
+          ],
+        })),
+      updateQuote: (id, patch) =>
+        setDb((prev) => ({
+          ...prev,
+          quotes: prev.quotes.map((q) => (q.id === id ? { ...q, ...patch } : q)),
+        })),
+      removeQuote: (id) =>
+        setDb((prev) => ({ ...prev, quotes: prev.quotes.filter((q) => q.id !== id) })),
+      convertQuoteToInvoice: (quoteId) =>
+        setDb((prev) => {
+          const q = prev.quotes.find((x) => x.id === quoteId)
+          if (!q) return prev
+          const today = new Date()
+          const due = new Date()
+          due.setDate(today.getDate() + 14)
+          const iso = (d: Date) => d.toISOString().slice(0, 10)
+          const invoice: Invoice = {
+            id: nanoid(8),
+            number: nextNumber(prev.invoices.map((i) => i.number), today.getFullYear()),
+            customerId: q.customerId,
+            status: "entwurf",
+            items: q.items.map((it) => ({ ...it, id: nanoid(6) })),
+            issueDate: iso(today),
+            dueDate: iso(due),
+            person: q.person,
+            notes: q.notes,
+            quoteId: q.id,
+            createdAt: today.toISOString(),
+          }
+          return {
+            ...prev,
+            invoices: [invoice, ...prev.invoices],
+            quotes: prev.quotes.map((x) => (x.id === quoteId ? { ...x, status: "angenommen" } : x)),
+          }
+        }),
+      addInvoice: (input) =>
+        setDb((prev) => ({
+          ...prev,
+          invoices: [
+            {
+              ...input,
+              id: nanoid(8),
+              number: nextNumber(prev.invoices.map((i) => i.number), new Date().getFullYear()),
+              createdAt: new Date().toISOString(),
+            },
+            ...prev.invoices,
+          ],
+        })),
+      updateInvoice: (id, patch) =>
+        setDb((prev) => ({
+          ...prev,
+          invoices: prev.invoices.map((i) => (i.id === id ? { ...i, ...patch } : i)),
+        })),
+      removeInvoice: (id) =>
+        setDb((prev) => ({ ...prev, invoices: prev.invoices.filter((i) => i.id !== id) })),
+
+      // Finanzen
+      addTransaction: (input) =>
+        setDb((prev) => ({
+          ...prev,
+          transactions: [{ ...input, id: nanoid(8) }, ...prev.transactions],
+        })),
+      removeTransaction: (id) =>
+        setDb((prev) => ({ ...prev, transactions: prev.transactions.filter((t) => t.id !== id) })),
+      updateCompany: (patch) =>
+        setDb((prev) => ({ ...prev, company: { ...prev.company, ...patch } })),
     }),
     [db, activePerson],
   )

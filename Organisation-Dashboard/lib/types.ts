@@ -198,6 +198,113 @@ export interface Deal {
   createdAt: string
 }
 
+/* ---------- Belege (Angebote & Rechnungen) ---------- */
+
+export type Unit = "Stk" | "Std" | "m²" | "lfm" | "pausch."
+
+export const UNITS: Unit[] = ["Stk", "Std", "m²", "lfm", "pausch."]
+
+export interface LineItem {
+  id: string
+  description: string
+  qty: number
+  unit: Unit
+  price: number // Einzelpreis netto
+  taxRate: number // 19 | 7 | 0
+}
+
+export type QuoteStatus = "entwurf" | "gesendet" | "angenommen" | "abgelehnt"
+export type InvoiceStatus = "entwurf" | "gesendet" | "bezahlt" | "ueberfaellig"
+
+export const QUOTE_STATUS_LABEL: Record<QuoteStatus, string> = {
+  entwurf: "Entwurf",
+  gesendet: "Gesendet",
+  angenommen: "Angenommen",
+  abgelehnt: "Abgelehnt",
+}
+export const QUOTE_STATUS_COLOR: Record<QuoteStatus, string> = {
+  entwurf: "#9ca3af",
+  gesendet: "#3b82f6",
+  angenommen: "#34d399",
+  abgelehnt: "#ef4444",
+}
+
+export const INVOICE_STATUS_LABEL: Record<InvoiceStatus, string> = {
+  entwurf: "Entwurf",
+  gesendet: "Gesendet",
+  bezahlt: "Bezahlt",
+  ueberfaellig: "Überfällig",
+}
+export const INVOICE_STATUS_COLOR: Record<InvoiceStatus, string> = {
+  entwurf: "#9ca3af",
+  gesendet: "#3b82f6",
+  bezahlt: "#34d399",
+  ueberfaellig: "#ef4444",
+}
+
+export interface Quote {
+  id: string
+  number: string
+  customerId: string
+  status: QuoteStatus
+  items: LineItem[]
+  validUntil: string
+  person: Person
+  notes?: string
+  createdAt: string
+}
+
+export interface Invoice {
+  id: string
+  number: string
+  customerId: string
+  status: InvoiceStatus
+  items: LineItem[]
+  issueDate: string
+  dueDate: string
+  person: Person
+  notes?: string
+  quoteId?: string
+  createdAt: string
+}
+
+export interface Template {
+  id: string
+  kind: "quote" | "invoice"
+  name: string
+  items: Omit<LineItem, "id">[]
+}
+
+/* ---------- Finanzen (Ledger) ---------- */
+
+export type TxType = "income" | "expense"
+
+export interface Transaction {
+  id: string
+  type: TxType
+  category: string
+  amount: number // brutto
+  taxRate: number // 19 | 7 | 0
+  date: string
+  customerId?: string
+  invoiceId?: string
+  note?: string
+}
+
+export const EXPENSE_CATEGORIES = ["Material", "Miete", "Fahrzeuge", "Software", "Marketing", "Personal", "Steuern", "Sonstiges"]
+export const INCOME_CATEGORIES = ["Beschriftung", "Folierung", "Druck", "Design", "Web", "Wartung", "Sonstiges"]
+
+export interface CompanySettings {
+  name: string
+  owner: string
+  address: string
+  taxId: string
+  iban: string
+  bank: string
+  email: string
+  phone: string
+}
+
 export interface Database {
   tasks: Task[]
   lists: TaskList[]
@@ -207,4 +314,9 @@ export interface Database {
   customers: Customer[]
   projects: Project[]
   deals: Deal[]
+  quotes: Quote[]
+  invoices: Invoice[]
+  transactions: Transaction[]
+  templates: Template[]
+  company: CompanySettings
 }
