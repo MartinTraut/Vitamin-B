@@ -22,18 +22,21 @@ export interface NavItem {
 
 export interface NavGroup {
   label: string
+  accent: string
   items: NavItem[]
 }
 
 export const NAV: NavGroup[] = [
   {
     label: "Übersicht",
+    accent: "#E39832",
     items: [
       { href: "/", label: "Dashboard", subtitle: "Dein Tag auf einen Blick", icon: LayoutDashboard },
     ],
   },
   {
     label: "Organisation",
+    accent: "#3b82f6",
     items: [
       { href: "/aufgaben", label: "Aufgaben", subtitle: "To-Dos & Listen", icon: CheckSquare },
       { href: "/kalender", label: "Kalender", subtitle: "Termine & Fristen", icon: Calendar },
@@ -42,13 +45,15 @@ export const NAV: NavGroup[] = [
   },
   {
     label: "Kunden",
+    accent: "#a855f7",
     items: [
-      { href: "/crm", label: "CRM", subtitle: "Kunden & Projekte", icon: Users, soon: true },
-      { href: "/pipeline", label: "Pipeline", subtitle: "Anfragen & Deals", icon: GitBranch, soon: true },
+      { href: "/crm", label: "CRM", subtitle: "Kunden & Projekte", icon: Users },
+      { href: "/pipeline", label: "Pipeline", subtitle: "Anfragen & Deals", icon: GitBranch },
     ],
   },
   {
     label: "Finanzen",
+    accent: "#34d399",
     items: [
       { href: "/angebote", label: "Angebote", subtitle: "Angebote & Templates", icon: FileText, soon: true },
       { href: "/rechnungen", label: "Rechnungen", subtitle: "Rechnungsstellung", icon: Receipt, soon: true },
@@ -57,6 +62,7 @@ export const NAV: NavGroup[] = [
   },
   {
     label: "System",
+    accent: "#9ca3af",
     items: [
       { href: "/einstellungen", label: "Einstellungen", subtitle: "Team & Firma", icon: Settings, soon: true },
     ],

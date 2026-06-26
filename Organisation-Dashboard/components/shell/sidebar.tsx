@@ -33,56 +33,66 @@ export function Sidebar() {
         <PersonSwitcher />
       </div>
 
-      {/* Navigation — Gruppen klar getrennt */}
+      {/* Navigation — Gruppen farblich getrennt & animiert */}
       <nav className="flex-1 overflow-y-auto px-3 py-2">
         {NAV.map((group, gi) => (
           <div
             key={group.label}
-            className={cn(
-              "py-3",
-              gi !== NAV.length - 1 && "border-b border-border/50",
-            )}
+            className={cn("py-3", gi !== NAV.length - 1 && "border-b border-border/50")}
           >
-            <div className="px-2 pb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground/60">
-              {group.label}
+            <div className="flex items-center gap-2 px-2 pb-2">
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{ backgroundColor: group.accent, boxShadow: `0 0 8px ${group.accent}99` }}
+              />
+              <span
+                className="text-[10px] font-bold uppercase tracking-[0.14em]"
+                style={{ color: `${group.accent}cc` }}
+              >
+                {group.label}
+              </span>
             </div>
             <div className="space-y-0.5">
               {group.items.map((item) => {
                 const active =
-                  item.href === "/"
-                    ? pathname === "/"
-                    : pathname.startsWith(item.href)
+                  item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)
                 return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={cn(
-                      "group relative flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm transition-colors",
-                      active
-                        ? "font-medium text-foreground"
-                        : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground",
-                    )}
-                  >
-                    {active && (
-                      <motion.div
-                        layoutId="nav-active"
-                        className="absolute inset-0 rounded-lg border border-primary/30 bg-primary/[0.12] shadow-[inset_2px_0_0_0_var(--primary)]"
-                        transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-                      />
-                    )}
-                    <item.icon
+                  <motion.div key={item.href} whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }} transition={{ type: "spring", stiffness: 500, damping: 32 }}>
+                    <Link
+                      href={item.href}
                       className={cn(
-                        "relative z-10 h-[18px] w-[18px] shrink-0 transition-colors",
-                        active ? "text-primary" : "text-muted-foreground group-hover:text-foreground",
+                        "group relative flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm transition-colors",
+                        active ? "font-medium text-foreground" : "text-muted-foreground",
                       )}
-                    />
-                    <span className="relative z-10 flex-1">{item.label}</span>
-                    {item.soon && (
-                      <span className="relative z-10 rounded-full bg-white/[0.06] px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground">
-                        bald
-                      </span>
-                    )}
-                  </Link>
+                      style={{ ["--acc" as string]: group.accent }}
+                    >
+                      {active && (
+                        <motion.div
+                          layoutId="nav-active"
+                          className="absolute inset-0 rounded-lg border"
+                          style={{
+                            backgroundColor: `${group.accent}1f`,
+                            borderColor: `${group.accent}55`,
+                            boxShadow: `inset 2px 0 0 0 ${group.accent}, 0 0 14px ${group.accent}26`,
+                          }}
+                          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                        />
+                      )}
+                      <item.icon
+                        className="relative z-10 h-[18px] w-[18px] shrink-0 transition-colors group-hover:[color:var(--acc)]"
+                        style={active ? { color: group.accent } : undefined}
+                      />
+                      <span className="relative z-10 flex-1 transition-colors group-hover:text-foreground">{item.label}</span>
+                      {item.soon && (
+                        <span
+                          className="relative z-10 rounded-full px-1.5 py-0.5 text-[9px] font-semibold"
+                          style={{ backgroundColor: `${group.accent}1a`, color: `${group.accent}cc` }}
+                        >
+                          bald
+                        </span>
+                      )}
+                    </Link>
+                  </motion.div>
                 )
               })}
             </div>

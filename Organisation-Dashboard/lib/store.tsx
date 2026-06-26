@@ -11,8 +11,12 @@ import {
 import { nanoid } from "nanoid"
 import type {
   Appointment,
+  Customer,
   Database,
+  Deal,
+  DealStage,
   Person,
+  Project,
   Task,
   TaskStatus,
 } from "./types"
@@ -34,6 +38,18 @@ interface StoreValue {
   updateAppointment: (id: string, patch: Partial<Omit<Appointment, "id" | "createdAt">>) => void
   toggleAppointmentDone: (id: string, occISO: string) => void
   removeAppointment: (id: string) => void
+  // CRM
+  addCustomer: (input: Omit<Customer, "id" | "createdAt">) => void
+  updateCustomer: (id: string, patch: Partial<Omit<Customer, "id" | "createdAt">>) => void
+  removeCustomer: (id: string) => void
+  addProject: (input: Omit<Project, "id" | "createdAt">) => void
+  removeProject: (id: string) => void
+  // Pipeline
+  addDeal: (input: Omit<Deal, "id" | "createdAt">) => void
+  updateDeal: (id: string, patch: Partial<Omit<Deal, "id" | "createdAt">>) => void
+  moveDeal: (id: string, stage: DealStage) => void
+  reorderDeals: (next: Deal[]) => void
+  removeDeal: (id: string) => void
 }
 
 const StoreContext = createContext<StoreValue | null>(null)
@@ -145,6 +161,67 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setDb((prev) => ({
           ...prev,
           appointments: prev.appointments.filter((a) => a.id !== id),
+        })),
+
+      // CRM
+      addCustomer: (input) =>
+        setDb((prev) => ({
+          ...prev,
+          customers: [
+            { ...input, id: nanoid(8), createdAt: new Date().toISOString() },
+            ...prev.customers,
+          ],
+        })),
+      updateCustomer: (id, patch) =>
+        setDb((prev) => ({
+          ...prev,
+          customers: prev.customers.map((c) => (c.id === id ? { ...c, ...patch } : c)),
+        })),
+      removeCustomer: (id) =>
+        setDb((prev) => ({
+          ...prev,
+          customers: prev.customers.filter((c) => c.id !== id),
+          projects: prev.projects.filter((p) => p.customerId !== id),
+          deals: prev.deals.filter((d) => d.customerId !== id),
+        })),
+      addProject: (input) =>
+        setDb((prev) => ({
+          ...prev,
+          projects: [
+            { ...input, id: nanoid(8), createdAt: new Date().toISOString() },
+            ...prev.projects,
+          ],
+        })),
+      removeProject: (id) =>
+        setDb((prev) => ({
+          ...prev,
+          projects: prev.projects.filter((p) => p.id !== id),
+        })),
+
+      // Pipeline
+      addDeal: (input) =>
+        setDb((prev) => ({
+          ...prev,
+          deals: [
+            { ...input, id: nanoid(8), createdAt: new Date().toISOString() },
+            ...prev.deals,
+          ],
+        })),
+      updateDeal: (id, patch) =>
+        setDb((prev) => ({
+          ...prev,
+          deals: prev.deals.map((d) => (d.id === id ? { ...d, ...patch } : d)),
+        })),
+      moveDeal: (id, stage) =>
+        setDb((prev) => ({
+          ...prev,
+          deals: prev.deals.map((d) => (d.id === id ? { ...d, stage } : d)),
+        })),
+      reorderDeals: (next) => setDb((prev) => ({ ...prev, deals: next })),
+      removeDeal: (id) =>
+        setDb((prev) => ({
+          ...prev,
+          deals: prev.deals.filter((d) => d.id !== id),
         })),
     }),
     [db, activePerson],

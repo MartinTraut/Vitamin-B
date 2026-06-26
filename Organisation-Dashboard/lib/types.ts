@@ -119,10 +119,92 @@ export const CASHFLOW_STATUS_LABEL: Record<CashflowStatus, string> = {
   potential: "Potenziell",
 }
 
+/* ---------- CRM ---------- */
+
+export type CustomerHealth = "lead" | "active" | "churned"
+
+export const HEALTH_LABEL: Record<CustomerHealth, string> = {
+  lead: "Lead",
+  active: "Aktiv",
+  churned: "Inaktiv",
+}
+export const HEALTH_COLOR: Record<CustomerHealth, string> = {
+  lead: "#3b82f6",
+  active: "#34d399",
+  churned: "#9ca3af",
+}
+
+export interface Customer {
+  id: string
+  company: string
+  contactName?: string
+  email?: string
+  phone?: string
+  address?: string
+  source?: string // Herkunft
+  health: CustomerHealth
+  notes?: string
+  createdAt: string
+}
+
+export type ProjectStatus = "geplant" | "laufend" | "fertig"
+
+export const PROJECT_STATUS_LABEL: Record<ProjectStatus, string> = {
+  geplant: "Geplant",
+  laufend: "Laufend",
+  fertig: "Fertig",
+}
+export const PROJECT_STATUS_COLOR: Record<ProjectStatus, string> = {
+  geplant: "#9ca3af",
+  laufend: "#E39832",
+  fertig: "#34d399",
+}
+
+export interface Project {
+  id: string
+  customerId: string
+  name: string
+  status: ProjectStatus
+  description?: string
+  createdAt: string
+}
+
+/* ---------- Pipeline ---------- */
+
+export type DealStage = "lead" | "kontakt" | "angebot" | "gewonnen"
+
+export const DEAL_STAGES: DealStage[] = ["lead", "kontakt", "angebot", "gewonnen"]
+
+export const DEAL_STAGE_LABEL: Record<DealStage, string> = {
+  lead: "Lead",
+  kontakt: "Kontaktiert",
+  angebot: "Angebot",
+  gewonnen: "Gewonnen",
+}
+export const DEAL_STAGE_COLOR: Record<DealStage, string> = {
+  lead: "#9ca3af",
+  kontakt: "#3b82f6",
+  angebot: "#E39832",
+  gewonnen: "#34d399",
+}
+
+export interface Deal {
+  id: string
+  customerId: string
+  title: string
+  stage: DealStage
+  value: number
+  person: Person
+  createdAt: string
+}
+
 export interface Database {
   tasks: Task[]
   lists: TaskList[]
   appointments: Appointment[]
   finance: FinanceMonth[]
   cashflow: CashflowEvent[]
+  customers: Customer[]
+  projects: Project[]
+  deals: Deal[]
 }

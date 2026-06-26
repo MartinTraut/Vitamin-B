@@ -53,5 +53,26 @@ export function buildDemoData(): Database {
       { id: "cf7", kind: "expense", status: "confirmed", title: "Leasing Transporter", party: "Sparkasse Leasing", amount: 420, date: rel(15) },
       { id: "cf8", kind: "expense", status: "potential", title: "Steuervorauszahlung Q3", party: "Finanzamt", amount: 2600, date: rel(20) },
     ],
+    customers: [
+      { id: "c1", company: "Autohaus Schäfer GmbH", contactName: "Markus Schäfer", email: "m.schaefer@autohaus-schaefer.de", phone: "07139 123456", address: "Neuenstadt am Kocher", source: "Empfehlung", health: "active", notes: "Stammkunde, jährliche Flottenbeschriftung.", createdAt: now },
+      { id: "c2", company: "Pflegedienst Sonnenschein", contactName: "Andrea Voß", email: "kontakt@pflege-sonnenschein.de", phone: "07132 998877", address: "Bad Friedrichshall", source: "Google", health: "active", notes: "Fahrzeugbeschriftung + Schilder.", createdAt: now },
+      { id: "c3", company: "Müller GmbH", contactName: "Thomas Müller", email: "info@mueller-gmbh.de", phone: "07131 445566", address: "Heilbronn", source: "Messe", health: "lead", notes: "Anfrage Autofolierung Komplettflotte.", createdAt: now },
+      { id: "c4", company: "Bäckerei Werner", contactName: "Lena Werner", email: "hallo@baeckerei-werner.de", phone: "07136 223344", address: "Bad Wimpfen", source: "Instagram", health: "lead", notes: "Schaufenster + Landingpage-Relaunch.", createdAt: now },
+      { id: "c5", company: "Steuerkanzlei Berg & Partner", contactName: "Dr. Berg", email: "kanzlei@berg-partner.de", phone: "07131 778899", address: "Heilbronn", source: "Empfehlung", health: "churned", notes: "Logo-Konzept abgeschlossen, derzeit ruhend.", createdAt: now },
+    ],
+    projects: [
+      { id: "p1", customerId: "c1", name: "Flottenbeschriftung 2026", status: "laufend", description: "12 Transporter Vollfolierung mit neuem CI.", createdAt: now },
+      { id: "p2", customerId: "c2", name: "Fahrzeug- & Schilderpaket", status: "geplant", description: "3 Fahrzeuge + 5 Praxisschilder.", createdAt: now },
+      { id: "p3", customerId: "c4", name: "Schaufensterfolie Filiale Mitte", status: "geplant", description: "Milchglasfolie + Logo.", createdAt: now },
+      { id: "p4", customerId: "c5", name: "Logo & Corporate Design", status: "fertig", description: "Logo, Visitenkarten, Briefpapier.", createdAt: now },
+    ],
+    deals: [
+      { id: "d1", customerId: "c3", title: "Autofolierung Komplettflotte", stage: "angebot", value: 5200, person: "robert", createdAt: now },
+      { id: "d2", customerId: "c4", title: "Schaufenster + Landingpage", stage: "kontakt", value: 2800, person: "martin", createdAt: now },
+      { id: "d3", customerId: "c1", title: "Flottenbeschriftung 2026", stage: "gewonnen", value: 8600, person: "robert", createdAt: now },
+      { id: "d4", customerId: "c2", title: "Fahrzeug- & Schilderpaket", stage: "angebot", value: 3400, person: "bastian", createdAt: now },
+      { id: "d5", customerId: "c5", title: "Erweiterung Geschäftsausstattung", stage: "lead", value: 1500, person: "martin", createdAt: now },
+      { id: "d6", customerId: "c2", title: "Jahres-Wartung Beschriftung", stage: "lead", value: 900, person: "robert", createdAt: now },
+    ],
   }
 }

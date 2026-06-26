@@ -135,8 +135,8 @@ export function Overview() {
               <div key={appt.id + date} className="flex items-center gap-2.5 rounded-lg border border-border bg-white/[0.02] p-2.5">
                 <div className="h-8 w-1 rounded-full" style={{ backgroundColor: CATEGORY_COLOR[appt.category] }} />
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-[13px] font-medium">{appt.title}</div>
-                  <div className="text-[11px] text-muted-foreground">{relDayLabel(date)}{appt.time ? ` · ${appt.time}` : ""}</div>
+                  <div className="truncate text-[15px] font-medium">{appt.title}</div>
+                  <div className="text-xs text-muted-foreground">{relDayLabel(date)}{appt.time ? ` · ${appt.time}` : ""}</div>
                 </div>
                 <Badge color={CATEGORY_COLOR[appt.category]}>{CATEGORY_LABEL[appt.category]}</Badge>
               </div>
@@ -151,7 +151,7 @@ export function Overview() {
           <CardHeader className="items-center border-b border-border pb-3">
             <CardTitle>Anstehende Zahlungen <span className="ml-1 text-xs font-normal text-muted-foreground">· 30 Tage</span></CardTitle>
             <div className="text-right">
-              <span className="text-[11px] text-muted-foreground">Saldo </span>
+              <span className="text-xs text-muted-foreground">Saldo </span>
               <span className="font-heading text-base font-bold" style={{ color: data.net >= 0 ? INCOME : EXPENSE }}>
                 {data.net >= 0 ? "+" : ""}{eur(data.net)}
               </span>
@@ -177,8 +177,8 @@ export function Overview() {
             {data.openTasks.slice(0, 5).map((t) => (
               <div key={t.id} className="flex items-center gap-2.5 rounded-lg border border-border bg-white/[0.02] px-3 py-2.5">
                 <div className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: t.priority === "high" ? "#ef4444" : t.priority === "normal" ? "#E39832" : "#9ca3af" }} />
-                <span className="flex-1 truncate text-[13px]">{t.title}</span>
-                {t.due && <span className="shrink-0 text-[11px] text-muted-foreground">{relDayLabel(t.due)}</span>}
+                <span className="flex-1 truncate text-[15px]">{t.title}</span>
+                {t.due && <span className="shrink-0 text-xs text-muted-foreground">{relDayLabel(t.due)}</span>}
               </div>
             ))}
           </CardContent>
@@ -198,7 +198,7 @@ function Stat({ icon: Icon, label, value, accent }: { icon: LucideIcon; label: s
         <Icon className="h-5 w-5" />
       </div>
       <div className="min-w-0">
-        <div className="truncate text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
+        <div className="truncate text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
         <div className="font-heading text-2xl font-bold leading-tight tracking-tight">{value}</div>
       </div>
     </Card>
@@ -223,11 +223,11 @@ function CashflowColumn({
   return (
     <div>
       <div className="mb-2 flex items-center justify-between">
-        <div className="flex items-center gap-1.5 text-[13px] font-semibold" style={{ color }}>
+        <div className="flex items-center gap-1.5 text-[15px] font-semibold" style={{ color }}>
           <span className="flex h-5 w-5 items-center justify-center rounded-md" style={{ backgroundColor: `${color}1f` }}>{icon}</span>
           {title}
         </div>
-        <div className="text-[13px] font-bold" style={{ color }}>{sign}{eur(total)}</div>
+        <div className="text-[15px] font-bold" style={{ color }}>{sign}{eur(total)}</div>
       </div>
       <div className="space-y-1.5">
         {items.length === 0 && (
@@ -239,15 +239,15 @@ function CashflowColumn({
             <div key={c.id} className="flex items-center gap-2.5 rounded-lg border bg-white/[0.02] px-2.5 py-2" style={{ borderColor: `${color}1f` }}>
               <div className="h-7 w-1 rounded-full" style={{ backgroundColor: potential ? POTENTIAL : color }} />
               <div className="min-w-0 flex-1">
-                <div className="truncate text-[13px] font-medium">{c.title}</div>
-                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <div className="truncate text-[15px] font-medium">{c.title}</div>
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   {relDayLabel(c.date)}
                   {potential && (
-                    <span className="rounded-full px-1.5 py-0.5 text-[9px] font-semibold" style={{ backgroundColor: `${POTENTIAL}24`, color: POTENTIAL }}>potenziell</span>
+                    <span className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold" style={{ backgroundColor: `${POTENTIAL}24`, color: POTENTIAL }}>potenziell</span>
                   )}
                 </div>
               </div>
-              <div className="shrink-0 text-[13px] font-semibold" style={{ color: potential ? POTENTIAL : color }}>{sign}{eur(c.amount)}</div>
+              <div className="shrink-0 text-[15px] font-semibold" style={{ color: potential ? POTENTIAL : color }}>{sign}{eur(c.amount)}</div>
             </div>
           )
         })}
