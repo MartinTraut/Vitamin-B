@@ -448,7 +448,7 @@ function MonthGrid({
           </div>
         ))}
       </div>
-      <div className="grid flex-1 grid-cols-7" style={{ gridTemplateRows: "repeat(6, minmax(0, 1fr))" }}>
+      <div className="grid min-h-0 flex-1 grid-cols-7" style={{ gridTemplateRows: "repeat(6, minmax(0, 1fr))" }}>
         {grid.map((date, idx) => {
           const inMonth = parseISO(date).getMonth() === month
           const isToday = date === today
@@ -459,7 +459,7 @@ function MonthGrid({
               key={date}
               onClick={() => onSelect(date)}
               className={cn(
-                "flex min-h-[96px] flex-col gap-1.5 overflow-hidden border-b border-r border-border/60 p-2 text-left transition-colors",
+                "flex min-h-[84px] flex-col gap-1.5 overflow-hidden border-b border-r border-border/60 p-2 text-left transition-colors",
                 idx % 7 === 6 && "border-r-0",
                 idx >= 35 && "border-b-0",
                 isSelected ? "bg-primary/10 ring-1 ring-inset ring-primary/50" : "hover:bg-white/[0.03]",

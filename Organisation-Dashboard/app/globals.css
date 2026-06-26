@@ -131,3 +131,13 @@
         transition-duration: 0.01ms !important;
     }
 }
+
+/* Druck / PDF: nur den Beleg drucken */
+.print-only { display: none; }
+@media print {
+    body { visibility: hidden; background: #fff; }
+    .print-only { display: block; }
+    #print-root, #print-root * { visibility: visible; }
+    #print-root { position: absolute; left: 0; top: 0; width: 100%; padding: 0; }
+    @page { margin: 18mm 16mm; }
+}

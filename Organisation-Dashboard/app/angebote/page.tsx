@@ -1,13 +1,5 @@
-import { FileText } from "lucide-react"
-import { ComingSoon } from "@/components/shell/coming-soon"
+import { DocumentsView } from "@/components/documents/documents-view"
 
 export default function AngebotePage() {
-  return (
-    <ComingSoon
-      icon={FileText}
-      title="Angebote"
-      description="Angebote per Vorlage erstellen – Autofolierung, Logo-Beklebung, Textildruck und mehr mit Positionen, Stundenlohn und Steuersatz. Mit einem Klick zur Rechnung."
-      phase="Phase 3"
-    />
-  )
+  return <DocumentsView kind="quote" />
 }

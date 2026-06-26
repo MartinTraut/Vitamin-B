@@ -55,9 +55,9 @@ export const NAV: NavGroup[] = [
     label: "Finanzen",
     accent: "#34d399",
     items: [
-      { href: "/angebote", label: "Angebote", subtitle: "Angebote & Templates", icon: FileText, soon: true },
-      { href: "/rechnungen", label: "Rechnungen", subtitle: "Rechnungsstellung", icon: Receipt, soon: true },
-      { href: "/finanzen", label: "Finanzen", subtitle: "Einnahmen & Ausgaben", icon: Wallet, soon: true },
+      { href: "/angebote", label: "Angebote", subtitle: "Angebote & Templates", icon: FileText },
+      { href: "/rechnungen", label: "Rechnungen", subtitle: "Rechnungsstellung", icon: Receipt },
+      { href: "/finanzen", label: "Finanzen", subtitle: "Einnahmen & Ausgaben", icon: Wallet },
     ],
   },
   {
