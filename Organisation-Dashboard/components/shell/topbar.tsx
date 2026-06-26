@@ -18,7 +18,7 @@ export function Topbar() {
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between gap-4 border-b border-border bg-background/80 px-5 py-4 backdrop-blur-xl lg:px-8">
       <div>
-        <h1 className="font-heading text-lg font-bold tracking-tight lg:text-xl">
+        <h1 className="font-heading text-xl font-bold tracking-[-0.02em] lg:text-2xl">
           {item.label}
         </h1>
         <p className="text-xs text-muted-foreground lg:text-sm">{item.subtitle}</p>

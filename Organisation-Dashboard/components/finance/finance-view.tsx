@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { Plus, TrendingUp, TrendingDown, Wallet, Receipt, Trash2, X, ArrowDownLeft, ArrowUpRight } from "lucide-react"
+import { Plus, TrendingUp, TrendingDown, Wallet, Receipt, Trash2, ArrowDownLeft, ArrowUpRight } from "lucide-react"
 import { useStore } from "@/lib/store"
 import {
   EXPENSE_CATEGORIES,
@@ -10,6 +10,7 @@ import {
   type Transaction,
 } from "@/lib/types"
 import { eur, eur0, dateDE } from "@/lib/format"
+import { todayISO } from "@/lib/recurrence"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { FinanceChart } from "@/components/dashboard/charts"
@@ -20,6 +21,14 @@ const EXPENSE = "#ef4444"
 
 function netOf(amount: number, rate: number) {
   return amount / (1 + rate / 100)
+}
+
+// DE-Betrag robust parsen: "1.234,56" -> 1234.56, "12,50" -> 12.5, "12.50" -> 12.5
+function parseAmount(s: string): number {
+  let t = s.trim()
+  if (t.includes(",")) t = t.replace(/\./g, "").replace(",", ".")
+  const n = Number(t)
+  return Number.isFinite(n) ? n : NaN
 }
 
 export function FinanceView() {
@@ -134,7 +143,7 @@ export function FinanceView() {
                 <span className="text-sm font-semibold tabular-nums" style={{ color: inc ? INCOME : EXPENSE }}>
                   {inc ? "+" : "−"}{eur(t.amount)}
                 </span>
-                <button onClick={() => removeTransaction(t.id)} className="rounded-md p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/15 hover:text-destructive group-hover:opacity-100">
+                <button onClick={() => removeTransaction(t.id)} aria-label="Buchung löschen" title="Buchung löschen" className="rounded-md p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/15 hover:text-destructive focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 group-hover:opacity-100">
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
               </div>
@@ -153,12 +162,12 @@ function AddTransaction({
   onSave: (input: Omit<Transaction, "id">) => void
   onCancel: () => void
 }) {
-  const todayISO = new Date().toISOString().slice(0, 10)
   const [type, setType] = useState<TxType>("expense")
   const [category, setCategory] = useState(EXPENSE_CATEGORIES[0])
   const [amount, setAmount] = useState("")
   const [taxRate, setTaxRate] = useState(19)
-  const [date, setDate] = useState(todayISO)
+  const [date, setDate] = useState(todayISO())
+  const [error, setError] = useState(false)
   const [note, setNote] = useState("")
   const cats = type === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
 
@@ -172,7 +181,7 @@ function AddTransaction({
         <select value={category} onChange={(e) => setCategory(e.target.value)} className="h-10 rounded-lg border border-border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50 [color-scheme:dark]">
           {cats.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
-        <input value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^0-9.,]/g, ""))} inputMode="decimal" placeholder="Betrag € (brutto)" className="h-10 rounded-lg border border-border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50" />
+        <input value={amount} onChange={(e) => { setAmount(e.target.value.replace(/[^0-9.,]/g, "")); setError(false) }} inputMode="decimal" placeholder="Betrag € (brutto)" className={cn("h-10 rounded-lg border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50", error ? "border-destructive" : "border-border")} />
         <select value={taxRate} onChange={(e) => setTaxRate(Number(e.target.value))} className="h-10 rounded-lg border border-border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50 [color-scheme:dark]">
           <option value={19}>19% USt</option>
           <option value={7}>7% USt</option>
@@ -184,8 +193,8 @@ function AddTransaction({
       <div className="flex justify-end gap-2">
         <Button size="sm" variant="ghost" onClick={onCancel}>Abbrechen</Button>
         <Button size="sm" onClick={() => {
-          const val = Number(amount.replace(",", "."))
-          if (!val) return
+          const val = parseAmount(amount)
+          if (!Number.isFinite(val) || val <= 0) { setError(true); return }
           onSave({ type, category, amount: val, taxRate, date, note: note.trim() || undefined })
         }}>Speichern</Button>
       </div>
@@ -200,8 +209,8 @@ function Kpi({ icon: Icon, label, value, accent }: { icon: typeof TrendingUp; la
         <Icon className="h-5 w-5" />
       </div>
       <div className="min-w-0">
-        <div className="truncate text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
-        <div className="font-heading text-2xl font-bold leading-tight tracking-tight">{value}</div>
+        <div className="eyebrow truncate">{label}</div>
+        <div className="num font-heading text-2xl font-bold leading-tight tracking-tight">{value}</div>
       </div>
     </Card>
   )

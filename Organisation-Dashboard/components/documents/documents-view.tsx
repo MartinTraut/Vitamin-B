@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import {
   Plus,
   Trash2,
@@ -10,6 +10,7 @@ import {
   LayoutTemplate,
 } from "lucide-react"
 import { useStore } from "@/lib/store"
+import { useToast } from "@/lib/toast"
 import {
   UNITS,
   QUOTE_STATUS_LABEL,
@@ -24,29 +25,23 @@ import {
 } from "@/lib/types"
 import { computeTotals, lineNet } from "@/lib/totals"
 import { eur, dateDE } from "@/lib/format"
+import { todayISO, addDaysISO } from "@/lib/recurrence"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { nanoid } from "nanoid"
 
 type Kind = "quote" | "invoice"
 type Doc = Quote | Invoice
 
 function newId() {
-  return Math.random().toString(36).slice(2, 8)
+  return nanoid(6)
 }
 // Zahlenfeld robust parsen: leere oder ungültige Eingabe → 0 (nie NaN in Beträge).
 function num0(value: string): number {
   const n = Number(value)
   return Number.isFinite(n) ? n : 0
-}
-function todayISO() {
-  return new Date().toISOString().slice(0, 10)
-}
-function plusDaysISO(days: number) {
-  const d = new Date()
-  d.setDate(d.getDate() + days)
-  return d.toISOString().slice(0, 10)
 }
 
 export function DocumentsView({ kind }: { kind: Kind }) {
@@ -55,6 +50,7 @@ export function DocumentsView({ kind }: { kind: Kind }) {
   const docs: Doc[] = kind === "quote" ? db.quotes : db.invoices
   const isQuote = kind === "quote"
 
+  const toast = useToast()
   const [selectedId, setSelectedId] = useState<string | null>(docs[0]?.id ?? null)
   const [pendingNew, setPendingNew] = useState(false)
 
@@ -80,10 +76,11 @@ export function DocumentsView({ kind }: { kind: Kind }) {
   }
   function createNew() {
     const cid = db.customers[0]?.id ?? ""
+    const term = db.company.paymentTermDays
     if (isQuote) {
-      store.addQuote({ customerId: cid, status: "entwurf", items: [], validUntil: plusDaysISO(14), person: activePerson })
+      store.addQuote({ customerId: cid, status: "entwurf", items: [], validUntil: addDaysISO(todayISO(), term), person: activePerson })
     } else {
-      store.addInvoice({ customerId: cid, status: "entwurf", items: [], issueDate: todayISO(), dueDate: plusDaysISO(14), person: activePerson })
+      store.addInvoice({ customerId: cid, status: "entwurf", items: [], issueDate: todayISO(), dueDate: addDaysISO(todayISO(), term), person: activePerson })
     }
     setPendingNew(true)
   }
@@ -141,9 +138,10 @@ export function DocumentsView({ kind }: { kind: Kind }) {
               doc={selected}
               customers={db.customers.map((c) => ({ id: c.id, company: c.company }))}
               templates={templates.map((t) => ({ id: t.id, name: t.name, items: t.items }))}
+              defaultTaxRate={db.company.defaultTaxRate}
               onPatch={patchDoc}
               onRemove={() => removeDoc(selected.id)}
-              onConvert={isQuote ? () => store.convertQuoteToInvoice(selected.id) : undefined}
+              onConvert={isQuote ? () => { store.convertQuoteToInvoice(selected.id); toast.success("Angebot in Rechnung umgewandelt") } : undefined}
             />
           ) : (
             <Card className="flex h-full items-center justify-center p-12 text-sm text-muted-foreground">
@@ -175,6 +173,7 @@ function Editor({
   doc,
   customers,
   templates,
+  defaultTaxRate,
   onPatch,
   onRemove,
   onConvert,
@@ -183,6 +182,7 @@ function Editor({
   doc: Doc
   customers: { id: string; company: string }[]
   templates: { id: string; name: string; items: Omit<LineItem, "id">[] }[]
+  defaultTaxRate: number
   onPatch: (patch: Partial<Doc>) => void
   onRemove: () => void
   onConvert?: () => void
@@ -197,7 +197,7 @@ function Editor({
     setItems(doc.items.map((it) => (it.id === id ? { ...it, ...patch } : it)))
   }
   function addItem(preset?: Omit<LineItem, "id">) {
-    setItems([...doc.items, { id: newId(), description: "", qty: 1, unit: "Stk", price: 0, taxRate: 19, ...preset }])
+    setItems([...doc.items, { id: newId(), description: "", qty: 1, unit: "Stk", price: 0, taxRate: defaultTaxRate, ...preset }])
   }
   function removeItem(id: string) {
     setItems(doc.items.filter((it) => it.id !== id))
@@ -225,7 +225,7 @@ function Editor({
           <Button size="sm" variant="secondary" onClick={() => window.print()}>
             <Printer className="h-4 w-4" /> Drucken / PDF
           </Button>
-          <button onClick={onRemove} title="Löschen" className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive">
+          <button onClick={onRemove} aria-label="Beleg löschen" title="Löschen" className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60">
             <Trash2 className="h-4 w-4" />
           </button>
         </div>
@@ -304,7 +304,7 @@ function Editor({
                 <option value={0}>0%</option>
               </select>
               <div className="flex h-9 items-center justify-end px-1 text-sm font-medium tabular-nums">{eur(lineNet(it))}</div>
-              <button onClick={() => removeItem(it.id)} className="flex h-9 items-center justify-center text-muted-foreground transition-colors hover:text-destructive">
+              <button onClick={() => removeItem(it.id)} aria-label="Position löschen" title="Position löschen" className="flex h-9 items-center justify-center text-muted-foreground transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60">
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>

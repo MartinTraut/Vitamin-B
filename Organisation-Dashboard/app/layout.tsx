@@ -3,6 +3,7 @@ import { Inter, Sora } from "next/font/google"
 import "./globals.css"
 import { cn } from "@/lib/utils"
 import { StoreProvider } from "@/lib/store"
+import { ToastProvider } from "@/lib/toast"
 import { AppShell } from "@/components/shell/app-shell"
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" })
@@ -21,7 +22,9 @@ export default function RootLayout({
     <html lang="de" className={cn(inter.variable, sora.variable)}>
       <body className="bg-background text-foreground antialiased">
         <StoreProvider>
-          <AppShell>{children}</AppShell>
+          <ToastProvider>
+            <AppShell>{children}</AppShell>
+          </ToastProvider>
         </StoreProvider>
       </body>
     </html>

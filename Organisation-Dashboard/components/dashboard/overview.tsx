@@ -59,7 +59,7 @@ export function Overview() {
       .flatMap((a) => occurrencesInRange(a, today, weekEnd).map((date) => ({ appt: a, date })))
       .sort((x, y) => x.date.localeCompare(y.date))
 
-    const last = db.finance[db.finance.length - 1]
+    const last = db.finance.at(-1) ?? { month: "", income: 0, expense: 0 }
 
     const horizon = addDaysISO(today, 30)
     const upcomingCash = [...db.cashflow]
@@ -152,7 +152,7 @@ export function Overview() {
             <CardTitle>Anstehende Zahlungen <span className="ml-1 text-xs font-normal text-muted-foreground">· 30 Tage</span></CardTitle>
             <div className="text-right">
               <span className="text-xs text-muted-foreground">Saldo </span>
-              <span className="font-heading text-base font-bold" style={{ color: data.net >= 0 ? INCOME : EXPENSE }}>
+              <span className="num font-heading text-base font-bold" style={{ color: data.net >= 0 ? INCOME : EXPENSE }}>
                 {data.net >= 0 ? "+" : ""}{eur0(data.net)}
               </span>
             </div>
@@ -198,8 +198,8 @@ function Stat({ icon: Icon, label, value, accent }: { icon: LucideIcon; label: s
         <Icon className="h-5 w-5" />
       </div>
       <div className="min-w-0">
-        <div className="truncate text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
-        <div className="font-heading text-2xl font-bold leading-tight tracking-tight">{value}</div>
+        <div className="eyebrow truncate">{label}</div>
+        <div className="num font-heading text-2xl font-bold leading-tight tracking-tight">{value}</div>
       </div>
     </Card>
   )
@@ -227,7 +227,7 @@ function CashflowColumn({
           <span className="flex h-5 w-5 items-center justify-center rounded-md" style={{ backgroundColor: `${color}1f` }}>{icon}</span>
           {title}
         </div>
-        <div className="text-[15px] font-bold" style={{ color }}>{sign}{eur0(total)}</div>
+        <div className="num text-[15px] font-bold" style={{ color }}>{sign}{eur0(total)}</div>
       </div>
       <div className="space-y-1.5">
         {items.length === 0 && (
@@ -247,7 +247,7 @@ function CashflowColumn({
                   )}
                 </div>
               </div>
-              <div className="shrink-0 text-[15px] font-semibold" style={{ color: potential ? POTENTIAL : color }}>{sign}{eur0(c.amount)}</div>
+              <div className="num shrink-0 text-[15px] font-semibold" style={{ color: potential ? POTENTIAL : color }}>{sign}{eur0(c.amount)}</div>
             </div>
           )
         })}

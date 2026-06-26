@@ -303,6 +303,10 @@ export interface CompanySettings {
   bank: string
   email: string
   phone: string
+  // Geschäfts-Defaults (in Einstellungen pflegbar)
+  defaultTaxRate: number // Standard-USt-Satz für neue Positionen (19 | 7 | 0)
+  paymentTermDays: number // Standard-Zahlungsziel in Tagen
+  defaultPerson: Person // Startansicht beim Öffnen
 }
 
 /* ---------- Whiteboard ---------- */

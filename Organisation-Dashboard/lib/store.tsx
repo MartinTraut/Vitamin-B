@@ -26,10 +26,34 @@ import type {
   Whiteboard,
 } from "./types"
 import { buildDemoData } from "./demo-data"
-import { nextNumber } from "./totals"
+import { nextNumber, computeTotals } from "./totals"
+import { todayISO, addDaysISO } from "./recurrence"
 
 const DB_KEY = "vitaminb-os-db-v2"
 const PERSON_KEY = "vitaminb-active-person"
+
+// Gesendete Rechnungen, deren Zahlungsziel überschritten ist, automatisch
+// auf "überfällig" heben — damit niemand offene Forderungen übersieht.
+function withOverdue(db: Database): Database {
+  const today = todayISO()
+  return {
+    ...db,
+    invoices: db.invoices.map((i) =>
+      i.status === "gesendet" && i.dueDate < today ? { ...i, status: "ueberfaellig" as const } : i,
+    ),
+  }
+}
+
+// Gespeicherte Daten über die Demo-Defaults mergen, damit neue (auch
+// verschachtelte) Felder bei altem Cache vorhanden sind und nichts undefined wird.
+function mergeDb(partial: Partial<Database>): Database {
+  const base = buildDemoData()
+  return withOverdue({
+    ...base,
+    ...partial,
+    company: { ...base.company, ...(partial.company ?? {}) },
+  })
+}
 
 interface StoreValue {
   db: Database
@@ -68,6 +92,9 @@ interface StoreValue {
   addTransaction: (input: Omit<Transaction, "id">) => void
   removeTransaction: (id: string) => void
   updateCompany: (patch: Partial<CompanySettings>) => void
+  // Daten-Backup
+  exportDb: () => string
+  importDb: (json: string) => boolean
   // Whiteboard
   addWhiteboard: (input: Omit<Whiteboard, "id" | "createdAt">) => string
   renameWhiteboard: (id: string, name: string) => void
@@ -85,12 +112,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(DB_KEY)
-      // Über die Demo-Defaults mergen, damit neue Felder (z.B. cashflow)
-      // auch bei altem Cache vorhanden sind und nichts undefined wird.
-      if (raw) setDb({ ...buildDemoData(), ...(JSON.parse(raw) as Partial<Database>) } as Database)
+      const merged = raw ? mergeDb(JSON.parse(raw) as Partial<Database>) : withOverdue(buildDemoData())
+      setDb(merged)
       const p = localStorage.getItem(PERSON_KEY) as Person | null
       if (p === "robert" || p === "bastian" || p === "martin") {
         setActivePersonState(p)
+      } else {
+        // Keine gespeicherte Auswahl → Standardperson aus den Einstellungen.
+        setActivePersonState(merged.company.defaultPerson)
       }
     } catch {
       /* Demo-Seed bleibt bestehen */
@@ -271,22 +300,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setDb((prev) => {
           const q = prev.quotes.find((x) => x.id === quoteId)
           if (!q) return prev
-          const today = new Date()
-          const due = new Date()
-          due.setDate(today.getDate() + 14)
-          const iso = (d: Date) => d.toISOString().slice(0, 10)
+          const issue = todayISO()
           const invoice: Invoice = {
             id: nanoid(8),
-            number: nextNumber(prev.invoices.map((i) => i.number), today.getFullYear()),
+            number: nextNumber(prev.invoices.map((i) => i.number), new Date().getFullYear()),
             customerId: q.customerId,
             status: "entwurf",
             items: q.items.map((it) => ({ ...it, id: nanoid(6) })),
-            issueDate: iso(today),
-            dueDate: iso(due),
+            issueDate: issue,
+            dueDate: addDaysISO(issue, prev.company.paymentTermDays),
             person: q.person,
             notes: q.notes,
             quoteId: q.id,
-            createdAt: today.toISOString(),
+            createdAt: new Date().toISOString(),
           }
           return {
             ...prev,
@@ -308,10 +334,41 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           ],
         })),
       updateInvoice: (id, patch) =>
-        setDb((prev) => ({
-          ...prev,
-          invoices: prev.invoices.map((i) => (i.id === id ? { ...i, ...patch } : i)),
-        })),
+        setDb((prev) => {
+          const before = prev.invoices.find((i) => i.id === id)
+          const invoices = prev.invoices.map((i) => (i.id === id ? { ...i, ...patch } : i))
+          let transactions = prev.transactions
+          // Statuswechsel auf "bezahlt" → automatisch als Einnahme ins Ledger buchen.
+          if (before && patch.status && patch.status !== before.status) {
+            const after = invoices.find((i) => i.id === id)!
+            const becamePaid = patch.status === "bezahlt" && before.status !== "bezahlt"
+            const leftPaid = before.status === "bezahlt" && patch.status !== "bezahlt"
+            if (becamePaid && !transactions.some((t) => t.invoiceId === id)) {
+              const totals = computeTotals(after.items)
+              // Dominanter USt-Satz (größter Netto-Anteil) für die Ledger-Buchung.
+              const topRate = totals.taxByRate.slice().sort((a, b) => b.net - a.net)[0]?.rate ?? prev.company.defaultTaxRate
+              transactions = [
+                {
+                  id: nanoid(8),
+                  type: "income",
+                  category: "Rechnung",
+                  amount: totals.gross,
+                  taxRate: topRate,
+                  date: todayISO(),
+                  customerId: after.customerId,
+                  invoiceId: id,
+                  note: `Rechnung ${after.number}`,
+                },
+                ...transactions,
+              ]
+            }
+            // Zurückgesetzt → verknüpfte Auto-Buchung wieder entfernen.
+            if (leftPaid) {
+              transactions = transactions.filter((t) => t.invoiceId !== id)
+            }
+          }
+          return { ...prev, invoices, transactions }
+        }),
       removeInvoice: (id) =>
         setDb((prev) => ({ ...prev, invoices: prev.invoices.filter((i) => i.id !== id) })),
 
@@ -325,6 +382,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setDb((prev) => ({ ...prev, transactions: prev.transactions.filter((t) => t.id !== id) })),
       updateCompany: (patch) =>
         setDb((prev) => ({ ...prev, company: { ...prev.company, ...patch } })),
+
+      // Daten-Backup
+      exportDb: () => JSON.stringify(db, null, 2),
+      importDb: (json) => {
+        try {
+          const parsed = JSON.parse(json) as Partial<Database>
+          if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.invoices)) return false
+          setDb(mergeDb(parsed))
+          return true
+        } catch {
+          return false
+        }
+      },
 
       // Whiteboard
       addWhiteboard: (input) => {

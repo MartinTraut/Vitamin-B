@@ -150,6 +150,9 @@ export function buildDemoData(): Database {
       bank: "Sparkasse Heilbronn",
       email: "info@vitaminb-design.de",
       phone: "07139 123 456",
+      defaultTaxRate: 19,
+      paymentTermDays: 14,
+      defaultPerson: "robert",
     },
     whiteboards: [
       { id: "wb1", name: "Ideen & Brainstorming", createdAt: now },
