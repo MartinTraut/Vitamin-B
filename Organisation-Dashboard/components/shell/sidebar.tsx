@@ -4,8 +4,10 @@ import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { motion } from "framer-motion"
+import { LogOut } from "lucide-react"
 import { NAV } from "./nav"
 import { PersonSwitcher } from "./person-switcher"
+import { useAuth } from "@/lib/auth"
 import { cn } from "@/lib/utils"
 
 export function Sidebar() {
@@ -101,10 +103,30 @@ export function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="flex items-center gap-2 border-t border-border px-5 py-3 text-[11px] text-muted-foreground">
-        <span className="h-1.5 w-1.5 rounded-full bg-success" />
-        Demo-Modus · lokale Daten
-      </div>
+      <SidebarFooter />
     </aside>
+  )
+}
+
+function SidebarFooter() {
+  const { enabled, authed, signOut } = useAuth()
+  const online = enabled && authed
+
+  return (
+    <div className="flex items-center justify-between gap-2 border-t border-border px-5 py-3 text-[11px] text-muted-foreground">
+      <span className="flex items-center gap-2">
+        <span className={cn("h-1.5 w-1.5 rounded-full", online ? "bg-success" : "bg-muted-foreground/60")} />
+        {online ? "Team verbunden · Echtzeit" : "Demo-Modus · lokale Daten"}
+      </span>
+      {online && (
+        <button
+          onClick={() => signOut()}
+          title="Abmelden"
+          className="flex items-center gap-1 rounded-md px-1.5 py-1 transition-colors hover:bg-white/[0.06] hover:text-foreground"
+        >
+          <LogOut className="h-3.5 w-3.5" /> Abmelden
+        </button>
+      )}
+    </div>
   )
 }

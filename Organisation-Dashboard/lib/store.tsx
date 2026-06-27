@@ -29,6 +29,7 @@ import type {
 import { buildDemoData } from "./demo-data"
 import { nextNumber, computeTotals } from "./totals"
 import { todayISO, addDaysISO } from "./recurrence"
+import { useSupabaseSync } from "./sync"
 
 const DB_KEY = "vitaminb-os-db-v2"
 const PERSON_KEY = "vitaminb-active-person"
@@ -141,6 +142,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       /* ignore quota */
     }
   }, [db, hydrated])
+
+  // Geteiltes Backend: lädt aus Supabase und hält alle Geräte synchron.
+  // Ohne Env-Konfiguration ein No-op → lokaler Demo-Modus bleibt unverändert.
+  useSupabaseSync(db, setDb)
 
   function setActivePerson(p: Person) {
     setActivePersonState(p)
