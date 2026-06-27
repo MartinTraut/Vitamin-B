@@ -1,6 +1,7 @@
 // Demo-Seed-Daten (Fallback ohne Datenbank). Datumswerte relativ zu heute.
 
 import type { Database } from "./types"
+import { DEFAULT_APPOINTMENT_CATEGORIES } from "./types"
 import { toISO } from "./recurrence"
 
 function rel(days: number): string {
@@ -18,6 +19,7 @@ export function buildDemoData(): Database {
       { id: "l-web", name: "Web & Digital", color: "#a855f7" },
       { id: "l-orga", name: "Organisation", color: "#3b82f6" },
     ],
+    appointmentCategories: DEFAULT_APPOINTMENT_CATEGORIES.map((c) => ({ ...c })),
     tasks: [
       { id: "t1", person: "robert", listId: "l-orga", title: "Angebot Autofolierung Müller GmbH rausschicken", status: "doing", priority: "high", due: rel(1), createdAt: now },
       { id: "t2", person: "robert", listId: "l-orga", title: "Rechnung #2026-041 nachfassen", status: "todo", priority: "high", due: rel(0), createdAt: now },

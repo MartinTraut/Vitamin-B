@@ -49,27 +49,34 @@ export interface Task {
   createdAt: string // ISO
 }
 
-export type AppointmentCategory =
-  | "termin"
-  | "liefertermin"
-  | "meeting"
-  | "deadline"
-  | "sonstiges"
+// Kategorie-ID (referenziert eine editierbare AppointmentCategoryDef).
+export type AppointmentCategory = string
 
-export const CATEGORY_LABEL: Record<AppointmentCategory, string> = {
-  termin: "Kundentermin",
-  liefertermin: "Liefertermin",
-  meeting: "Meeting",
-  deadline: "Deadline",
-  sonstiges: "Sonstiges",
+export interface AppointmentCategoryDef {
+  id: string
+  label: string
+  color: string
 }
 
-export const CATEGORY_COLOR: Record<AppointmentCategory, string> = {
-  termin: "#E39832",
-  liefertermin: "#3b82f6",
-  meeting: "#a855f7",
-  deadline: "#ef4444",
-  sonstiges: "#9ca3af",
+export const DEFAULT_APPOINTMENT_CATEGORIES: AppointmentCategoryDef[] = [
+  { id: "termin", label: "Kundentermin", color: "#E39832" },
+  { id: "liefertermin", label: "Liefertermin", color: "#3b82f6" },
+  { id: "meeting", label: "Meeting", color: "#a855f7" },
+  { id: "deadline", label: "Deadline", color: "#ef4444" },
+  { id: "sonstiges", label: "Sonstiges", color: "#9ca3af" },
+]
+
+// Farbauswahl für Kategorien (und allgemein Status-/Akzent-Markierungen).
+export const CATEGORY_COLOR_PALETTE = [
+  "#E39832", "#f59e0b", "#ef4444", "#ec4899", "#a855f7",
+  "#6366f1", "#3b82f6", "#14b8a6", "#34d399", "#9ca3af",
+]
+
+// Fallback, falls eine Kategorie-ID nicht (mehr) existiert.
+export const CATEGORY_FALLBACK: AppointmentCategoryDef = { id: "sonstiges", label: "Sonstiges", color: "#9ca3af" }
+
+export function resolveCategory(cats: AppointmentCategoryDef[], id: string): AppointmentCategoryDef {
+  return cats.find((c) => c.id === id) ?? CATEGORY_FALLBACK
 }
 
 export type RecurrenceFreq = "none" | "weekly" | "monthly" | "yearly"
@@ -333,6 +340,7 @@ export interface Database {
   tasks: Task[]
   lists: TaskList[]
   appointments: Appointment[]
+  appointmentCategories: AppointmentCategoryDef[]
   finance: FinanceMonth[]
   cashflow: CashflowEvent[]
   customers: Customer[]

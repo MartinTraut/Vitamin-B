@@ -15,8 +15,7 @@ import {
 import { useStore } from "@/lib/store"
 import {
   PEOPLE,
-  CATEGORY_COLOR,
-  CATEGORY_LABEL,
+  resolveCategory,
   type CashflowEvent,
 } from "@/lib/types"
 import { eur0, dateDE } from "@/lib/format"
@@ -132,16 +131,19 @@ export function Overview() {
             {data.upcoming.length === 0 && (
               <p className="py-6 text-center text-sm text-muted-foreground">Keine Termine (7 Tage).</p>
             )}
-            {data.upcoming.slice(0, 4).map(({ appt, date }) => (
-              <Link key={appt.id + date} href="/kalender" className="flex items-center gap-2.5 rounded-lg border border-border bg-white/[0.02] p-2.5 transition-colors hover:bg-white/[0.05]">
-                <div className="h-8 w-1 rounded-full" style={{ backgroundColor: CATEGORY_COLOR[appt.category] }} />
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-base font-medium">{appt.title}</div>
-                  <div className="text-sm text-muted-foreground">{relDayLabel(date)}{appt.time ? ` · ${appt.time}` : ""}</div>
-                </div>
-                <Badge color={CATEGORY_COLOR[appt.category]}>{CATEGORY_LABEL[appt.category]}</Badge>
-              </Link>
-            ))}
+            {data.upcoming.slice(0, 4).map(({ appt, date }) => {
+              const cat = resolveCategory(db.appointmentCategories, appt.category)
+              return (
+                <Link key={appt.id + date} href="/kalender" className="flex items-center gap-2.5 rounded-lg border border-border bg-white/[0.02] p-2.5 transition-colors hover:bg-white/[0.05]">
+                  <div className="h-8 w-1 rounded-full" style={{ backgroundColor: cat.color }} />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-base font-medium">{appt.title}</div>
+                    <div className="text-sm text-muted-foreground">{relDayLabel(date)}{appt.time ? ` · ${appt.time}` : ""}</div>
+                  </div>
+                  <Badge color={cat.color}>{cat.label}</Badge>
+                </Link>
+              )
+            })}
           </CardContent>
         </Card>
       </div>

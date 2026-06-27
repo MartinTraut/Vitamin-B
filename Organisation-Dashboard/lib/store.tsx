@@ -11,6 +11,7 @@ import {
 import { nanoid } from "nanoid"
 import type {
   Appointment,
+  AppointmentCategoryDef,
   CompanySettings,
   Customer,
   Database,
@@ -68,6 +69,10 @@ interface StoreValue {
   updateAppointment: (id: string, patch: Partial<Omit<Appointment, "id" | "createdAt">>) => void
   toggleAppointmentDone: (id: string, occISO: string) => void
   removeAppointment: (id: string) => void
+  // Termin-Kategorien (editierbar)
+  addAppointmentCategory: (input: Omit<AppointmentCategoryDef, "id">) => void
+  updateAppointmentCategory: (id: string, patch: Partial<Omit<AppointmentCategoryDef, "id">>) => void
+  removeAppointmentCategory: (id: string) => void
   // CRM
   addCustomer: (input: Omit<Customer, "id" | "createdAt">) => void
   updateCustomer: (id: string, patch: Partial<Omit<Customer, "id" | "createdAt">>) => void
@@ -212,6 +217,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setDb((prev) => ({
           ...prev,
           appointments: prev.appointments.filter((a) => a.id !== id),
+        })),
+      addAppointmentCategory: (input) =>
+        setDb((prev) => ({
+          ...prev,
+          appointmentCategories: [...prev.appointmentCategories, { ...input, id: nanoid(8) }],
+        })),
+      updateAppointmentCategory: (id, patch) =>
+        setDb((prev) => ({
+          ...prev,
+          appointmentCategories: prev.appointmentCategories.map((c) => (c.id === id ? { ...c, ...patch } : c)),
+        })),
+      removeAppointmentCategory: (id) =>
+        setDb((prev) => ({
+          ...prev,
+          // Termine dieser Kategorie auf "sonstiges" zurückfallen lassen.
+          appointmentCategories: prev.appointmentCategories.filter((c) => c.id !== id),
+          appointments: prev.appointments.map((a) => (a.category === id ? { ...a, category: "sonstiges" } : a)),
         })),
 
       // CRM

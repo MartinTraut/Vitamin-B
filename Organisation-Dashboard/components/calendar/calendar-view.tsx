@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { motion, AnimatePresence, type PanInfo } from "framer-motion"
-import { ChevronLeft, ChevronRight, Plus, Trash2, Check, CalendarDays, Clock, Sun, RotateCcw } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus, Trash2, Check, CalendarDays, Clock, Sun, RotateCcw, Tags, X, Pencil } from "lucide-react"
 import { useStore } from "@/lib/store"
 import {
   PEOPLE,
-  CATEGORY_COLOR,
-  CATEGORY_LABEL,
+  CATEGORY_COLOR_PALETTE,
+  resolveCategory,
   type AppointmentCategory,
+  type AppointmentCategoryDef,
 } from "@/lib/types"
 import { occurrencesInRange, toISO, parseISO, todayISO } from "@/lib/recurrence"
 import { dateDE, monthName } from "@/lib/format"
@@ -18,7 +19,6 @@ import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
 const WD = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
-const CATEGORIES = Object.keys(CATEGORY_LABEL) as AppointmentCategory[]
 
 // Wochen-Zeitraster
 const START_HOUR = 6
@@ -32,6 +32,8 @@ interface DayEvent {
   id: string
   title: string
   category: AppointmentCategory
+  categoryColor: string
+  categoryLabel: string
   time?: string
   endTime?: string
   done: boolean
@@ -52,7 +54,17 @@ function mondayOf(iso: string): Date {
 }
 
 export function CalendarView() {
-  const { db, activePerson, addAppointment, updateAppointment, toggleAppointmentDone, removeAppointment } = useStore()
+  const {
+    db,
+    activePerson,
+    addAppointment,
+    updateAppointment,
+    toggleAppointmentDone,
+    removeAppointment,
+    addAppointmentCategory,
+    updateAppointmentCategory,
+    removeAppointmentCategory,
+  } = useStore()
   const person = PEOPLE.find((p) => p.id === activePerson)!
   const today = todayISO()
 
@@ -69,6 +81,9 @@ export function CalendarView() {
     () => db.appointments.filter((a) => a.person === activePerson),
     [db.appointments, activePerson],
   )
+
+  const categories = db.appointmentCategories
+  const [manageCats, setManageCats] = useState(false)
 
   // Monats-Grid (Mo-basiert, 42 Zellen)
   const grid = useMemo(() => {
@@ -97,12 +112,15 @@ export function CalendarView() {
   function eventsFor(from: string, to: string): Map<string, DayEvent[]> {
     const map = new Map<string, DayEvent[]>()
     for (const a of myAppts) {
+      const cat = resolveCategory(categories, a.category)
       for (const date of occurrencesInRange(a, from, to)) {
         const arr = map.get(date) ?? []
         arr.push({
           id: a.id,
           title: a.title,
           category: a.category,
+          categoryColor: cat.color,
+          categoryLabel: cat.label,
           time: a.time,
           endTime: a.endTime,
           done: a.completedDates.includes(date),
@@ -116,12 +134,12 @@ export function CalendarView() {
   const monthEvents = useMemo(
     () => eventsFor(grid[0], grid[grid.length - 1]),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [myAppts, grid],
+    [myAppts, grid, categories],
   )
   const weekEvents = useMemo(
     () => eventsFor(weekDays[0], weekDays[6]),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [myAppts, weekDays],
+    [myAppts, weekDays, categories],
   )
 
   // Day- und Week-View lesen beide aus weekEvents (deckt selected garantiert ab);
@@ -231,9 +249,11 @@ export function CalendarView() {
           {draft && !editEvt && (
             <AddForm
               key={`new-${draft.date}-${draft.time ?? ""}`}
+              categories={categories}
               defaultTime={draft.time}
               defaultEnd={draft.endTime}
               onCancel={() => setDraft(null)}
+              onManageCategories={() => setManageCats(true)}
               onSave={save}
             />
           )}
@@ -242,6 +262,7 @@ export function CalendarView() {
           {editEvt && (
             <AddForm
               key={`edit-${editEvt.id}`}
+              categories={categories}
               title="Termin bearbeiten"
               submitLabel="Aktualisieren"
               initialTitle={editEvt.title}
@@ -249,6 +270,7 @@ export function CalendarView() {
               defaultTime={editEvt.time}
               defaultEnd={editEvt.endTime}
               onCancel={() => setEditEvt(null)}
+              onManageCategories={() => setManageCats(true)}
               onSave={(input) => {
                 updateAppointment(editEvt.id, input)
                 setEditEvt(null)
@@ -306,6 +328,203 @@ export function CalendarView() {
         {view === "week" ? "Mit der Maus über die Stunden ziehen, um einen Timeslot anzulegen · " : ""}
         Kalender von <span style={{ color: person.color }}>{person.name}</span> · oben links die Person wechseln
       </p>
+
+      <AnimatePresence>
+        {manageCats && (
+          <CategoryManager
+            categories={categories}
+            onClose={() => setManageCats(false)}
+            onAdd={addAppointmentCategory}
+            onUpdate={updateAppointmentCategory}
+            onRemove={removeAppointmentCategory}
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+/* ---------- Kategorie-Verwaltung (Modal) ---------- */
+
+function CategoryManager({
+  categories,
+  onClose,
+  onAdd,
+  onUpdate,
+  onRemove,
+}: {
+  categories: AppointmentCategoryDef[]
+  onClose: () => void
+  onAdd: (input: Omit<AppointmentCategoryDef, "id">) => void
+  onUpdate: (id: string, patch: Partial<Omit<AppointmentCategoryDef, "id">>) => void
+  onRemove: (id: string) => void
+}) {
+  const [newLabel, setNewLabel] = useState("")
+  const [newColor, setNewColor] = useState(CATEGORY_COLOR_PALETTE[0])
+
+  function add() {
+    const label = newLabel.trim()
+    if (!label) return
+    onAdd({ label, color: newColor })
+    setNewLabel("")
+    setNewColor(CATEGORY_COLOR_PALETTE[(CATEGORY_COLOR_PALETTE.indexOf(newColor) + 1) % CATEGORY_COLOR_PALETTE.length])
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.96, y: 12 }}
+        transition={{ type: "spring", stiffness: 380, damping: 32 }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-lg overflow-hidden rounded-2xl border border-border bg-card shadow-2xl"
+      >
+        <div className="flex items-center justify-between border-b border-border p-5">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 text-primary">
+              <Tags className="h-4.5 w-4.5" />
+            </span>
+            <div>
+              <h3 className="font-heading text-base font-bold">Kategorien verwalten</h3>
+              <p className="text-xs text-muted-foreground">Eigene Termin-Kategorien mit Farbe anlegen</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="max-h-[52vh] space-y-2 overflow-y-auto p-5">
+          {categories.map((c) => (
+            <CategoryRow
+              key={c.id}
+              cat={c}
+              canDelete={categories.length > 1}
+              onUpdate={(patch) => onUpdate(c.id, patch)}
+              onRemove={() => onRemove(c.id)}
+            />
+          ))}
+        </div>
+
+        <div className="space-y-3 border-t border-border bg-white/[0.02] p-5">
+          <div className="text-xs font-semibold uppercase tracking-wider text-primary">Neue Kategorie</div>
+          <div className="flex gap-2">
+            <input
+              value={newLabel}
+              onChange={(e) => setNewLabel(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && add()}
+              placeholder="z. B. Werkstatt-Termin"
+              className="h-10 flex-1 rounded-lg border border-border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50"
+            />
+            <Button size="sm" onClick={add} className="shrink-0">
+              <Plus className="h-4 w-4" /> Anlegen
+            </Button>
+          </div>
+          <ColorPicker value={newColor} onChange={setNewColor} />
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
+function CategoryRow({
+  cat,
+  canDelete,
+  onUpdate,
+  onRemove,
+}: {
+  cat: AppointmentCategoryDef
+  canDelete: boolean
+  onUpdate: (patch: Partial<Omit<AppointmentCategoryDef, "id">>) => void
+  onRemove: () => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [label, setLabel] = useState(cat.label)
+
+  function commit() {
+    const v = label.trim()
+    if (v && v !== cat.label) onUpdate({ label: v })
+    else setLabel(cat.label)
+    setEditing(false)
+  }
+
+  return (
+    <div
+      className="flex items-center gap-3 rounded-xl border border-border p-3"
+      style={{ backgroundColor: `${cat.color}10`, boxShadow: `inset 3px 0 0 0 ${cat.color}` }}
+    >
+      <span className="h-4 w-4 shrink-0 rounded-full" style={{ backgroundColor: cat.color, boxShadow: `0 0 10px ${cat.color}88` }} />
+      {editing ? (
+        <input
+          autoFocus
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => { if (e.key === "Enter") commit(); if (e.key === "Escape") { setLabel(cat.label); setEditing(false) } }}
+          className="h-8 flex-1 rounded-md border border-border bg-white/[0.04] px-2 text-sm outline-none focus:border-primary/50"
+        />
+      ) : (
+        <button onClick={() => setEditing(true)} className="flex-1 text-left text-sm font-medium" title="Name bearbeiten">
+          {cat.label}
+        </button>
+      )}
+      <div className="flex shrink-0 items-center gap-1.5">
+        {CATEGORY_COLOR_PALETTE.map((col) => (
+          <button
+            key={col}
+            onClick={() => onUpdate({ color: col })}
+            aria-label={`Farbe ${col}`}
+            className="h-5 w-5 rounded-full transition-transform hover:scale-110"
+            style={{
+              backgroundColor: col,
+              boxShadow: cat.color === col ? `0 0 0 2px var(--card), 0 0 0 4px ${col}` : "none",
+            }}
+          />
+        ))}
+        {!editing && (
+          <button onClick={() => setEditing(true)} title="Umbenennen" className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground">
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
+        )}
+        <button
+          onClick={onRemove}
+          disabled={!canDelete}
+          title={canDelete ? "Löschen" : "Mindestens eine Kategorie behalten"}
+          className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive disabled:cursor-not-allowed disabled:opacity-30"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function ColorPicker({ value, onChange }: { value: string; onChange: (c: string) => void }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {CATEGORY_COLOR_PALETTE.map((col) => {
+        const sel = value === col
+        return (
+          <button
+            key={col}
+            onClick={() => onChange(col)}
+            aria-label={`Farbe ${col}`}
+            className="h-8 w-8 rounded-full transition-transform hover:scale-110"
+            style={{
+              backgroundColor: col,
+              boxShadow: sel ? `0 0 0 2px var(--card), 0 0 0 4px ${col}, 0 0 14px ${col}aa` : "none",
+            }}
+          />
+        )
+      })}
     </div>
   )
 }
@@ -326,7 +545,7 @@ function DayEventRow({
   onEdit: () => void
 }) {
   const done = e.done
-  const color = CATEGORY_COLOR[e.category]
+  const color = e.categoryColor
   // Opake Hintergründe — sonst scheinen die Swipe-Hinweise dahinter durch.
   const bg = active ? "#1e1810" : done ? "#0f1915" : "#0d0d0d"
 
@@ -404,7 +623,7 @@ function DayEventRow({
                 {e.time}{e.endTime ? `–${e.endTime}` : ""}
               </span>
             )}
-            <Badge color={color}>{CATEGORY_LABEL[e.category]}</Badge>
+            <Badge color={color}>{e.categoryLabel}</Badge>
           </div>
         </button>
 
@@ -503,9 +722,9 @@ function MonthGrid({
                   <div
                     key={e.id + i}
                     className="flex items-center gap-1.5 truncate rounded-md px-1.5 py-1 text-xs font-medium leading-tight"
-                    style={{ backgroundColor: `${CATEGORY_COLOR[e.category]}1f`, color: CATEGORY_COLOR[e.category] }}
+                    style={{ backgroundColor: `${e.categoryColor}1f`, color: e.categoryColor }}
                   >
-                    <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: CATEGORY_COLOR[e.category] }} />
+                    <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: e.categoryColor }} />
                     {e.time && <span className="shrink-0 tabular-nums opacity-90">{e.time}</span>}
                     <span className="truncate">{e.title}</span>
                   </div>
@@ -666,11 +885,11 @@ function WeekGrid({
                         style={{
                           top,
                           height,
-                          backgroundColor: `${CATEGORY_COLOR[e.category]}26`,
-                          borderColor: `${CATEGORY_COLOR[e.category]}55`,
+                          backgroundColor: `${e.categoryColor}26`,
+                          borderColor: `${e.categoryColor}55`,
                         }}
                       >
-                        <div className="truncate text-[11px] font-semibold" style={{ color: CATEGORY_COLOR[e.category] }}>
+                        <div className="truncate text-[11px] font-semibold" style={{ color: e.categoryColor }}>
                           {e.title}
                         </div>
                         <div className="text-[10px] text-muted-foreground">
@@ -691,8 +910,10 @@ function WeekGrid({
 /* ---------- Termin-Formular ---------- */
 
 function AddForm({
+  categories,
   onSave,
   onCancel,
+  onManageCategories,
   defaultTime,
   defaultEnd,
   initialTitle,
@@ -700,8 +921,10 @@ function AddForm({
   title: heading,
   submitLabel = "Speichern",
 }: {
+  categories: AppointmentCategoryDef[]
   onSave: (input: { title: string; category: AppointmentCategory; time?: string; endTime?: string }) => void
   onCancel: () => void
+  onManageCategories: () => void
   defaultTime?: string
   defaultEnd?: string
   initialTitle?: string
@@ -710,7 +933,7 @@ function AddForm({
   submitLabel?: string
 }) {
   const [title, setTitle] = useState(initialTitle ?? "")
-  const [category, setCategory] = useState<AppointmentCategory>(initialCategory ?? "termin")
+  const [category, setCategory] = useState<AppointmentCategory>(initialCategory ?? categories[0]?.id ?? "termin")
   const [time, setTime] = useState(defaultTime ?? "")
   const [endTime, setEndTime] = useState(defaultEnd ?? "")
 
@@ -724,17 +947,31 @@ function AddForm({
         placeholder="Titel des Termins"
         className="h-10 w-full rounded-lg border border-border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50"
       />
-      <div className="flex flex-wrap gap-1.5">
-        {CATEGORIES.map((c) => (
-          <button
-            key={c}
-            onClick={() => setCategory(c)}
-            className={cn("rounded-lg border px-2.5 py-1 text-xs transition-colors", category === c ? "border-transparent" : "border-border text-muted-foreground")}
-            style={category === c ? { backgroundColor: `${CATEGORY_COLOR[c]}26`, color: CATEGORY_COLOR[c] } : undefined}
-          >
-            {CATEGORY_LABEL[c]}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center gap-1.5">
+        {categories.map((c) => {
+          const sel = category === c.id
+          return (
+            <button
+              key={c.id}
+              onClick={() => setCategory(c.id)}
+              className="rounded-lg border px-2.5 py-1 text-xs font-medium transition-all"
+              style={
+                sel
+                  ? { backgroundColor: `${c.color}26`, color: c.color, borderColor: c.color, boxShadow: `0 0 0 1px ${c.color}, 0 0 12px ${c.color}66` }
+                  : { borderColor: "rgba(255,255,255,0.12)", color: "var(--muted-foreground)" }
+              }
+            >
+              {c.label}
+            </button>
+          )
+        })}
+        <button
+          onClick={onManageCategories}
+          title="Kategorien verwalten"
+          className="flex items-center gap-1 rounded-lg border border-dashed border-border px-2 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
+        >
+          <Tags className="h-3.5 w-3.5" /> Verwalten
+        </button>
       </div>
       <div className="flex items-center gap-2">
         <label className="flex-1">
