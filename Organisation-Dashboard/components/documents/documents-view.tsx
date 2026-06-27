@@ -143,8 +143,8 @@ export function DocumentsView({ kind }: { kind: Kind }) {
         </Button>
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        {/* Liste */}
+      <div className="space-y-4">
+        {/* Liste — volle Breite, horizontale Zeilen */}
         <div className="space-y-2.5">
           {docs.length === 0 && <Card className="p-6 text-center text-sm text-muted-foreground">Noch keine Belege.</Card>}
           {docs.length > 0 && visible.length === 0 && <Card className="p-6 text-center text-sm text-muted-foreground">Keine Treffer für diese Filter.</Card>}
@@ -158,26 +158,27 @@ export function DocumentsView({ kind }: { kind: Kind }) {
                 key={d.id}
                 onClick={() => setSelectedId(d.id)}
                 className={cn(
-                  "w-full rounded-2xl border bg-card/80 p-4 text-left transition-all hover:border-white/15",
+                  "flex w-full items-center gap-4 rounded-2xl border bg-card/80 px-5 py-4 text-left transition-all hover:border-white/15",
                   active ? "border-primary/50 ring-1 ring-inset ring-primary/30" : "border-border",
                 )}
               >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-heading text-sm font-bold">{isQuote ? "AN" : "RE"} {d.number}</span>
-                  <Badge color={color}>{label}</Badge>
+                <div className="min-w-0 flex-1">
+                  <div className="font-heading text-lg font-bold leading-tight">{isQuote ? "AN" : "RE"} {d.number}</div>
+                  <div className="mt-1 truncate text-sm text-muted-foreground">
+                    {customerName(d.customerId)} · {d.items.length} Position{d.items.length === 1 ? "" : "en"}
+                  </div>
                 </div>
-                <div className="mt-1 truncate text-sm">{customerName(d.customerId)}</div>
-                <div className="mt-1.5 flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{d.items.length} Position{d.items.length === 1 ? "" : "en"}</span>
-                  <span className="font-semibold text-foreground">{eur(t.gross)}</span>
+                <div className="flex shrink-0 items-center gap-5">
+                  <Badge color={color}>{label}</Badge>
+                  <span className="num w-32 text-right font-heading text-xl font-bold">{eur(t.gross)}</span>
                 </div>
               </button>
             )
           })}
         </div>
 
-        {/* Editor */}
-        <div className="lg:col-span-2">
+        {/* Editor — volle Breite darunter */}
+        <div>
           {selected ? (
             <Editor
               kind={kind}

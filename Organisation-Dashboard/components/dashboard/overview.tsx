@@ -125,7 +125,7 @@ export function Overview() {
         <Card className="flex flex-col">
           <CardHeader className="pb-0">
             <CardTitle>Anstehende Termine</CardTitle>
-            <Link href="/kalender" className="text-xs text-primary hover:underline">Kalender</Link>
+            <Link href="/kalender" className="text-sm font-medium text-primary hover:underline">Kalender</Link>
           </CardHeader>
           <CardContent className="flex-1 space-y-2 p-3">
             {data.upcoming.length === 0 && (
@@ -135,8 +135,8 @@ export function Overview() {
               <div key={appt.id + date} className="flex items-center gap-2.5 rounded-lg border border-border bg-white/[0.02] p-2.5">
                 <div className="h-8 w-1 rounded-full" style={{ backgroundColor: CATEGORY_COLOR[appt.category] }} />
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-[15px] font-medium">{appt.title}</div>
-                  <div className="text-xs text-muted-foreground">{relDayLabel(date)}{appt.time ? ` · ${appt.time}` : ""}</div>
+                  <div className="truncate text-base font-medium">{appt.title}</div>
+                  <div className="text-sm text-muted-foreground">{relDayLabel(date)}{appt.time ? ` · ${appt.time}` : ""}</div>
                 </div>
                 <Badge color={CATEGORY_COLOR[appt.category]}>{CATEGORY_LABEL[appt.category]}</Badge>
               </div>
@@ -149,15 +149,15 @@ export function Overview() {
       <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-3">
         <Card className="flex flex-col overflow-hidden lg:col-span-2">
           <CardHeader className="items-center border-b border-border pb-3">
-            <CardTitle>Anstehende Zahlungen <span className="ml-1 text-xs font-normal text-muted-foreground">· 30 Tage</span></CardTitle>
-            <div className="text-right">
-              <span className="text-xs text-muted-foreground">Saldo </span>
-              <span className="num font-heading text-base font-bold" style={{ color: data.net >= 0 ? INCOME : EXPENSE }}>
+            <CardTitle>Anstehende Zahlungen <span className="ml-1 text-sm font-normal text-muted-foreground">· 30 Tage</span></CardTitle>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-sm text-muted-foreground">Saldo</span>
+              <span className="num font-heading text-xl font-bold" style={{ color: data.net >= 0 ? INCOME : EXPENSE }}>
                 {data.net >= 0 ? "+" : ""}{eur0(data.net)}
               </span>
             </div>
           </CardHeader>
-          <CardContent className="grid min-h-0 flex-1 content-start gap-4 p-3 sm:grid-cols-2">
+          <CardContent className="grid min-h-0 flex-1 content-start gap-5 p-4 sm:grid-cols-2 sm:gap-7 sm:[&>*:nth-child(2)]:border-l sm:[&>*:nth-child(2)]:border-border sm:[&>*:nth-child(2)]:pl-7">
             <CashflowColumn title="Einnahmen" icon={<ArrowDownLeft className="h-3.5 w-3.5" />} color={INCOME} total={data.sumIncome} items={data.nextIncome} sign="+" />
             <CashflowColumn title="Ausgaben" icon={<ArrowUpRight className="h-3.5 w-3.5" />} color={EXPENSE} total={data.sumExpense} items={data.nextExpense} sign="−" />
           </CardContent>
@@ -166,8 +166,8 @@ export function Overview() {
         <Card className="flex flex-col">
           <CardHeader className="pb-0">
             <CardTitle>Offene Aufgaben</CardTitle>
-            <Link href="/aufgaben" className="flex items-center gap-1 text-xs text-primary hover:underline">
-              Alle <ArrowRight className="h-3 w-3" />
+            <Link href="/aufgaben" className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+              Alle <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </CardHeader>
           <CardContent className="flex-1 space-y-2 p-3">
@@ -177,8 +177,8 @@ export function Overview() {
             {data.openTasks.slice(0, 5).map((t) => (
               <div key={t.id} className="flex items-center gap-2.5 rounded-lg border border-border bg-white/[0.02] px-3 py-2.5">
                 <div className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: t.priority === "high" ? "#ef4444" : t.priority === "normal" ? "#E39832" : "#9ca3af" }} />
-                <span className="flex-1 truncate text-[15px]">{t.title}</span>
-                {t.due && <span className="shrink-0 text-xs text-muted-foreground">{relDayLabel(t.due)}</span>}
+                <span className="flex-1 truncate text-base">{t.title}</span>
+                {t.due && <span className="shrink-0 rounded-md bg-white/[0.05] px-2 py-0.5 text-sm font-medium text-muted-foreground">{relDayLabel(t.due)}</span>}
               </div>
             ))}
           </CardContent>
@@ -222,32 +222,33 @@ function CashflowColumn({
 }) {
   return (
     <div>
-      <div className="mb-2 flex items-center justify-between">
-        <div className="flex items-center gap-1.5 text-[15px] font-semibold" style={{ color }}>
-          <span className="flex h-5 w-5 items-center justify-center rounded-md" style={{ backgroundColor: `${color}1f` }}>{icon}</span>
+      {/* Spalten-Kopf mit Summe */}
+      <div className="mb-3 flex items-center justify-between border-b border-border/70 pb-2.5">
+        <div className="flex items-center gap-2 text-sm font-semibold" style={{ color }}>
+          <span className="flex h-6 w-6 items-center justify-center rounded-lg" style={{ backgroundColor: `${color}1f` }}>{icon}</span>
           {title}
         </div>
-        <div className="num text-[15px] font-bold" style={{ color }}>{sign}{eur0(total)}</div>
+        <div className="num font-heading text-lg font-bold" style={{ color }}>{sign}{eur0(total)}</div>
       </div>
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         {items.length === 0 && (
-          <p className="rounded-lg border border-dashed border-border py-4 text-center text-xs text-muted-foreground">Nichts in 30 Tagen.</p>
+          <p className="rounded-xl border border-dashed border-border py-5 text-center text-sm text-muted-foreground">Nichts in 30 Tagen.</p>
         )}
         {items.slice(0, 3).map((c) => {
           const potential = c.status === "potential"
           return (
-            <div key={c.id} className="flex items-center gap-2.5 rounded-lg border bg-white/[0.02] px-2.5 py-2" style={{ borderColor: `${color}1f` }}>
-              <div className="h-7 w-1 rounded-full" style={{ backgroundColor: potential ? POTENTIAL : color }} />
+            <div key={c.id} className="flex items-center gap-3 rounded-xl bg-white/[0.03] px-3 py-3">
+              <div className="h-10 w-1 shrink-0 rounded-full" style={{ backgroundColor: potential ? POTENTIAL : color }} />
               <div className="min-w-0 flex-1">
-                <div className="truncate text-[15px] font-medium">{c.title}</div>
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <div className="truncate text-base font-medium leading-tight">{c.title}</div>
+                <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
                   {relDayLabel(c.date)}
                   {potential && (
-                    <span className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold" style={{ backgroundColor: `${POTENTIAL}24`, color: POTENTIAL }}>potenziell</span>
+                    <span className="rounded-full px-1.5 py-0.5 text-xs font-semibold" style={{ backgroundColor: `${POTENTIAL}24`, color: POTENTIAL }}>potenziell</span>
                   )}
                 </div>
               </div>
-              <div className="num shrink-0 text-[15px] font-semibold" style={{ color: potential ? POTENTIAL : color }}>{sign}{eur0(c.amount)}</div>
+              <div className="num shrink-0 font-heading text-base font-bold" style={{ color: potential ? POTENTIAL : color }}>{sign}{eur0(c.amount)}</div>
             </div>
           )
         })}
