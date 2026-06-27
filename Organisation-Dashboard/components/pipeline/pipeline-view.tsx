@@ -133,7 +133,13 @@ export function PipelineView() {
                     </div>
                   )}
                   {items.map((d) => (
-                    <SortableDeal key={d.id} deal={d} customer={customerName(d.customerId)} onRemove={() => removeDeal(d.id)} />
+                    <SortableDeal
+                      key={d.id}
+                      deal={d}
+                      customer={customerName(d.customerId)}
+                      onRemove={() => removeDeal(d.id)}
+                      onWin={stage !== "gewonnen" ? () => moveDeal(d.id, "gewonnen") : undefined}
+                    />
                   ))}
                 </SortableContext>
               </Column>
@@ -155,10 +161,14 @@ function Column({ stage, count, sum, children }: { stage: DealStage; count: numb
   return (
     <div
       ref={setNodeRef}
-      className="flex min-h-[60vh] flex-col overflow-hidden rounded-2xl border transition-colors"
-      style={{ borderColor: isOver ? `${accent}66` : `${accent}33`, backgroundColor: isOver ? `${accent}1a` : `${accent}0d` }}
+      className="flex min-h-[60vh] flex-col overflow-hidden rounded-2xl transition-all"
+      style={{
+        border: `1px solid ${isOver ? `${accent}aa` : `${accent}4d`}`,
+        background: `linear-gradient(180deg, ${accent}26, ${accent}0a 55%)`,
+        boxShadow: isOver ? `inset 0 0 0 1px ${accent}66, 0 0 30px -6px ${accent}88` : `inset 0 1px 0 0 ${accent}26`,
+      }}
     >
-      <div className="border-b px-4 py-3" style={{ borderColor: `${accent}26`, backgroundColor: `${accent}14` }}>
+      <div className="border-b px-4 py-3" style={{ borderColor: `${accent}40`, backgroundColor: `${accent}24` }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: accent }} />
@@ -173,12 +183,12 @@ function Column({ stage, count, sum, children }: { stage: DealStage; count: numb
   )
 }
 
-function SortableDeal({ deal, customer, onRemove }: { deal: Deal; customer: string; onRemove: () => void }) {
+function SortableDeal({ deal, customer, onRemove, onWin }: { deal: Deal; customer: string; onRemove: () => void; onWin?: () => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: deal.id })
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.35 : 1 }
   return (
     <div ref={setNodeRef} style={style}>
-      <DealCardInner deal={deal} customer={customer} onRemove={onRemove} handleProps={{ ...attributes, ...listeners }} />
+      <DealCardInner deal={deal} customer={customer} onRemove={onRemove} onWin={onWin} handleProps={{ ...attributes, ...listeners }} />
     </div>
   )
 }
@@ -187,12 +197,14 @@ function DealCardInner({
   deal,
   customer,
   onRemove,
+  onWin,
   handleProps,
   dragging,
 }: {
   deal: Deal
   customer: string
   onRemove?: () => void
+  onWin?: () => void
   handleProps?: Record<string, unknown>
   dragging?: boolean
 }) {
@@ -215,10 +227,19 @@ function DealCardInner({
             )}
           </div>
         </div>
-        {!dragging && onRemove && (
-          <button onClick={onRemove} title="Löschen" className="absolute right-2 top-2 rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/15 hover:text-destructive group-hover:opacity-100">
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
+        {!dragging && (onRemove || onWin) && (
+          <div className="absolute right-2 top-2 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+            {onWin && (
+              <button onClick={onWin} title="Als gewonnen markieren" className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-success/15 hover:text-success">
+                <Trophy className="h-3.5 w-3.5" />
+              </button>
+            )}
+            {onRemove && (
+              <button onClick={onRemove} title="Löschen" className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive">
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>
@@ -273,15 +294,24 @@ function AddDeal({
 
 function Metric({ icon: Icon, label, value, accent }: { icon: LucideIcon; label: string; value: string; accent: string }) {
   return (
-    <div className="hover-aura flex items-center gap-3 rounded-2xl border border-border bg-card/80 p-4">
+    <div
+      className="relative flex items-center gap-3 overflow-hidden rounded-2xl p-4 transition-transform hover:-translate-y-0.5"
+      style={{
+        background: `linear-gradient(135deg, ${accent}2e, ${accent}0d 70%)`,
+        border: `1px solid ${accent}55`,
+        boxShadow: `inset 0 1px 0 0 ${accent}33, 0 10px 34px -14px ${accent}99`,
+      }}
+    >
+      {/* satter Farb-Schimmer oben */}
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${accent}, transparent)` }} />
       <div
         className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
-        style={{ backgroundColor: `${accent}1f`, color: accent, border: `1px solid ${accent}33` }}
+        style={{ backgroundColor: `${accent}33`, color: accent, border: `1px solid ${accent}66` }}
       >
         <Icon className="h-5 w-5" />
       </div>
       <div className="min-w-0 flex-1">
-        <div className="eyebrow truncate">{label}</div>
+        <div className="eyebrow truncate" style={{ color: `${accent}cc` }}>{label}</div>
         <div className="num truncate font-heading text-2xl font-bold leading-tight" style={{ color: accent }}>{value}</div>
       </div>
     </div>

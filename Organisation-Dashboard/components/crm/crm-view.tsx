@@ -12,6 +12,7 @@ import {
   FolderKanban,
   X,
   TrendingUp,
+  ChevronRight,
 } from "lucide-react"
 import { useStore } from "@/lib/store"
 import { useDialog } from "@/lib/dialog"
@@ -36,7 +37,7 @@ import { cn } from "@/lib/utils"
 const HEALTHS: CustomerHealth[] = ["lead", "active", "churned"]
 
 export function CrmView() {
-  const { db, addCustomer, removeCustomer, addProject, removeProject } = useStore()
+  const { db, addCustomer, removeCustomer, addProject, updateProject, removeProject } = useStore()
   const dialog = useDialog()
   const toast = useToast()
   const [query, setQuery] = useState("")
@@ -162,6 +163,7 @@ export function CrmView() {
               onAddProject={(name, status) =>
                 addProject({ customerId: selected.id, name, status })
               }
+              onUpdateProject={updateProject}
               onRemoveProject={removeProject}
             />
           ) : (
@@ -183,6 +185,7 @@ function CustomerDetail({
   deals,
   onRemove,
   onAddProject,
+  onUpdateProject,
   onRemoveProject,
 }: {
   customer: Customer
@@ -190,6 +193,7 @@ function CustomerDetail({
   deals: { id: string; title: string; stage: keyof typeof DEAL_STAGE_LABEL; value: number }[]
   onRemove: () => void
   onAddProject: (name: string, status: ProjectStatus) => void
+  onUpdateProject: (id: string, patch: { name?: string; status?: ProjectStatus; description?: string }) => void
   onRemoveProject: (id: string) => void
 }) {
   const [projName, setProjName] = useState("")
@@ -266,17 +270,12 @@ function CustomerDetail({
         <div className="space-y-2">
           {projects.length === 0 && <p className="text-sm text-muted-foreground">Noch keine Projekte.</p>}
           {projects.map((p) => (
-            <div key={p.id} className="group flex items-start gap-3 rounded-xl border border-border bg-white/[0.02] p-3">
-              <div className="mt-0.5 h-8 w-1 rounded-full" style={{ backgroundColor: PROJECT_STATUS_COLOR[p.status] }} />
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium">{p.name}</div>
-                {p.description && <div className="truncate text-xs text-muted-foreground">{p.description}</div>}
-              </div>
-              <Badge color={PROJECT_STATUS_COLOR[p.status]}>{PROJECT_STATUS_LABEL[p.status]}</Badge>
-              <button onClick={() => onRemoveProject(p.id)} aria-label="Projekt entfernen" title="Projekt entfernen" className="rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:text-destructive focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 group-hover:opacity-100">
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
+            <ProjectRow
+              key={p.id}
+              project={p}
+              onUpdate={(patch) => onUpdateProject(p.id, patch)}
+              onRemove={() => onRemoveProject(p.id)}
+            />
           ))}
         </div>
         <div className="mt-3 flex gap-2">
@@ -421,9 +420,120 @@ function InfoRow({ icon, value, href }: { icon: React.ReactNode; value: string; 
 
 function MiniStat({ label, value, accent }: { label: string; value: string; accent: string }) {
   return (
-    <div className="rounded-xl border border-border bg-white/[0.02] p-3.5" style={{ boxShadow: `inset 3px 0 0 0 ${accent}` }}>
-      <div className="eyebrow truncate">{label}</div>
+    <div
+      className="relative overflow-hidden rounded-xl p-3.5"
+      style={{
+        background: `linear-gradient(135deg, ${accent}2e, ${accent}0a 70%)`,
+        border: `1px solid ${accent}4d`,
+        boxShadow: `inset 0 1px 0 0 ${accent}26`,
+      }}
+    >
+      <div className="eyebrow truncate" style={{ color: `${accent}cc` }}>{label}</div>
       <div className="num mt-1 truncate font-heading text-2xl font-bold leading-tight" style={{ color: accent }}>{value}</div>
+    </div>
+  )
+}
+
+const PROJECT_STATUSES: ProjectStatus[] = ["geplant", "laufend", "fertig"]
+
+// Klickbare, aufklappbare Projekt-Zeile mit Inline-Bearbeitung (Name, Status, Beschreibung).
+function ProjectRow({
+  project,
+  onUpdate,
+  onRemove,
+}: {
+  project: { id: string; name: string; status: ProjectStatus; description?: string }
+  onUpdate: (patch: { name?: string; status?: ProjectStatus; description?: string }) => void
+  onRemove: () => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [name, setName] = useState(project.name)
+  const [desc, setDesc] = useState(project.description ?? "")
+  const color = PROJECT_STATUS_COLOR[project.status]
+
+  function commitName() {
+    const v = name.trim()
+    if (v && v !== project.name) onUpdate({ name: v })
+    else setName(project.name)
+  }
+  function commitDesc() {
+    const v = desc.trim()
+    if (v !== (project.description ?? "")) onUpdate({ description: v || undefined })
+  }
+
+  return (
+    <div
+      className="overflow-hidden rounded-xl border transition-colors"
+      style={{
+        borderColor: open ? `${color}66` : `${color}2e`,
+        background: open ? `linear-gradient(180deg, ${color}1f, ${color}08)` : `${color}0f`,
+        boxShadow: open ? `inset 4px 0 0 0 ${color}, 0 0 22px -8px ${color}` : `inset 4px 0 0 0 ${color}`,
+      }}
+    >
+      {/* Kopfzeile (klickbar) */}
+      <div className="group flex items-center gap-3 p-3">
+        <button onClick={() => setOpen((v) => !v)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
+          <ChevronRight className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-90")} style={{ color }} />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-medium">{project.name}</span>
+            {!open && project.description && <span className="block truncate text-xs text-muted-foreground">{project.description}</span>}
+          </span>
+        </button>
+        <Badge color={color}>{PROJECT_STATUS_LABEL[project.status]}</Badge>
+        <button onClick={onRemove} aria-label="Projekt entfernen" title="Projekt entfernen" className="rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:text-destructive focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 group-hover:opacity-100">
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      {/* Editor (aufgeklappt) */}
+      {open && (
+        <div className="space-y-3 border-t px-3 pb-3 pt-3" style={{ borderColor: `${color}26` }}>
+          <label className="block">
+            <span className="mb-1 block text-[11px] text-muted-foreground">Projektname</span>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onBlur={commitName}
+              onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur() }}
+              className="h-9 w-full rounded-lg border border-border bg-white/[0.04] px-2.5 text-sm outline-none focus:border-primary/50"
+            />
+          </label>
+          <div>
+            <span className="mb-1 block text-[11px] text-muted-foreground">Status</span>
+            <div className="flex flex-wrap gap-1.5">
+              {PROJECT_STATUSES.map((s) => {
+                const sc = PROJECT_STATUS_COLOR[s]
+                const sel = project.status === s
+                return (
+                  <button
+                    key={s}
+                    onClick={() => onUpdate({ status: s })}
+                    className="rounded-lg border px-2.5 py-1 text-xs font-medium transition-all"
+                    style={
+                      sel
+                        ? { backgroundColor: `${sc}26`, color: sc, borderColor: sc, boxShadow: `0 0 0 1px ${sc}, 0 0 12px ${sc}66` }
+                        : { borderColor: "rgba(255,255,255,0.12)", color: "var(--muted-foreground)" }
+                    }
+                  >
+                    {PROJECT_STATUS_LABEL[s]}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+          <label className="block">
+            <span className="mb-1 block text-[11px] text-muted-foreground">Beschreibung</span>
+            <textarea
+              value={desc}
+              onChange={(e) => setDesc(e.target.value)}
+              onBlur={commitDesc}
+              rows={2}
+              placeholder="Was umfasst das Projekt?"
+              className="w-full rounded-lg border border-border bg-white/[0.04] px-2.5 py-2 text-sm outline-none focus:border-primary/50"
+            />
+          </label>
+        </div>
+      )}
     </div>
   )
 }

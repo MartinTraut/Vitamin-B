@@ -164,13 +164,19 @@ export function DocumentsView({ kind }: { kind: Kind }) {
               <button
                 key={d.id}
                 onClick={() => setSelectedId(d.id)}
-                className={cn(
-                  "flex w-full items-center gap-4 rounded-2xl border py-4 pl-6 pr-5 text-left transition-all hover:brightness-125",
-                  active ? "border-primary/60 ring-1 ring-inset ring-primary/40" : "border-border",
-                )}
-                style={{ backgroundColor: `${color}14`, boxShadow: `inset 5px 0 0 0 ${color}` }}
+                className="flex w-full items-center gap-4 rounded-2xl border py-4 pl-6 pr-5 text-left transition-all hover:brightness-110"
+                style={{
+                  background: active ? `linear-gradient(90deg, ${color}38, ${color}12 70%)` : `linear-gradient(90deg, ${color}1c, ${color}08 70%)`,
+                  borderColor: active ? color : `${color}3a`,
+                  boxShadow: active
+                    ? `inset 7px 0 0 0 ${color}, 0 0 0 1px ${color}, 0 0 28px -6px ${color}`
+                    : `inset 5px 0 0 0 ${color}`,
+                }}
               >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${color}26`, color }}>
+                <span
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-shadow"
+                  style={{ backgroundColor: `${color}33`, color, boxShadow: active ? `0 0 16px -2px ${color}` : "none" }}
+                >
                   <FileText className="h-4 w-4" />
                 </span>
                 <div className="min-w-0 flex-1">
@@ -249,6 +255,8 @@ function Editor({
 }) {
   const isQuote = kind === "quote"
   const totals = computeTotals(doc.items)
+  const status = isQuote ? (doc as Quote).status : (doc as Invoice).status
+  const color = isQuote ? QUOTE_STATUS_COLOR[status as QuoteStatus] : INVOICE_STATUS_COLOR[status as InvoiceStatus]
 
   function setItems(items: LineItem[]) {
     onPatch({ items } as Partial<Doc>)
@@ -264,11 +272,17 @@ function Editor({
   }
 
   return (
-    <Card className="overflow-hidden">
-      {/* Kopf */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4">
+    <Card
+      className="overflow-hidden"
+      style={{ borderColor: `${color}55`, boxShadow: `inset 0 0 0 1px ${color}1f, 0 0 40px -22px ${color}` }}
+    >
+      {/* Kopf — in Statusfarbe getönt */}
+      <div
+        className="flex flex-wrap items-center justify-between gap-3 border-b p-4"
+        style={{ borderColor: `${color}33`, background: `linear-gradient(180deg, ${color}24, ${color}08)` }}
+      >
         <div className="flex items-center gap-2.5">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: `${color}2e`, color, border: `1px solid ${color}55` }}>
             <FileText className="h-5 w-5" />
           </span>
           <div>

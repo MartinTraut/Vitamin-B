@@ -79,6 +79,7 @@ interface StoreValue {
   updateCustomer: (id: string, patch: Partial<Omit<Customer, "id" | "createdAt">>) => void
   removeCustomer: (id: string) => void
   addProject: (input: Omit<Project, "id" | "createdAt">) => void
+  updateProject: (id: string, patch: Partial<Omit<Project, "id" | "createdAt" | "customerId">>) => void
   removeProject: (id: string) => void
   // Pipeline
   addDeal: (input: Omit<Deal, "id" | "createdAt">) => void
@@ -269,6 +270,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             { ...input, id: nanoid(8), createdAt: new Date().toISOString() },
             ...prev.projects,
           ],
+        })),
+      updateProject: (id, patch) =>
+        setDb((prev) => ({
+          ...prev,
+          projects: prev.projects.map((p) => (p.id === id ? { ...p, ...patch } : p)),
         })),
       removeProject: (id) =>
         setDb((prev) => ({
