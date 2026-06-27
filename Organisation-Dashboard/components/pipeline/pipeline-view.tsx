@@ -20,7 +20,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { Plus, GripVertical, Trash2, X } from "lucide-react"
+import { Plus, GripVertical, Trash2, X, TrendingUp, Trophy, Layers, type LucideIcon } from "lucide-react"
 import { useStore } from "@/lib/store"
 import {
   PEOPLE,
@@ -92,17 +92,17 @@ export function PipelineView() {
 
   return (
     <div className="space-y-4">
-      {/* Kopf */}
-      <Card className="flex flex-wrap items-center justify-between gap-4 p-4">
-        <div className="flex items-center gap-6">
-          <Metric label="Offene Pipeline" value={eur0(totalOpen)} accent="#E39832" />
-          <Metric label="Gewonnen" value={eur0(totalWon)} accent="#34d399" />
-          <Metric label="Deals" value={String(db.deals.length)} accent="#a855f7" />
+      {/* Kopf — prominente KPI-Kacheln */}
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch">
+        <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-3">
+          <Metric icon={TrendingUp} label="Offene Pipeline" value={eur0(totalOpen)} accent="#E39832" />
+          <Metric icon={Trophy} label="Gewonnen" value={eur0(totalWon)} accent="#34d399" />
+          <Metric icon={Layers} label="Deals" value={String(db.deals.length)} accent="#a855f7" />
         </div>
-        <Button onClick={() => setAdding((v) => !v)}>
+        <Button onClick={() => setAdding((v) => !v)} className="h-auto lg:px-6">
           <Plus className="h-4 w-4" /> Neuer Deal
         </Button>
-      </Card>
+      </div>
 
       {adding && (
         <AddDeal
@@ -271,11 +271,19 @@ function AddDeal({
   )
 }
 
-function Metric({ label, value, accent }: { label: string; value: string; accent: string }) {
+function Metric({ icon: Icon, label, value, accent }: { icon: LucideIcon; label: string; value: string; accent: string }) {
   return (
-    <div>
-      <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div className="font-heading text-xl font-bold" style={{ color: accent }}>{value}</div>
+    <div className="hover-aura flex items-center gap-3 rounded-2xl border border-border bg-card/80 p-4">
+      <div
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+        style={{ backgroundColor: `${accent}1f`, color: accent, border: `1px solid ${accent}33` }}
+      >
+        <Icon className="h-5 w-5" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="eyebrow truncate">{label}</div>
+        <div className="num truncate font-heading text-2xl font-bold leading-tight" style={{ color: accent }}>{value}</div>
+      </div>
     </div>
   )
 }

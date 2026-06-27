@@ -13,7 +13,7 @@ import { eur, eur0, dateDE } from "@/lib/format"
 import { todayISO } from "@/lib/recurrence"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { FinanceChart } from "@/components/dashboard/charts"
+import { FinanceChart, CategoryDonut } from "@/components/dashboard/charts"
 import { cn } from "@/lib/utils"
 
 const INCOME = "#34d399"
@@ -95,20 +95,7 @@ export function FinanceView() {
 
           <Card className="p-4">
             <h3 className="mb-3 font-heading text-base font-bold">Ausgaben nach Kategorie</h3>
-            <div className="space-y-2.5">
-              {m.cats.length === 0 && <p className="text-sm text-muted-foreground">Keine Ausgaben.</p>}
-              {m.cats.map((c) => (
-                <div key={c.name}>
-                  <div className="mb-1 flex items-center justify-between text-xs">
-                    <span>{c.name}</span>
-                    <span className="font-medium text-muted-foreground">{eur(c.value)}</span>
-                  </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-white/[0.05]">
-                    <div className="h-full rounded-full" style={{ width: `${(c.value / m.maxCat) * 100}%`, backgroundColor: EXPENSE }} />
-                  </div>
-                </div>
-              ))}
-            </div>
+            <CategoryDonut data={m.cats} />
           </Card>
         </div>
       </div>

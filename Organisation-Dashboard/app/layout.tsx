@@ -20,8 +20,8 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="de" className={cn(inter.variable, sora.variable)}>
-      <body className="bg-background text-foreground antialiased">
+    <html lang="de" className={cn(inter.variable, sora.variable)} suppressHydrationWarning>
+      <body className="bg-background text-foreground antialiased" suppressHydrationWarning>
         <StoreProvider>
           <ToastProvider>
             <DialogProvider>

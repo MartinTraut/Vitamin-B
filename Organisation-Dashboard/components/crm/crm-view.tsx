@@ -421,9 +421,9 @@ function InfoRow({ icon, value, href }: { icon: React.ReactNode; value: string; 
 
 function MiniStat({ label, value, accent }: { label: string; value: string; accent: string }) {
   return (
-    <div className="rounded-xl border border-border bg-white/[0.02] p-3">
-      <div className="text-[11px] text-muted-foreground">{label}</div>
-      <div className="mt-0.5 font-heading text-lg font-bold" style={{ color: accent }}>{value}</div>
+    <div className="rounded-xl border border-border bg-white/[0.02] p-3.5" style={{ boxShadow: `inset 3px 0 0 0 ${accent}` }}>
+      <div className="eyebrow truncate">{label}</div>
+      <div className="num mt-1 truncate font-heading text-2xl font-bold leading-tight" style={{ color: accent }}>{value}</div>
     </div>
   )
 }

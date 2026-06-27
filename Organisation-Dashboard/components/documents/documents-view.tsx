@@ -165,10 +165,14 @@ export function DocumentsView({ kind }: { kind: Kind }) {
                 key={d.id}
                 onClick={() => setSelectedId(d.id)}
                 className={cn(
-                  "flex w-full items-center gap-4 rounded-2xl border bg-card/80 px-5 py-4 text-left transition-all hover:border-white/15",
-                  active ? "border-primary/50 ring-1 ring-inset ring-primary/30" : "border-border",
+                  "flex w-full items-center gap-4 rounded-2xl border py-4 pl-6 pr-5 text-left transition-all hover:brightness-125",
+                  active ? "border-primary/60 ring-1 ring-inset ring-primary/40" : "border-border",
                 )}
+                style={{ backgroundColor: `${color}14`, boxShadow: `inset 5px 0 0 0 ${color}` }}
               >
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${color}26`, color }}>
+                  <FileText className="h-4 w-4" />
+                </span>
                 <div className="min-w-0 flex-1">
                   <div className="font-heading text-lg font-bold leading-tight">{isQuote ? "AN" : "RE"} {d.number}</div>
                   <div className="mt-1 truncate text-sm text-muted-foreground">
@@ -177,7 +181,7 @@ export function DocumentsView({ kind }: { kind: Kind }) {
                 </div>
                 <div className="flex shrink-0 items-center gap-5">
                   <Badge color={color}>{label}</Badge>
-                  <span className="num w-32 text-right font-heading text-xl font-bold">{eur(t.gross)}</span>
+                  <span className="num w-32 text-right font-heading text-xl font-bold" style={{ color }}>{eur(t.gross)}</span>
                 </div>
               </button>
             )
