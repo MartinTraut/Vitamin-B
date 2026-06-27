@@ -17,7 +17,7 @@ Damit Robert, Bastian und Martin dieselben Daten teilen, brauchen wir **Supabase
 ## 3. Team-Login anlegen (~1 Min)
 
 1. Links auf **Authentication** → **Users** → **Add user** → **Create new user**.
-2. E-Mail: `team@vitaminb-os.de` (genau diese, oder eine eigene — dann unten in der Env eintragen).
+2. E-Mail: `team@vitaminb.de` (genau diese, oder eine eigene — dann unten in der Env eintragen).
 3. Passwort: **euer gemeinsames Team-Passwort**. „Auto confirm user" anhaken.
 4. **Create user**.
 
@@ -41,7 +41,7 @@ Links auf **Project Settings** → **API**. Du brauchst zwei Werte:
 3. Unter **Environment Variables** die drei Werte eintragen:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `NEXT_PUBLIC_TEAM_EMAIL` (= `team@vitaminb-os.de`)
+   - `NEXT_PUBLIC_TEAM_EMAIL` (= `team@vitaminb.de`)
 4. **Deploy**. Nach ~1 Min bekommst du einen Link (z. B. `vitaminb-os.vercel.app`).
 
 Diesen Link teilst du mit Bastian und Martin. Alle melden sich mit dem Team-Passwort an,

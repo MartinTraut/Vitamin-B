@@ -7,7 +7,7 @@ const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 // Geteilter Team-Account: alle melden sich mit demselben Passwort an.
 // Die E-Mail ist fix; das Passwort vergebt ihr beim Anlegen des Users in Supabase.
-export const TEAM_EMAIL = process.env.NEXT_PUBLIC_TEAM_EMAIL ?? "team@vitaminb-os.de"
+export const TEAM_EMAIL = process.env.NEXT_PUBLIC_TEAM_EMAIL ?? "team@vitaminb.de"
 
 export const isSupabaseEnabled = Boolean(url && anon)
 
