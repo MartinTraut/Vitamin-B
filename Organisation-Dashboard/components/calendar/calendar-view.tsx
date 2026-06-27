@@ -327,7 +327,8 @@ function DayEventRow({
 }) {
   const done = e.done
   const color = CATEGORY_COLOR[e.category]
-  const bg = active ? "rgba(227,152,50,0.08)" : done ? "rgba(52,211,153,0.06)" : "#0d0d0d"
+  // Opake Hintergründe — sonst scheinen die Swipe-Hinweise dahinter durch.
+  const bg = active ? "#1e1810" : done ? "#0f1915" : "#0d0d0d"
 
   function handleDragEnd(_: unknown, info: PanInfo) {
     if (info.offset.x > 92) onToggle()
@@ -367,26 +368,39 @@ function DayEventRow({
         )}
         style={{ backgroundColor: bg, boxShadow: `inset 3px 0 0 0 ${done ? "#34d399" : color}` }}
       >
-        {/* Check-Button (animiert) */}
+        {/* Abhaken — große, klare Checkbox mit Hover-Vorschau */}
         <button
           onClick={onToggle}
+          aria-label={done ? "Als offen markieren" : "Als erledigt markieren"}
+          aria-pressed={done}
           title={done ? "Rückgängig machen" : "Als erledigt markieren"}
           className={cn(
-            "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
-            done ? "border-success bg-success text-[#06281c]" : "border-border text-transparent hover:border-success",
+            "group/check flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success/60",
+            done
+              ? "border-success bg-success text-[#06281c]"
+              : "border-muted-foreground/50 text-success hover:border-success hover:bg-success/10",
           )}
         >
-          <motion.span initial={false} animate={{ scale: done ? 1 : 0 }} transition={{ type: "spring", stiffness: 600, damping: 20 }}>
-            <Check className="h-4 w-4" strokeWidth={3} />
-          </motion.span>
+          {done ? (
+            <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 600, damping: 20 }}>
+              <Check className="h-5 w-5" strokeWidth={3} />
+            </motion.span>
+          ) : (
+            <Check className="h-5 w-5 opacity-0 transition-opacity group-hover/check:opacity-60" strokeWidth={3} />
+          )}
         </button>
 
         {/* Inhalt (Klick = bearbeiten) */}
         <button onClick={onEdit} className="min-w-0 flex-1 text-left" title="Termin bearbeiten">
-          <div className={cn("text-sm font-medium transition-colors", done && "text-muted-foreground line-through")}>{e.title}</div>
+          <div className={cn("text-base font-medium transition-colors", done && "text-muted-foreground line-through")}>{e.title}</div>
           <div className="mt-1 flex flex-wrap items-center gap-2">
+            {done && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-xs font-semibold text-success">
+                <Check className="h-3 w-3" strokeWidth={3} /> Erledigt
+              </span>
+            )}
             {e.time && (
-              <span className="text-xs text-muted-foreground">
+              <span className="text-sm text-muted-foreground">
                 {e.time}{e.endTime ? `–${e.endTime}` : ""}
               </span>
             )}
