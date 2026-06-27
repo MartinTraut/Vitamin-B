@@ -96,10 +96,10 @@ export function Overview() {
 
       {/* KPIs — kompakte Tiles */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat icon={CheckSquare} label="Offene Aufgaben" value={String(data.openTasks.length)} accent="#E39832" />
-        <Stat icon={CalendarClock} label="Termine (7 T.)" value={String(data.upcoming.length)} accent="#3b82f6" />
-        <Stat icon={TrendingUp} label="Einnahmen / Mt." value={eur0(data.income)} accent={INCOME} />
-        <Stat icon={TrendingDown} label="Ausgaben / Mt." value={eur0(data.expense)} accent={EXPENSE} />
+        <Stat icon={CheckSquare} label="Offene Aufgaben" value={String(data.openTasks.length)} accent="#E39832" href="/aufgaben" />
+        <Stat icon={CalendarClock} label="Termine (7 T.)" value={String(data.upcoming.length)} accent="#3b82f6" href="/kalender" />
+        <Stat icon={TrendingUp} label="Einnahmen / Mt." value={eur0(data.income)} accent={INCOME} href="/finanzen" />
+        <Stat icon={TrendingDown} label="Ausgaben / Mt." value={eur0(data.expense)} accent={EXPENSE} href="/finanzen" />
       </div>
 
       {/* Reihe 1: Chart (oben) + Termine */}
@@ -115,6 +115,7 @@ export function Overview() {
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
               <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: INCOME }} />Einnahmen</span>
               <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: EXPENSE }} />Ausgaben</span>
+              <Link href="/finanzen" className="text-sm font-medium text-primary hover:underline">Finanzen</Link>
             </div>
           </CardHeader>
           <CardContent className="min-h-0 flex-1 p-3">
@@ -132,14 +133,14 @@ export function Overview() {
               <p className="py-6 text-center text-sm text-muted-foreground">Keine Termine (7 Tage).</p>
             )}
             {data.upcoming.slice(0, 4).map(({ appt, date }) => (
-              <div key={appt.id + date} className="flex items-center gap-2.5 rounded-lg border border-border bg-white/[0.02] p-2.5">
+              <Link key={appt.id + date} href="/kalender" className="flex items-center gap-2.5 rounded-lg border border-border bg-white/[0.02] p-2.5 transition-colors hover:bg-white/[0.05]">
                 <div className="h-8 w-1 rounded-full" style={{ backgroundColor: CATEGORY_COLOR[appt.category] }} />
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-base font-medium">{appt.title}</div>
                   <div className="text-sm text-muted-foreground">{relDayLabel(date)}{appt.time ? ` · ${appt.time}` : ""}</div>
                 </div>
                 <Badge color={CATEGORY_COLOR[appt.category]}>{CATEGORY_LABEL[appt.category]}</Badge>
-              </div>
+              </Link>
             ))}
           </CardContent>
         </Card>
@@ -158,8 +159,8 @@ export function Overview() {
             </div>
           </CardHeader>
           <CardContent className="grid min-h-0 flex-1 content-start grid-cols-1 gap-5 p-4 sm:grid-cols-2 sm:gap-7 sm:[&>*:nth-child(2)]:border-l sm:[&>*:nth-child(2)]:border-border sm:[&>*:nth-child(2)]:pl-7">
-            <CashflowColumn title="Einnahmen" icon={<ArrowDownLeft className="h-3.5 w-3.5" />} color={INCOME} total={data.sumIncome} items={data.nextIncome} sign="+" />
-            <CashflowColumn title="Ausgaben" icon={<ArrowUpRight className="h-3.5 w-3.5" />} color={EXPENSE} total={data.sumExpense} items={data.nextExpense} sign="−" />
+            <CashflowColumn title="Einnahmen" icon={<ArrowDownLeft className="h-3.5 w-3.5" />} color={INCOME} total={data.sumIncome} items={data.nextIncome} sign="+" href="/rechnungen" />
+            <CashflowColumn title="Ausgaben" icon={<ArrowUpRight className="h-3.5 w-3.5" />} color={EXPENSE} total={data.sumExpense} items={data.nextExpense} sign="−" href="/finanzen" />
           </CardContent>
         </Card>
 
@@ -175,11 +176,11 @@ export function Overview() {
               <p className="py-6 text-center text-sm text-muted-foreground">Alles erledigt. 🎯</p>
             )}
             {data.openTasks.slice(0, 5).map((t) => (
-              <div key={t.id} className="flex items-center gap-2.5 rounded-lg border border-border bg-white/[0.02] px-3 py-2.5">
+              <Link key={t.id} href="/aufgaben" className="flex items-center gap-2.5 rounded-lg border border-border bg-white/[0.02] px-3 py-2.5 transition-colors hover:bg-white/[0.05]">
                 <div className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: t.priority === "high" ? "#ef4444" : t.priority === "normal" ? "#E39832" : "#9ca3af" }} />
                 <span className="flex-1 truncate text-base">{t.title}</span>
                 {t.due && <span className="shrink-0 rounded-md bg-white/[0.05] px-2 py-0.5 text-sm font-medium text-muted-foreground">{relDayLabel(t.due)}</span>}
-              </div>
+              </Link>
             ))}
           </CardContent>
         </Card>
@@ -188,20 +189,23 @@ export function Overview() {
   )
 }
 
-function Stat({ icon: Icon, label, value, accent }: { icon: LucideIcon; label: string; value: string; accent: string }) {
+function Stat({ icon: Icon, label, value, accent, href }: { icon: LucideIcon; label: string; value: string; accent: string; href: string }) {
   return (
-    <Card className="hover-aura flex items-center gap-3 p-3.5 sm:p-4">
-      <div
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl sm:h-11 sm:w-11"
-        style={{ backgroundColor: `${accent}1f`, color: accent, border: `1px solid ${accent}33` }}
-      >
-        <Icon className="h-5 w-5" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="eyebrow truncate">{label}</div>
-        <div className="num truncate font-heading text-xl font-bold leading-tight tracking-tight sm:text-2xl">{value}</div>
-      </div>
-    </Card>
+    <Link href={href} className="group block">
+      <Card className="hover-aura flex items-center gap-3 p-3.5 transition-colors hover:border-white/15 sm:p-4">
+        <div
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl sm:h-11 sm:w-11"
+          style={{ backgroundColor: `${accent}1f`, color: accent, border: `1px solid ${accent}33` }}
+        >
+          <Icon className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="eyebrow truncate">{label}</div>
+          <div className="num truncate font-heading text-xl font-bold leading-tight tracking-tight sm:text-2xl">{value}</div>
+        </div>
+        <ArrowRight className="h-4 w-4 shrink-0 -translate-x-1 text-muted-foreground opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100" />
+      </Card>
+    </Link>
   )
 }
 
@@ -212,6 +216,7 @@ function CashflowColumn({
   total,
   items,
   sign,
+  href,
 }: {
   title: string
   icon: React.ReactNode
@@ -219,6 +224,7 @@ function CashflowColumn({
   total: number
   items: CashflowEvent[]
   sign: string
+  href: string
 }) {
   return (
     <div>
@@ -237,7 +243,7 @@ function CashflowColumn({
         {items.slice(0, 3).map((c) => {
           const potential = c.status === "potential"
           return (
-            <div key={c.id} className="flex items-center gap-3 rounded-xl bg-white/[0.03] px-3 py-3">
+            <Link key={c.id} href={href} className="flex items-center gap-3 rounded-xl bg-white/[0.03] px-3 py-3 transition-colors hover:bg-white/[0.06]">
               <div className="h-10 w-1 shrink-0 rounded-full" style={{ backgroundColor: potential ? POTENTIAL : color }} />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-base font-medium leading-tight">{c.title}</div>
@@ -249,7 +255,7 @@ function CashflowColumn({
                 </div>
               </div>
               <div className="num shrink-0 font-heading text-base font-bold" style={{ color: potential ? POTENTIAL : color }}>{sign}{eur0(c.amount)}</div>
-            </div>
+            </Link>
           )
         })}
       </div>
