@@ -100,7 +100,9 @@ export function WhiteboardView() {
         {selected ? (
           <Tldraw key={selected.id} persistenceKey={`vitaminb-wb-${selected.id}`} inferDarkMode />
         ) : (
-          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+          <div className="flex h-full flex-col items-center justify-center gap-4 text-sm text-muted-foreground">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-vitaminb-white.png" alt="" className="h-8 w-auto opacity-15" />
             Board auswählen oder neu anlegen.
           </div>
         )}

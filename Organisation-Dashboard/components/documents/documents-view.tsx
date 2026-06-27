@@ -198,7 +198,9 @@ export function DocumentsView({ kind }: { kind: Kind }) {
               onConvert={isQuote ? () => { store.convertQuoteToInvoice(selected.id); toast.success("Angebot in Rechnung umgewandelt") } : undefined}
             />
           ) : (
-            <Card className="flex h-full items-center justify-center p-12 text-sm text-muted-foreground">
+            <Card className="flex h-full flex-col items-center justify-center gap-4 p-12 text-sm text-muted-foreground">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo-vitaminb-white.png" alt="" className="h-8 w-auto opacity-15" />
               Beleg auswählen oder neu anlegen.
             </Card>
           )}
@@ -480,7 +482,8 @@ function PrintDoc({
       {/* Kopf */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "2px solid #E39832", paddingBottom: 12, marginBottom: 24 }}>
         <div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: "#E39832" }}>vitamin b</div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-vitaminb-orange.png" alt="Vitamin B" style={{ height: 34, width: "auto", marginBottom: 4 }} />
           <div style={{ fontSize: 11, color: "#555" }}>{company.name}</div>
         </div>
         <div style={{ textAlign: "right", fontSize: 11, color: "#333" }}>

@@ -165,7 +165,9 @@ export function CrmView() {
               onRemoveProject={removeProject}
             />
           ) : (
-            <Card className="flex h-full items-center justify-center p-12 text-sm text-muted-foreground">
+            <Card className="flex h-full flex-col items-center justify-center gap-4 p-12 text-sm text-muted-foreground">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo-vitaminb-white.png" alt="" className="h-8 w-auto opacity-15" />
               Kunde auswählen oder neu anlegen.
             </Card>
           )}

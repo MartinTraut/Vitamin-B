@@ -22,11 +22,15 @@ export function Topbar() {
 
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between gap-4 border-b border-border bg-background/80 px-5 py-4 backdrop-blur-xl lg:px-8">
-      <div>
-        <h1 className="font-heading text-xl font-bold tracking-[-0.02em] lg:text-2xl">
-          {item.label}
-        </h1>
-        <p className="text-xs text-muted-foreground lg:text-sm">{item.subtitle}</p>
+      <div className="flex min-w-0 items-center gap-3">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo-vitaminb-orange.png" alt="Vitamin B" className="h-6 w-auto shrink-0 lg:hidden" />
+        <div className="min-w-0">
+          <h1 className="truncate font-heading text-xl font-bold tracking-[-0.02em] lg:text-2xl">
+            {item.label}
+          </h1>
+          <p className="truncate text-xs text-muted-foreground lg:text-sm">{item.subtitle}</p>
+        </div>
       </div>
       <div className="flex items-center gap-3">
         <button
