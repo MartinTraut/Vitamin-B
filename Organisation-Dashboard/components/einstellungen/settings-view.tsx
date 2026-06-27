@@ -1,10 +1,12 @@
 "use client"
 
 import { useRef } from "react"
-import { Building2, User, Database, RotateCcw, SlidersHorizontal, Download, Upload } from "lucide-react"
+import { Building2, User, Database, RotateCcw, SlidersHorizontal, Download, Upload, Check } from "lucide-react"
+import { cn } from "@/lib/utils"
 import { useStore } from "@/lib/store"
 import { useToast } from "@/lib/toast"
-import { PEOPLE, type CompanySettings, type Person } from "@/lib/types"
+import { useDialog } from "@/lib/dialog"
+import { PEOPLE, ACCENTS, type CompanySettings, type Person } from "@/lib/types"
 import { todayISO } from "@/lib/recurrence"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -12,14 +14,21 @@ import { Button } from "@/components/ui/button"
 export function SettingsView() {
   const { db, updateCompany, exportDb, importDb } = useStore()
   const toast = useToast()
+  const dialog = useDialog()
   const fileRef = useRef<HTMLInputElement>(null)
   const c = db.company
 
   const set = (k: keyof CompanySettings) => (e: React.ChangeEvent<HTMLInputElement>) =>
     updateCompany({ [k]: e.target.value })
 
-  function resetDemo() {
-    if (!confirm("Alle lokalen Daten zurücksetzen und frische Demo-Daten laden?")) return
+  async function resetDemo() {
+    const ok = await dialog.confirm({
+      title: "Demo-Daten zurücksetzen?",
+      message: "Alle eigenen Einträge gehen verloren und die frischen Demo-Daten werden geladen.",
+      confirmLabel: "Zurücksetzen",
+      danger: true,
+    })
+    if (!ok) return
     try {
       localStorage.removeItem("vitaminb-os-db-v2")
     } catch {
@@ -109,6 +118,29 @@ export function SettingsView() {
               {PEOPLE.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </label>
+        </div>
+        <div className="border-t border-border p-4">
+          <span className="mb-2.5 block text-xs text-muted-foreground">Akzentfarbe</span>
+          <div className="flex flex-wrap gap-2.5">
+            {ACCENTS.map((a) => {
+              const active = c.accent.toLowerCase() === a.value.toLowerCase()
+              return (
+                <button
+                  key={a.value}
+                  onClick={() => updateCompany({ accent: a.value })}
+                  aria-label={a.name}
+                  title={a.name}
+                  className={cn(
+                    "flex h-9 w-9 items-center justify-center rounded-full transition-transform hover:scale-110",
+                    active && "ring-2 ring-offset-2 ring-offset-card",
+                  )}
+                  style={{ backgroundColor: a.value, boxShadow: active ? `0 0 0 2px ${a.value}` : undefined, ...(active ? { ["--tw-ring-color" as string]: a.value } : {}) }}
+                >
+                  {active && <Check className="h-4 w-4" style={{ color: "#0a0a0a" }} />}
+                </button>
+              )
+            })}
+          </div>
         </div>
       </Card>
 

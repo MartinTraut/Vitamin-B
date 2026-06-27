@@ -307,7 +307,18 @@ export interface CompanySettings {
   defaultTaxRate: number // Standard-USt-Satz für neue Positionen (19 | 7 | 0)
   paymentTermDays: number // Standard-Zahlungsziel in Tagen
   defaultPerson: Person // Startansicht beim Öffnen
+  accent: string // Akzentfarbe der Oberfläche (Hex)
 }
+
+// Kuratierte Akzentfarben für den Umschalter in den Einstellungen.
+export const ACCENTS: { name: string; value: string }[] = [
+  { name: "Vitamin-Orange", value: "#E39832" },
+  { name: "Bernstein", value: "#f59e0b" },
+  { name: "Smaragd", value: "#10b981" },
+  { name: "Azur", value: "#3b82f6" },
+  { name: "Violett", value: "#8b5cf6" },
+  { name: "Karmin", value: "#f43f5e" },
+]
 
 /* ---------- Whiteboard ---------- */
 

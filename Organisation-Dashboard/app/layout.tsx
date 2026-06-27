@@ -4,6 +4,7 @@ import "./globals.css"
 import { cn } from "@/lib/utils"
 import { StoreProvider } from "@/lib/store"
 import { ToastProvider } from "@/lib/toast"
+import { DialogProvider } from "@/lib/dialog"
 import { AppShell } from "@/components/shell/app-shell"
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" })
@@ -23,7 +24,9 @@ export default function RootLayout({
       <body className="bg-background text-foreground antialiased">
         <StoreProvider>
           <ToastProvider>
-            <AppShell>{children}</AppShell>
+            <DialogProvider>
+              <AppShell>{children}</AppShell>
+            </DialogProvider>
           </ToastProvider>
         </StoreProvider>
       </body>

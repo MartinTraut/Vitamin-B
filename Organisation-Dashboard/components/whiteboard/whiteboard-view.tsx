@@ -4,6 +4,8 @@ import { useState, type ComponentType } from "react"
 import dynamic from "next/dynamic"
 import { Plus, Trash2, Pencil, PenTool } from "lucide-react"
 import { useStore } from "@/lib/store"
+import { useDialog } from "@/lib/dialog"
+import { useToast } from "@/lib/toast"
 import { PEOPLE } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -20,6 +22,8 @@ const Tldraw = dynamic(() => import("tldraw").then((m) => m.Tldraw), {
 
 export function WhiteboardView() {
   const { db, activePerson, addWhiteboard, renameWhiteboard, removeWhiteboard } = useStore()
+  const dialog = useDialog()
+  const toast = useToast()
   const [selectedId, setSelectedId] = useState<string | null>(db.whiteboards[0]?.id ?? null)
 
   const selected = db.whiteboards.find((w) => w.id === selectedId) ?? null
@@ -28,14 +32,16 @@ export function WhiteboardView() {
     const id = addWhiteboard({ name: "Neues Board", person: activePerson })
     setSelectedId(id)
   }
-  function rename(id: string, current: string) {
-    const name = window.prompt("Board umbenennen", current)
-    if (name && name.trim()) renameWhiteboard(id, name.trim())
+  async function rename(id: string, current: string) {
+    const name = await dialog.prompt({ title: "Board umbenennen", defaultValue: current, placeholder: "Board-Name", confirmLabel: "Speichern" })
+    if (name) renameWhiteboard(id, name)
   }
-  function remove(id: string) {
-    if (!window.confirm("Board löschen?")) return
+  async function remove(id: string, name: string) {
+    const ok = await dialog.confirm({ title: "Board löschen?", message: `„${name}" wird unwiderruflich entfernt.`, confirmLabel: "Löschen", danger: true })
+    if (!ok) return
     removeWhiteboard(id)
     setSelectedId(db.whiteboards.find((w) => w.id !== id)?.id ?? null)
+    toast.success("Board gelöscht")
   }
 
   return (
@@ -76,10 +82,10 @@ export function WhiteboardView() {
                   </span>
                 </button>
                 <div className="flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100">
-                  <button onClick={() => rename(w.id, w.name)} title="Umbenennen" className="rounded-md p-1 text-muted-foreground hover:text-foreground">
+                  <button onClick={() => rename(w.id, w.name)} aria-label="Board umbenennen" title="Umbenennen" className="rounded-md p-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60">
                     <Pencil className="h-3.5 w-3.5" />
                   </button>
-                  <button onClick={() => remove(w.id)} title="Löschen" className="rounded-md p-1 text-muted-foreground hover:text-destructive">
+                  <button onClick={() => remove(w.id, w.name)} aria-label="Board löschen" title="Löschen" className="rounded-md p-1 text-muted-foreground hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60">
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>

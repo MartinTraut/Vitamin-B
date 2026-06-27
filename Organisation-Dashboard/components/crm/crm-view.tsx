@@ -14,6 +14,8 @@ import {
   TrendingUp,
 } from "lucide-react"
 import { useStore } from "@/lib/store"
+import { useDialog } from "@/lib/dialog"
+import { useToast } from "@/lib/toast"
 import {
   HEALTH_LABEL,
   HEALTH_COLOR,
@@ -35,6 +37,8 @@ const HEALTHS: CustomerHealth[] = ["lead", "active", "churned"]
 
 export function CrmView() {
   const { db, addCustomer, removeCustomer, addProject, removeProject } = useStore()
+  const dialog = useDialog()
+  const toast = useToast()
   const [query, setQuery] = useState("")
   const [selectedId, setSelectedId] = useState<string | null>(db.customers[0]?.id ?? null)
   const [adding, setAdding] = useState(false)
@@ -128,9 +132,25 @@ export function CrmView() {
               customer={selected}
               projects={db.projects.filter((p) => p.customerId === selected.id)}
               deals={db.deals.filter((d) => d.customerId === selected.id)}
-              onRemove={() => {
+              onRemove={async () => {
+                const nDeals = db.deals.filter((d) => d.customerId === selected.id).length
+                const nProjects = db.projects.filter((p) => p.customerId === selected.id).length
+                const extras = [
+                  nDeals ? `${nDeals} Deal${nDeals > 1 ? "s" : ""}` : null,
+                  nProjects ? `${nProjects} Projekt${nProjects > 1 ? "e" : ""}` : null,
+                ].filter(Boolean)
+                const ok = await dialog.confirm({
+                  title: `„${selected.company}" löschen?`,
+                  message: extras.length
+                    ? `Dabei werden auch ${extras.join(" und ")} unwiderruflich entfernt.`
+                    : "Der Kunde wird unwiderruflich entfernt.",
+                  confirmLabel: "Löschen",
+                  danger: true,
+                })
+                if (!ok) return
                 removeCustomer(selected.id)
                 setSelectedId(db.customers.find((c) => c.id !== selected.id)?.id ?? null)
+                toast.success("Kunde gelöscht")
               }}
               onAddProject={(name, status) =>
                 addProject({ customerId: selected.id, name, status })
@@ -186,7 +206,7 @@ function CustomerDetail({
             </div>
           </div>
         </div>
-        <button onClick={onRemove} title="Kunde löschen" className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive">
+        <button onClick={onRemove} aria-label="Kunde löschen" title="Kunde löschen" className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60">
           <Trash2 className="h-4 w-4" />
         </button>
       </div>
@@ -244,7 +264,7 @@ function CustomerDetail({
                 {p.description && <div className="truncate text-xs text-muted-foreground">{p.description}</div>}
               </div>
               <Badge color={PROJECT_STATUS_COLOR[p.status]}>{PROJECT_STATUS_LABEL[p.status]}</Badge>
-              <button onClick={() => onRemoveProject(p.id)} className="rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100">
+              <button onClick={() => onRemoveProject(p.id)} aria-label="Projekt entfernen" title="Projekt entfernen" className="rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:text-destructive focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 group-hover:opacity-100">
                 <X className="h-3.5 w-3.5" />
               </button>
             </div>

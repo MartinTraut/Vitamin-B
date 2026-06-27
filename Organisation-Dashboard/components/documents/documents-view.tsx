@@ -8,6 +8,7 @@ import {
   FileText,
   ArrowRight,
   LayoutTemplate,
+  Search,
 } from "lucide-react"
 import { useStore } from "@/lib/store"
 import { useToast } from "@/lib/toast"
@@ -53,6 +54,11 @@ export function DocumentsView({ kind }: { kind: Kind }) {
   const toast = useToast()
   const [selectedId, setSelectedId] = useState<string | null>(docs[0]?.id ?? null)
   const [pendingNew, setPendingNew] = useState(false)
+  const [search, setSearch] = useState("")
+  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [sort, setSort] = useState<"date" | "amount" | "number">("date")
+
+  const statusLabels = isQuote ? QUOTE_STATUS_LABEL : INVOICE_STATUS_LABEL
 
   useEffect(() => {
     if (pendingNew && docs.length) {
@@ -63,6 +69,20 @@ export function DocumentsView({ kind }: { kind: Kind }) {
 
   const selected = docs.find((d) => d.id === selectedId) ?? null
   const customerName = (id: string) => db.customers.find((c) => c.id === id)?.company ?? "—"
+
+  const visible = (() => {
+    const q = search.trim().toLowerCase()
+    const list = docs.filter((d) => {
+      const matchQ = !q || d.number.toLowerCase().includes(q) || customerName(d.customerId).toLowerCase().includes(q)
+      const matchS = statusFilter === "all" || (d as Quote | Invoice).status === statusFilter
+      return matchQ && matchS
+    })
+    return [...list].sort((a, b) => {
+      if (sort === "amount") return computeTotals(b.items).gross - computeTotals(a.items).gross
+      if (sort === "number") return b.number.localeCompare(a.number)
+      return b.createdAt.localeCompare(a.createdAt)
+    })
+  })()
 
   function patchDoc(patch: Partial<Doc>) {
     if (!selected) return
@@ -89,10 +109,35 @@ export function DocumentsView({ kind }: { kind: Kind }) {
 
   return (
     <div className="space-y-4">
-      <Card className="flex flex-wrap items-center justify-between gap-3 p-4">
-        <div>
-          <span className="text-sm text-muted-foreground">{docs.length} {isQuote ? "Angebote" : "Rechnungen"}</span>
+      <Card className="flex flex-wrap items-center gap-3 p-4">
+        <div className="relative min-w-[180px] flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Nummer oder Kunde…"
+            className="h-10 w-full rounded-lg border border-border bg-white/[0.03] pl-9 pr-3 text-sm outline-none focus:border-primary/50"
+          />
         </div>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          aria-label="Status filtern"
+          className="h-10 rounded-lg border border-border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50 [color-scheme:dark]"
+        >
+          <option value="all">Alle Status</option>
+          {Object.entries(statusLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+        </select>
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value as typeof sort)}
+          aria-label="Sortieren"
+          className="h-10 rounded-lg border border-border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50 [color-scheme:dark]"
+        >
+          <option value="date">Neueste zuerst</option>
+          <option value="amount">Betrag</option>
+          <option value="number">Nummer</option>
+        </select>
         <Button onClick={createNew}>
           <Plus className="h-4 w-4" /> {isQuote ? "Neues Angebot" : "Neue Rechnung"}
         </Button>
@@ -102,7 +147,8 @@ export function DocumentsView({ kind }: { kind: Kind }) {
         {/* Liste */}
         <div className="space-y-2.5">
           {docs.length === 0 && <Card className="p-6 text-center text-sm text-muted-foreground">Noch keine Belege.</Card>}
-          {docs.map((d) => {
+          {docs.length > 0 && visible.length === 0 && <Card className="p-6 text-center text-sm text-muted-foreground">Keine Treffer für diese Filter.</Card>}
+          {visible.map((d) => {
             const t = computeTotals(d.items)
             const active = d.id === selectedId
             const color = isQuote ? QUOTE_STATUS_COLOR[(d as Quote).status] : INVOICE_STATUS_COLOR[(d as Invoice).status]

@@ -153,6 +153,7 @@ export function buildDemoData(): Database {
       defaultTaxRate: 19,
       paymentTermDays: 14,
       defaultPerson: "robert",
+      accent: "#E39832",
     },
     whiteboards: [
       { id: "wb1", name: "Ideen & Brainstorming", createdAt: now },

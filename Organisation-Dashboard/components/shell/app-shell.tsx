@@ -2,6 +2,8 @@ import type { ReactNode } from "react"
 import { Sidebar } from "./sidebar"
 import { Topbar } from "./topbar"
 import { MobileNav } from "./mobile-nav"
+import { CommandPalette } from "./command-palette"
+import { ThemeController } from "./theme-controller"
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
@@ -14,6 +16,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         </main>
       </div>
       <MobileNav />
+      <CommandPalette />
+      <ThemeController />
     </div>
   )
 }
