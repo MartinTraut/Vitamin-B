@@ -103,7 +103,7 @@ export function Overview() {
       </div>
 
       {/* Reihe 1: Chart (oben) + Termine */}
-      <div className="grid min-h-0 flex-[1.25] gap-4 lg:grid-cols-3">
+      <div className="grid min-h-0 flex-[1.25] grid-cols-1 gap-4 lg:grid-cols-3">
         <Card className="flex flex-col lg:col-span-2">
           <CardHeader className="items-center pb-0">
             <div className="flex items-baseline gap-3">
@@ -146,7 +146,7 @@ export function Overview() {
       </div>
 
       {/* Reihe 2: Cashflow (kompakt) + Aufgaben */}
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-3">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-3">
         <Card className="flex flex-col overflow-hidden lg:col-span-2">
           <CardHeader className="items-center border-b border-border pb-3">
             <CardTitle>Anstehende Zahlungen <span className="ml-1 text-sm font-normal text-muted-foreground">· 30 Tage</span></CardTitle>
@@ -157,7 +157,7 @@ export function Overview() {
               </span>
             </div>
           </CardHeader>
-          <CardContent className="grid min-h-0 flex-1 content-start gap-5 p-4 sm:grid-cols-2 sm:gap-7 sm:[&>*:nth-child(2)]:border-l sm:[&>*:nth-child(2)]:border-border sm:[&>*:nth-child(2)]:pl-7">
+          <CardContent className="grid min-h-0 flex-1 content-start grid-cols-1 gap-5 p-4 sm:grid-cols-2 sm:gap-7 sm:[&>*:nth-child(2)]:border-l sm:[&>*:nth-child(2)]:border-border sm:[&>*:nth-child(2)]:pl-7">
             <CashflowColumn title="Einnahmen" icon={<ArrowDownLeft className="h-3.5 w-3.5" />} color={INCOME} total={data.sumIncome} items={data.nextIncome} sign="+" />
             <CashflowColumn title="Ausgaben" icon={<ArrowUpRight className="h-3.5 w-3.5" />} color={EXPENSE} total={data.sumExpense} items={data.nextExpense} sign="−" />
           </CardContent>
@@ -190,16 +190,16 @@ export function Overview() {
 
 function Stat({ icon: Icon, label, value, accent }: { icon: LucideIcon; label: string; value: string; accent: string }) {
   return (
-    <Card className="hover-aura flex items-center gap-3 p-4">
+    <Card className="hover-aura flex items-center gap-3 p-3.5 sm:p-4">
       <div
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl sm:h-11 sm:w-11"
         style={{ backgroundColor: `${accent}1f`, color: accent, border: `1px solid ${accent}33` }}
       >
         <Icon className="h-5 w-5" />
       </div>
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <div className="eyebrow truncate">{label}</div>
-        <div className="num font-heading text-2xl font-bold leading-tight tracking-tight">{value}</div>
+        <div className="num truncate font-heading text-xl font-bold leading-tight tracking-tight sm:text-2xl">{value}</div>
       </div>
     </Card>
   )

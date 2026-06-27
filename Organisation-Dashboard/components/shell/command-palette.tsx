@@ -90,7 +90,8 @@ export function CommandPalette() {
   }, [results, active])
 
   function go(r: Result) {
-    router.push(r.href)
+    // Bei Entitäten die ID mitgeben → Zielview selektiert den Datensatz vor.
+    router.push(r.group === "Navigation" ? r.href : `${r.href}?sel=${r.id}`)
     setOpen(false)
   }
 

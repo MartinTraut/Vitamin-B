@@ -67,6 +67,13 @@ export function DocumentsView({ kind }: { kind: Kind }) {
     }
   }, [docs, pendingNew])
 
+  // Aus der ⌘K-Suche vorselektieren (?sel=<id>).
+  useEffect(() => {
+    const sel = new URLSearchParams(window.location.search).get("sel")
+    if (sel && docs.some((d) => d.id === sel)) setSelectedId(sel)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const selected = docs.find((d) => d.id === selectedId) ?? null
   const customerName = (id: string) => db.customers.find((c) => c.id === id)?.company ?? "—"
 

@@ -11,7 +11,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <Sidebar />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <Topbar />
-        <main className="min-h-0 flex-1 overflow-y-auto px-4 pb-24 pt-6 lg:px-8 lg:pb-10">
+        <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 pb-24 pt-6 lg:px-8 lg:pb-10">
           {children}
         </main>
       </div>

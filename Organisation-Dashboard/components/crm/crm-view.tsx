@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   Plus,
   Search,
@@ -42,6 +42,13 @@ export function CrmView() {
   const [query, setQuery] = useState("")
   const [selectedId, setSelectedId] = useState<string | null>(db.customers[0]?.id ?? null)
   const [adding, setAdding] = useState(false)
+
+  // Aus der ⌘K-Suche vorselektieren (?sel=<id>).
+  useEffect(() => {
+    const sel = new URLSearchParams(window.location.search).get("sel")
+    if (sel && db.customers.some((c) => c.id === sel)) setSelectedId(sel)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
