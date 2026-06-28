@@ -15,7 +15,7 @@ import { todayISO, toISO } from "@/lib/recurrence"
 import { buildSeries, GRAN_LABEL, type Gran } from "@/lib/finance-series"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { FinanceChart, CategoryDonut } from "@/components/dashboard/charts"
+import { FinanceChart, CategoryDonut, ChartLegend, type SeriesKey } from "@/components/dashboard/charts"
 import { cn } from "@/lib/utils"
 
 const INCOME = "#34d399"
@@ -37,6 +37,9 @@ export function FinanceView() {
   const { db, addTransaction, removeTransaction } = useStore()
   const [adding, setAdding] = useState(false)
   const [gran, setGran] = useState<Gran>("month")
+  // Welche Verlauf-Linien sichtbar sind (über die Legende umschaltbar).
+  const [visible, setVisible] = useState<Record<SeriesKey, boolean>>({ income: true, expense: true, debt: true })
+  const toggleSeries = (k: SeriesKey) => setVisible((v) => ({ ...v, [k]: !v[k] }))
   // Ledger-Filter
   const [search, setSearch] = useState("")
   const [txType, setTxType] = useState<"all" | "income" | "expense">("all")
@@ -122,10 +125,14 @@ export function FinanceView() {
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 p-4 pb-2">
             <h3 className="font-heading text-base font-bold">Verlauf · Einnahmen & Ausgaben</h3>
             <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: INCOME }} />Einnahmen</span>
-                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: EXPENSE }} />Ausgaben</span>
-              </div>
+              <ChartLegend
+                visible={visible}
+                onToggle={toggleSeries}
+                items={[
+                  { key: "income", color: INCOME },
+                  { key: "expense", color: EXPENSE },
+                ]}
+              />
               {/* Tag / Woche / Monat */}
               <div className="flex items-center rounded-lg border border-border bg-white/[0.03] p-0.5">
                 {(["day", "week", "month"] as Gran[]).map((g) => (
@@ -145,7 +152,7 @@ export function FinanceView() {
             </div>
           </div>
           <div className="min-h-[240px] flex-1 p-3 pt-1">
-            <FinanceChart data={chartData} height="full" />
+            <FinanceChart data={chartData} height="full" visible={visible} />
           </div>
         </Card>
 
