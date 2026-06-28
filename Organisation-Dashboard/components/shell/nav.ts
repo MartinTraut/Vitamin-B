@@ -7,7 +7,9 @@ import {
   GitBranch,
   FileText,
   Receipt,
+  ReceiptText,
   Wallet,
+  PiggyBank,
   Settings,
   type LucideIcon,
 } from "lucide-react"
@@ -57,7 +59,9 @@ export const NAV: NavGroup[] = [
     items: [
       { href: "/angebote", label: "Angebote", subtitle: "Angebote & Templates", icon: FileText },
       { href: "/rechnungen", label: "Rechnungen", subtitle: "Rechnungsstellung", icon: Receipt },
+      { href: "/ausgaben", label: "Ausgaben", subtitle: "Belege & Eingangsrechnungen", icon: ReceiptText },
       { href: "/finanzen", label: "Finanzen", subtitle: "Einnahmen & Ausgaben", icon: Wallet },
+      { href: "/privat", label: "Privat", subtitle: "Private Finanzen & Schulden", icon: PiggyBank },
     ],
   },
   {
