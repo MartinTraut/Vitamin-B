@@ -13,6 +13,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
+import { Check } from "lucide-react"
 import type { SeriesPoint } from "@/lib/finance-series"
 import { eur, eur0 } from "@/lib/format"
 import { cn } from "@/lib/utils"
@@ -82,7 +83,7 @@ export function ChartLegend({
   onToggle: (key: SeriesKey) => void
 }) {
   return (
-    <div className="flex items-center gap-0.5">
+    <div className="flex items-center gap-1.5">
       {items.map((it) => {
         const on = visible[it.key] ?? true
         const label = it.label ?? SERIES_LABEL[it.key]
@@ -94,15 +95,24 @@ export function ChartLegend({
             aria-pressed={on}
             title={on ? `${label} ausblenden` : `${label} einblenden`}
             className={cn(
-              "flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium transition-colors",
-              on ? "text-foreground hover:bg-white/[0.06]" : "text-muted-foreground/45 hover:bg-white/[0.03]",
+              "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-all",
+              on
+                ? "text-foreground shadow-sm"
+                : "border-border/70 text-muted-foreground/60 hover:border-border hover:text-muted-foreground",
             )}
+            style={on ? { backgroundColor: `${it.color}24`, borderColor: `${it.color}80` } : undefined}
           >
             <span
-              className="h-2 w-2 shrink-0 rounded-full transition-all"
-              style={{ background: it.color, opacity: on ? 1 : 0.35, boxShadow: on ? `0 0 0 3px ${it.color}22` : "none" }}
-            />
-            <span className={cn("transition-colors", !on && "line-through decoration-from-font")}>{label}</span>
+              className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full transition-all"
+              style={
+                on
+                  ? { background: it.color }
+                  : { border: `1.5px solid ${it.color}`, opacity: 0.5 }
+              }
+            >
+              {on && <Check className="h-2.5 w-2.5 text-black/80" strokeWidth={3.5} />}
+            </span>
+            <span className="transition-colors">{label}</span>
           </button>
         )
       })}
