@@ -11,6 +11,8 @@ import {
   ArrowRight,
   ArrowDownLeft,
   ArrowUpRight,
+  Target,
+  Trophy,
 } from "lucide-react"
 import { useStore } from "@/lib/store"
 import {
@@ -19,6 +21,7 @@ import {
   type CashflowEvent,
 } from "@/lib/types"
 import { eur0, dateDE } from "@/lib/format"
+import { buildSeries } from "@/lib/finance-series"
 import { occurrencesInRange, todayISO, addDaysISO } from "@/lib/recurrence"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -46,6 +49,11 @@ export function Overview() {
   const { db, activePerson } = useStore()
   const person = PEOPLE.find((p) => p.id === activePerson)!
 
+  // Live-Finanzreihe aus den echten Buchungen (geschäftlich) — bezahlte
+  // Rechnungen und erfasste Belege schlagen so direkt aufs Dashboard durch.
+  const businessTx = useMemo(() => db.transactions.filter((t) => t.scope !== "private"), [db.transactions])
+  const chartData = useMemo(() => buildSeries(businessTx, "month"), [businessTx])
+
   const data = useMemo(() => {
     const today = todayISO()
     const weekEnd = addDaysISO(today, 7)
@@ -58,7 +66,14 @@ export function Overview() {
       .flatMap((a) => occurrencesInRange(a, today, weekEnd).map((date) => ({ appt: a, date })))
       .sort((x, y) => x.date.localeCompare(y.date))
 
-    const last = db.finance.at(-1) ?? { month: "", income: 0, expense: 0 }
+    // Pipeline — personenbezogen (nur die Deals der aktiven Ansicht).
+    const myDeals = db.deals.filter((d) => d.person === activePerson)
+    const openDeals = myDeals.filter((d) => d.stage !== "gewonnen")
+    const openPipeline = openDeals.reduce((s, d) => s + d.value, 0)
+    const wonPipeline = myDeals.filter((d) => d.stage === "gewonnen").reduce((s, d) => s + d.value, 0)
+
+    // Aktueller Monat aus der Live-Reihe (letzter Bucket) — KPI & Chart konsistent.
+    const last = chartData.at(-1) ?? { month: "", income: 0, expense: 0 }
 
     const horizon = addDaysISO(today, 30)
     const upcomingCash = [...db.cashflow]
@@ -75,34 +90,39 @@ export function Overview() {
       income: last.income,
       expense: last.expense,
       profit: last.income - last.expense,
+      openPipeline,
+      wonPipeline,
+      openDealCount: openDeals.length,
       nextIncome,
       nextExpense,
       sumIncome,
       sumExpense,
       net: sumIncome - sumExpense,
     }
-  }, [db, activePerson])
+  }, [db, activePerson, chartData])
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4">
+    <div className="flex flex-col gap-4 lg:h-full lg:min-h-0">
       {/* Begrüßung — kompakt */}
       <div className="flex items-baseline gap-2">
-        <h2 className="font-heading text-xl font-bold tracking-tight">
+        <h2 className="font-heading text-[clamp(1.15rem,4vw+0.3rem,1.25rem)] font-bold tracking-tight">
           <span style={{ color: person.color }}>{person.name}</span>
         </h2>
         <span className="text-sm text-muted-foreground">— dein Überblick auf einen Blick</span>
       </div>
 
-      {/* KPIs — kompakte Tiles */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {/* KPIs — kompakte Tiles (inkl. personenbezogener Pipeline) */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
         <Stat icon={CheckSquare} label="Offene Aufgaben" value={String(data.openTasks.length)} accent="#E39832" href="/aufgaben" />
         <Stat icon={CalendarClock} label="Termine (7 T.)" value={String(data.upcoming.length)} accent="#3b82f6" href="/kalender" />
+        <Stat icon={Target} label="Offene Pipeline" value={eur0(data.openPipeline)} hint={data.openDealCount > 0 ? `${data.openDealCount} Deals` : undefined} accent="#a855f7" href="/pipeline" />
+        <Stat icon={Trophy} label="Gewonnen" value={eur0(data.wonPipeline)} accent={INCOME} href="/pipeline" />
         <Stat icon={TrendingUp} label="Einnahmen / Mt." value={eur0(data.income)} accent={INCOME} href="/finanzen" />
         <Stat icon={TrendingDown} label="Ausgaben / Mt." value={eur0(data.expense)} accent={EXPENSE} href="/finanzen" />
       </div>
 
       {/* Reihe 1: Chart (oben) + Termine */}
-      <div className="grid min-h-0 flex-[1.25] grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:min-h-0 lg:flex-[1.25] lg:grid-cols-3">
         <Card className="flex flex-col lg:col-span-2">
           <CardHeader className="items-center pb-0">
             <div className="flex items-baseline gap-3">
@@ -117,8 +137,8 @@ export function Overview() {
               <Link href="/finanzen" className="text-sm font-medium text-primary hover:underline">Finanzen</Link>
             </div>
           </CardHeader>
-          <CardContent className="min-h-0 flex-1 p-3">
-            <FinanceChart data={db.finance} height="full" />
+          <CardContent className="min-h-[260px] flex-1 p-3 lg:min-h-0">
+            <FinanceChart data={chartData} height="full" />
           </CardContent>
         </Card>
 
@@ -149,7 +169,7 @@ export function Overview() {
       </div>
 
       {/* Reihe 2: Cashflow (kompakt) + Aufgaben */}
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-3">
         <Card className="flex flex-col overflow-hidden lg:col-span-2">
           <CardHeader className="items-center border-b border-border pb-3">
             <CardTitle>Anstehende Zahlungen <span className="ml-1 text-sm font-normal text-muted-foreground">· 30 Tage</span></CardTitle>
@@ -160,7 +180,7 @@ export function Overview() {
               </span>
             </div>
           </CardHeader>
-          <CardContent className="grid min-h-0 flex-1 content-start grid-cols-1 gap-5 p-4 sm:grid-cols-2 sm:gap-7 sm:[&>*:nth-child(2)]:border-l sm:[&>*:nth-child(2)]:border-border sm:[&>*:nth-child(2)]:pl-7">
+          <CardContent className="grid content-start grid-cols-1 gap-5 p-4 [&>*:nth-child(2)]:border-t [&>*:nth-child(2)]:border-border [&>*:nth-child(2)]:pt-5 sm:grid-cols-2 sm:gap-7 sm:[&>*:nth-child(2)]:border-l sm:[&>*:nth-child(2)]:border-t-0 sm:[&>*:nth-child(2)]:pl-7 sm:[&>*:nth-child(2)]:pt-0 lg:min-h-0 lg:flex-1">
             <CashflowColumn title="Einnahmen" icon={<ArrowDownLeft className="h-3.5 w-3.5" />} color={INCOME} total={data.sumIncome} items={data.nextIncome} sign="+" href="/rechnungen" />
             <CashflowColumn title="Ausgaben" icon={<ArrowUpRight className="h-3.5 w-3.5" />} color={EXPENSE} total={data.sumExpense} items={data.nextExpense} sign="−" href="/finanzen" />
           </CardContent>
@@ -191,7 +211,7 @@ export function Overview() {
   )
 }
 
-function Stat({ icon: Icon, label, value, accent, href }: { icon: LucideIcon; label: string; value: string; accent: string; href: string }) {
+function Stat({ icon: Icon, label, value, hint, accent, href }: { icon: LucideIcon; label: string; value: string; hint?: string; accent: string; href: string }) {
   return (
     <Link href={href} className="group block">
       <Card className="hover-aura flex items-center gap-3 p-3.5 transition-colors hover:border-white/15 sm:p-4">
@@ -203,9 +223,10 @@ function Stat({ icon: Icon, label, value, accent, href }: { icon: LucideIcon; la
         </div>
         <div className="min-w-0 flex-1">
           <div className="eyebrow truncate">{label}</div>
-          <div className="num truncate font-heading text-xl font-bold leading-tight tracking-tight sm:text-2xl">{value}</div>
+          <div className="num truncate font-heading text-[clamp(0.95rem,4.5vw,1.35rem)] font-bold leading-tight tracking-tight sm:text-2xl">{value}</div>
+          {hint && <div className="truncate text-xs text-muted-foreground">{hint}</div>}
         </div>
-        <ArrowRight className="h-4 w-4 shrink-0 -translate-x-1 text-muted-foreground opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100" />
+        <ArrowRight className="hidden h-4 w-4 shrink-0 -translate-x-1 text-muted-foreground opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100 sm:block" />
       </Card>
     </Link>
   )

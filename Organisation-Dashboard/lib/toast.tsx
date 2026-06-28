@@ -11,7 +11,7 @@ import {
 } from "react"
 import { createPortal } from "react-dom"
 import { AnimatePresence, motion } from "framer-motion"
-import { Check, AlertTriangle, Info, X, RotateCcw } from "lucide-react"
+import { Check, AlertTriangle, Info, X, RotateCcw, type LucideIcon } from "lucide-react"
 
 type ToastKind = "success" | "error" | "info"
 
@@ -19,7 +19,7 @@ interface Toast {
   id: number
   kind: ToastKind
   message: string
-  action?: { label: string; onClick: () => void }
+  action?: { label: string; onClick: () => void; icon?: LucideIcon }
 }
 
 interface ToastApi {
@@ -97,18 +97,21 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                       <Icon className="h-4 w-4" />
                     </span>
                     <span className="flex-1 text-sm font-medium leading-snug">{t.message}</span>
-                    {t.action && (
-                      <button
-                        onClick={() => {
-                          t.action!.onClick()
-                          remove(t.id)
-                        }}
-                        className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold transition-colors hover:bg-white/[0.06]"
-                        style={{ color: accent }}
-                      >
-                        <RotateCcw className="h-3.5 w-3.5" /> {t.action.label}
-                      </button>
-                    )}
+                    {t.action && (() => {
+                      const ActionIcon = t.action.icon ?? RotateCcw
+                      return (
+                        <button
+                          onClick={() => {
+                            t.action!.onClick()
+                            remove(t.id)
+                          }}
+                          className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold transition-colors hover:bg-white/[0.06]"
+                          style={{ color: accent }}
+                        >
+                          <ActionIcon className="h-3.5 w-3.5" /> {t.action.label}
+                        </button>
+                      )
+                    })()}
                     <button
                       onClick={() => remove(t.id)}
                       aria-label="Schließen"
