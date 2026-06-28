@@ -1,8 +1,9 @@
 "use client"
 
-// Dezenter, animierter Hintergrund in der Farbe der aktiven Person.
-// Signalisiert app-weit, in wessen Profil man sich befindet — beim
-// Personenwechsel faerbt die Aura per Crossfade weich um.
+// Animierter Hintergrund in der Farbe der aktiven Person.
+// Signalisiert app-weit und deutlich, in wessen Profil man sich befindet —
+// beim Personenwechsel faerbt die Aura per Crossfade weich um. Liegt hinter
+// allen (halbtransparenten) Flaechen, daher in jedem Bereich sichtbar.
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 import { useStore } from "@/lib/store"
 import { PEOPLE } from "@/lib/types"
@@ -28,26 +29,38 @@ export function PersonAura() {
           transition={{ duration: 1.1, ease: "easeInOut" }}
           className="absolute inset-0"
         >
-          {/* Farbschleier oben — toent die Topbar-Zone */}
+          {/* Grund-Wash ueber die ganze Flaeche, damit kein Bereich neutral bleibt */}
+          <div className="absolute inset-0" style={{ background: `${c}12` }} />
           <div
-            className="absolute inset-x-0 top-0 h-[42vh]"
-            style={{ background: `radial-gradient(120% 80% at 50% 0%, ${c}16, transparent 70%)` }}
+            className="absolute inset-0"
+            style={{ background: `radial-gradient(135% 110% at 50% -10%, ${c}3a, transparent 60%)` }}
           />
-          {/* Drei langsam wandernde Glow-Blobs */}
+          {/* Farbschleier oben — toent Topbar-Zone kraeftig */}
+          <div
+            className="absolute inset-x-0 top-0 h-[46vh]"
+            style={{ background: `radial-gradient(120% 90% at 50% 0%, ${c}40, transparent 72%)` }}
+          />
+          {/* Grosse, langsam wandernde Glow-Blobs — decken alle Ecken inkl. Sidebar ab */}
           <motion.div
-            className="absolute -left-[12%] -top-[15%] h-[58vh] w-[58vh] rounded-full blur-3xl"
-            style={{ background: `radial-gradient(circle, ${c}29, transparent 70%)` }}
-            animate={drift([0, 44, -22, 0], [0, 30, 52, 0], [1, 1.16, 1.06, 1], 28)}
+            className="absolute -left-[14%] -top-[16%] h-[70vh] w-[70vh] rounded-full blur-3xl"
+            style={{ background: `radial-gradient(circle, ${c}66, transparent 70%)` }}
+            animate={drift([0, 48, -24, 0], [0, 34, 56, 0], [1, 1.18, 1.07, 1], 26)}
           />
           <motion.div
-            className="absolute -right-[12%] top-[18%] h-[52vh] w-[52vh] rounded-full blur-3xl"
-            style={{ background: `radial-gradient(circle, ${c}1f, transparent 70%)` }}
-            animate={drift([0, -52, 24, 0], [0, 42, -22, 0], [1, 1.1, 1.22, 1], 34)}
+            className="absolute -right-[14%] top-[12%] h-[64vh] w-[64vh] rounded-full blur-3xl"
+            style={{ background: `radial-gradient(circle, ${c}55, transparent 70%)` }}
+            animate={drift([0, -56, 26, 0], [0, 46, -24, 0], [1, 1.12, 1.24, 1], 32)}
           />
           <motion.div
-            className="absolute -bottom-[15%] left-[28%] h-[48vh] w-[48vh] rounded-full blur-3xl"
-            style={{ background: `radial-gradient(circle, ${c}1a, transparent 70%)` }}
-            animate={drift([0, 32, -32, 0], [0, -32, 12, 0], [1, 1.18, 1, 1], 40)}
+            className="absolute -bottom-[18%] left-[24%] h-[60vh] w-[60vh] rounded-full blur-3xl"
+            style={{ background: `radial-gradient(circle, ${c}4d, transparent 70%)` }}
+            animate={drift([0, 36, -36, 0], [0, -36, 14, 0], [1, 1.2, 1, 1], 38)}
+          />
+          {/* Zusatz-Blob links unten — sorgt fuer Farbe im Sidebar-Bereich */}
+          <motion.div
+            className="absolute bottom-[6%] -left-[10%] h-[48vh] w-[48vh] rounded-full blur-3xl"
+            style={{ background: `radial-gradient(circle, ${c}40, transparent 70%)` }}
+            animate={drift([0, 28, -14, 0], [0, -22, 18, 0], [1, 1.14, 1.04, 1], 30)}
           />
         </motion.div>
       </AnimatePresence>
