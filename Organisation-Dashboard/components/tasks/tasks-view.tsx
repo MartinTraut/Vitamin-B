@@ -136,13 +136,13 @@ export function TasksView() {
             placeholder={`Neue Aufgabe für ${person.name}…`}
             className="h-12 flex-1 rounded-xl border border-border bg-white/[0.03] px-4 text-[15px] outline-none placeholder:text-muted-foreground/70 focus:border-primary/50"
           />
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {(["low", "normal", "high"] as Priority[]).map((p) => (
               <button
                 key={p}
                 onClick={() => setPriority(p)}
                 className={cn(
-                  "h-12 rounded-xl border px-3.5 text-sm font-medium transition-colors",
+                  "h-12 flex-1 rounded-xl border px-3.5 text-sm font-medium transition-colors lg:flex-none",
                   priority === p
                     ? "border-primary/50 bg-primary/10 text-foreground"
                     : "border-border text-muted-foreground hover:text-foreground",
@@ -155,7 +155,7 @@ export function TasksView() {
                 {PRIORITY_LABEL[p]}
               </button>
             ))}
-            <Button onClick={submit} size="md" className="h-12 px-5 text-sm">
+            <Button onClick={submit} size="md" className="h-12 w-full px-5 text-sm sm:w-auto">
               <Plus className="h-4 w-4" /> Hinzufügen
             </Button>
           </div>
@@ -169,7 +169,7 @@ export function TasksView() {
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="grid items-start gap-5 lg:grid-cols-3">
+        <div className="-mx-1 flex snap-x snap-mandatory items-start gap-4 overflow-x-auto px-1 pb-2 lg:mx-0 lg:grid lg:grid-cols-3 lg:gap-5 lg:overflow-visible lg:px-0 lg:pb-0">
           {COLUMNS.map((col) => {
             const items = myTasks.filter((t) => t.status === col.status)
             return (
@@ -230,7 +230,7 @@ function Column({
   return (
     <div
       ref={setNodeRef}
-      className="flex min-h-[62vh] flex-col overflow-hidden rounded-2xl border transition-colors"
+      className="flex min-h-[46vh] w-[80vw] shrink-0 snap-start flex-col overflow-hidden rounded-2xl border transition-colors sm:w-[60vw] lg:min-h-[62vh] lg:w-auto lg:shrink lg:snap-align-none"
       style={{
         borderColor: isOver ? `${accent}66` : `${accent}33`,
         backgroundColor: isOver ? `${accent}1a` : `${accent}0d`,
@@ -379,7 +379,7 @@ function TaskCardInner({
 
         {/* Aktionen */}
         {!dragging && (
-          <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+          <div className="action-reveal flex shrink-0 items-center gap-1">
             {!done && onAdvance && (
               <button
                 onClick={onAdvance}

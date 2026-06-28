@@ -43,7 +43,7 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", stiffness: 380, damping: 38 }}
-            className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-3xl border-t border-border bg-card px-4 pb-8 pt-3"
+            className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-3xl border-t border-border bg-card px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-3"
           >
             <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-white/15" />
             <div className="mb-4 flex items-center justify-between">

@@ -116,8 +116,8 @@ export function DocumentsView({ kind }: { kind: Kind }) {
 
   return (
     <div className="space-y-4">
-      <Card className="flex flex-wrap items-center gap-3 p-4">
-        <div className="relative min-w-[180px] flex-1">
+      <Card className="flex flex-wrap items-center gap-2 p-4">
+        <div className="relative w-full min-w-[160px] sm:w-auto sm:flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
             value={search}
@@ -145,7 +145,7 @@ export function DocumentsView({ kind }: { kind: Kind }) {
           <option value="amount">Betrag</option>
           <option value="number">Nummer</option>
         </select>
-        <Button onClick={createNew}>
+        <Button onClick={createNew} className="sm:ml-auto">
           <Plus className="h-4 w-4" /> {isQuote ? "Neues Angebot" : "Neue Rechnung"}
         </Button>
       </Card>
@@ -164,7 +164,7 @@ export function DocumentsView({ kind }: { kind: Kind }) {
               <button
                 key={d.id}
                 onClick={() => setSelectedId(d.id)}
-                className="flex w-full items-center gap-4 rounded-2xl border py-4 pl-6 pr-5 text-left transition-all hover:brightness-110"
+                className="flex w-full items-center gap-3 rounded-2xl border py-4 pl-4 pr-4 text-left transition-all hover:brightness-110 sm:gap-4 sm:pl-6 sm:pr-5"
                 style={{
                   background: active ? `linear-gradient(90deg, ${color}38, ${color}12 70%)` : `linear-gradient(90deg, ${color}1c, ${color}08 70%)`,
                   borderColor: active ? color : `${color}3a`,
@@ -185,9 +185,9 @@ export function DocumentsView({ kind }: { kind: Kind }) {
                     {customerName(d.customerId)} · {d.items.length} Position{d.items.length === 1 ? "" : "en"}
                   </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-5">
+                <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-5">
                   <Badge color={color}>{label}</Badge>
-                  <span className="num w-32 text-right font-heading text-xl font-bold" style={{ color }}>{eur(t.gross)}</span>
+                  <span className="num text-right font-heading text-base font-bold sm:w-32 sm:text-xl" style={{ color }}>{eur(t.gross)}</span>
                 </div>
               </button>
             )
@@ -290,7 +290,7 @@ function Editor({
             <div className="text-xs text-muted-foreground">{doc.items.length} Positionen · {eur(totals.gross)} brutto</div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {isQuote && onConvert && (
             <Button size="sm" variant="secondary" onClick={onConvert} title="In Rechnung umwandeln">
               <ArrowRight className="h-4 w-4" /> In Rechnung
@@ -349,36 +349,52 @@ function Editor({
                 value={it.description}
                 onChange={(e) => updateItem(it.id, { description: e.target.value })}
                 placeholder="Leistung / Position"
-                className="col-span-2 h-9 rounded-lg border border-border bg-white/[0.03] px-2.5 text-sm outline-none focus:border-primary/50 sm:col-span-1"
+                className="col-span-2 h-10 rounded-lg border border-border bg-white/[0.03] px-2.5 text-sm outline-none focus:border-primary/50 sm:col-span-1 sm:h-9"
               />
-              <input
-                type="number" min={0} value={it.qty}
-                onChange={(e) => updateItem(it.id, { qty: num0(e.target.value) })}
-                className="h-9 rounded-lg border border-border bg-white/[0.03] px-2 text-right text-sm outline-none focus:border-primary/50"
-              />
-              <select
-                value={it.unit}
-                onChange={(e) => updateItem(it.id, { unit: e.target.value as LineItem["unit"] })}
-                className="h-9 rounded-lg border border-border bg-white/[0.03] px-2 text-sm outline-none focus:border-primary/50 [color-scheme:dark]"
-              >
-                {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
-              </select>
-              <input
-                type="number" min={0} step="0.01" value={it.price}
-                onChange={(e) => updateItem(it.id, { price: num0(e.target.value) })}
-                className="h-9 rounded-lg border border-border bg-white/[0.03] px-2 text-right text-sm outline-none focus:border-primary/50"
-              />
-              <select
-                value={it.taxRate}
-                onChange={(e) => updateItem(it.id, { taxRate: Number(e.target.value) })}
-                className="h-9 rounded-lg border border-border bg-white/[0.03] px-2 text-sm outline-none focus:border-primary/50 [color-scheme:dark]"
-              >
-                <option value={19}>19%</option>
-                <option value={7}>7%</option>
-                <option value={0}>0%</option>
-              </select>
-              <div className="flex h-9 items-center justify-end px-1 text-sm font-medium tabular-nums">{eur(lineNet(it))}</div>
-              <button onClick={() => removeItem(it.id)} aria-label="Position löschen" title="Position löschen" className="flex h-9 items-center justify-center text-muted-foreground transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60">
+              {/* sm:contents → auf Mobile beschriftete Felder, auf Desktop direkte Grid-Items (Layout unverändert) */}
+              <label className="sm:contents">
+                <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-muted-foreground sm:hidden">Menge</span>
+                <input
+                  type="number" min={0} inputMode="numeric" value={it.qty}
+                  onChange={(e) => updateItem(it.id, { qty: num0(e.target.value) })}
+                  className="h-10 w-full rounded-lg border border-border bg-white/[0.03] px-2 text-right text-sm outline-none focus:border-primary/50 sm:h-9"
+                />
+              </label>
+              <label className="sm:contents">
+                <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-muted-foreground sm:hidden">Einheit</span>
+                <select
+                  value={it.unit}
+                  onChange={(e) => updateItem(it.id, { unit: e.target.value as LineItem["unit"] })}
+                  className="h-10 w-full rounded-lg border border-border bg-white/[0.03] px-2 text-sm outline-none focus:border-primary/50 [color-scheme:dark] sm:h-9"
+                >
+                  {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
+                </select>
+              </label>
+              <label className="sm:contents">
+                <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-muted-foreground sm:hidden">Einzel €</span>
+                <input
+                  type="number" min={0} step="0.01" inputMode="decimal" value={it.price}
+                  onChange={(e) => updateItem(it.id, { price: num0(e.target.value) })}
+                  className="h-10 w-full rounded-lg border border-border bg-white/[0.03] px-2 text-right text-sm outline-none focus:border-primary/50 sm:h-9"
+                />
+              </label>
+              <label className="sm:contents">
+                <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-muted-foreground sm:hidden">USt</span>
+                <select
+                  value={it.taxRate}
+                  onChange={(e) => updateItem(it.id, { taxRate: Number(e.target.value) })}
+                  className="h-10 w-full rounded-lg border border-border bg-white/[0.03] px-2 text-sm outline-none focus:border-primary/50 [color-scheme:dark] sm:h-9"
+                >
+                  <option value={19}>19%</option>
+                  <option value={7}>7%</option>
+                  <option value={0}>0%</option>
+                </select>
+              </label>
+              <div className="sm:contents">
+                <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-muted-foreground sm:hidden">Netto €</span>
+                <div className="flex h-10 items-center justify-end px-1 text-sm font-medium tabular-nums sm:h-9">{eur(lineNet(it))}</div>
+              </div>
+              <button onClick={() => removeItem(it.id)} aria-label="Position löschen" title="Position löschen" className="flex h-10 items-center justify-center self-end text-muted-foreground transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 sm:h-9">
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>

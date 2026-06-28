@@ -108,6 +108,24 @@
 
 .glow-orange { box-shadow: 0 0 24px rgba(227,152,50, 0.22), 0 0 60px rgba(227,152,50, 0.08); }
 
+/* Aktions-Buttons (Löschen, Status weiter, …): auf Touch-Geräten dauerhaft
+   sichtbar, nur auf Geräten mit echtem Hover erst beim Hover der Karte
+   einblenden. Ersetzt das fragile `opacity-0 group-hover:opacity-100`,
+   das auf dem Handy nie auslöst. */
+.action-reveal { opacity: 1; }
+@media (hover: hover) and (pointer: fine) {
+    .action-reveal {
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+    .group:hover .action-reveal,
+    .action-reveal:focus-visible,
+    .action-reveal:focus-within {
+        opacity: 1;
+    }
+}
+
+
 /* Soft orange aura behind cards on hover */
 .hover-aura { position: relative; }
 .hover-aura::after {
