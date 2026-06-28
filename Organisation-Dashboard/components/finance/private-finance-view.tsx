@@ -22,7 +22,7 @@ import { todayISO } from "@/lib/recurrence"
 import { buildSeries, GRAN_LABEL, type Gran } from "@/lib/finance-series"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { FinanceChart, CategoryDonut } from "@/components/dashboard/charts"
+import { FinanceChart, CategoryDonut, ChartLegend, type SeriesKey } from "@/components/dashboard/charts"
 import { cn } from "@/lib/utils"
 
 const INCOME = "#34d399"
@@ -42,6 +42,9 @@ export function PrivateFinanceView() {
   const person = PEOPLE.find((p) => p.id === activePerson)!
   const [adding, setAdding] = useState(false)
   const [gran, setGran] = useState<Gran>("month")
+  // Welche Verlauf-Linien sichtbar sind (über die Legende umschaltbar).
+  const [visible, setVisible] = useState<Record<SeriesKey, boolean>>({ income: true, expense: true, debt: true })
+  const toggleSeries = (k: SeriesKey) => setVisible((v) => ({ ...v, [k]: !v[k] }))
 
   // Nur private Buchungen der aktiven Person.
   const myTx = useMemo(
@@ -104,11 +107,15 @@ export function PrivateFinanceView() {
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 p-4 pb-2">
             <h3 className="font-heading text-base font-bold">Verlauf · privat</h3>
             <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: INCOME }} />Einnahmen</span>
-                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: EXPENSE }} />Ausgaben</span>
-                {myDebts.length > 0 && <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: DEBT }} />Schulden</span>}
-              </div>
+              <ChartLegend
+                visible={visible}
+                onToggle={toggleSeries}
+                items={[
+                  { key: "income", color: INCOME },
+                  { key: "expense", color: EXPENSE },
+                  ...(myDebts.length > 0 ? [{ key: "debt" as SeriesKey, color: DEBT }] : []),
+                ]}
+              />
               <div className="flex items-center rounded-lg border border-border bg-white/[0.03] p-0.5">
                 {(["day", "week", "month"] as Gran[]).map((g) => (
                   <button key={g} onClick={() => setGran(g)} aria-pressed={gran === g} className={cn("rounded-md px-2.5 py-1 text-xs font-semibold transition-colors", gran === g ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>
@@ -119,7 +126,7 @@ export function PrivateFinanceView() {
             </div>
           </div>
           <div className="min-h-[240px] flex-1 p-3 pt-1">
-            <FinanceChart data={chartData} height="full" />
+            <FinanceChart data={chartData} height="full" visible={visible} />
           </div>
         </Card>
 

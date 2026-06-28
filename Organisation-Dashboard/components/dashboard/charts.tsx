@@ -13,6 +13,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
+import { Check } from "lucide-react"
 import type { SeriesPoint } from "@/lib/finance-series"
 import { eur, eur0 } from "@/lib/format"
 import { cn } from "@/lib/utils"
@@ -60,15 +61,81 @@ export function CategoryDonut({ data }: { data: { name: string; value: number }[
   )
 }
 
+export type SeriesKey = "income" | "expense" | "debt"
+
+const SERIES_LABEL: Record<SeriesKey, string> = {
+  income: "Einnahmen",
+  expense: "Ausgaben",
+  debt: "Schulden",
+}
+
+/**
+ * Anklickbare Chart-Legende: jeder Eintrag blendet seine Linie ein/aus.
+ * `visible` kommt aus dem Eltern-State, `onToggle` schaltet den jeweiligen Key um.
+ */
+export function ChartLegend({
+  items,
+  visible,
+  onToggle,
+}: {
+  items: { key: SeriesKey; color: string; label?: string }[]
+  visible: Partial<Record<SeriesKey, boolean>>
+  onToggle: (key: SeriesKey) => void
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      {items.map((it) => {
+        const on = visible[it.key] ?? true
+        const label = it.label ?? SERIES_LABEL[it.key]
+        return (
+          <button
+            key={it.key}
+            type="button"
+            onClick={() => onToggle(it.key)}
+            aria-pressed={on}
+            title={on ? `${label} ausblenden` : `${label} einblenden`}
+            className={cn(
+              "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-all",
+              on
+                ? "text-foreground shadow-sm"
+                : "border-border/70 text-muted-foreground/60 hover:border-border hover:text-muted-foreground",
+            )}
+            style={on ? { backgroundColor: `${it.color}24`, borderColor: `${it.color}80` } : undefined}
+          >
+            <span
+              className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full transition-all"
+              style={
+                on
+                  ? { background: it.color }
+                  : { border: `1.5px solid ${it.color}`, opacity: 0.5 }
+              }
+            >
+              {on && <Check className="h-2.5 w-2.5 text-black/80" strokeWidth={3.5} />}
+            </span>
+            <span className="transition-colors">{label}</span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 export function FinanceChart({
   data,
   height = 260,
+  visible,
 }: {
   data: SeriesPoint[]
   height?: number | "full"
+  visible?: Partial<Record<SeriesKey, boolean>>
 }) {
   const fill = height === "full"
-  const hasDebt = data.some((d) => typeof d.debt === "number")
+  const show = {
+    income: visible?.income ?? true,
+    expense: visible?.expense ?? true,
+    debt: visible?.debt ?? true,
+  }
+  const hasDebt = data.some((d) => typeof d.debt === "number") && show.debt
   return (
     <div className={cn("w-full", fill && "h-full")} style={fill ? undefined : { height }}>
       <ResponsiveContainer width="100%" height="100%">
@@ -112,8 +179,8 @@ export function FinanceChart({
             ]}
           />
           {hasDebt && <Area type="monotone" dataKey="debt" stroke="#f59e0b" strokeWidth={2.5} fill="url(#debtFillInline)" />}
-          <Area type="monotone" dataKey="income" stroke="#34d399" strokeWidth={2.5} fill="url(#incomeFill)" />
-          <Area type="monotone" dataKey="expense" stroke="#ef4444" strokeWidth={2} fill="url(#expenseFill)" />
+          {show.income && <Area type="monotone" dataKey="income" stroke="#34d399" strokeWidth={2.5} fill="url(#incomeFill)" />}
+          {show.expense && <Area type="monotone" dataKey="expense" stroke="#ef4444" strokeWidth={2} fill="url(#expenseFill)" />}
         </AreaChart>
       </ResponsiveContainer>
     </div>

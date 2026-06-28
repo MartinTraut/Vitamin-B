@@ -5,10 +5,12 @@ import { MobileNav } from "./mobile-nav"
 import { QuickAdd } from "./quick-add"
 import { CommandPalette } from "./command-palette"
 import { ThemeController } from "./theme-controller"
+import { PersonAura } from "./person-aura"
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-screen overflow-hidden">
+      <PersonAura />
       <Sidebar />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <Topbar />
