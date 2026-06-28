@@ -102,7 +102,7 @@ export function Overview() {
   }, [db, activePerson, chartData])
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 lg:h-full lg:min-h-0">
       {/* Begrüßung — kompakt */}
       <div className="flex items-baseline gap-2">
         <h2 className="font-heading text-[clamp(1.15rem,4vw+0.3rem,1.25rem)] font-bold tracking-tight">
@@ -122,7 +122,7 @@ export function Overview() {
       </div>
 
       {/* Reihe 1: Chart (oben) + Termine */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:min-h-0 lg:flex-[1.25] lg:grid-cols-3">
         <Card className="flex flex-col lg:col-span-2">
           <CardHeader className="items-center pb-0">
             <div className="flex items-baseline gap-3">
@@ -137,7 +137,7 @@ export function Overview() {
               <Link href="/finanzen" className="text-sm font-medium text-primary hover:underline">Finanzen</Link>
             </div>
           </CardHeader>
-          <CardContent className="min-h-[260px] flex-1 p-3 lg:min-h-[340px]">
+          <CardContent className="min-h-[260px] flex-1 p-3 lg:min-h-0">
             <FinanceChart data={chartData} height="full" />
           </CardContent>
         </Card>
@@ -169,8 +169,8 @@ export function Overview() {
       </div>
 
       {/* Reihe 2: Cashflow (kompakt) + Aufgaben */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card className="flex flex-col lg:col-span-2">
+      <div className="grid grid-cols-1 gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-3">
+        <Card className="flex flex-col overflow-hidden lg:col-span-2">
           <CardHeader className="items-center border-b border-border pb-3">
             <CardTitle>Anstehende Zahlungen <span className="ml-1 text-sm font-normal text-muted-foreground">· 30 Tage</span></CardTitle>
             <div className="flex items-baseline gap-1.5">

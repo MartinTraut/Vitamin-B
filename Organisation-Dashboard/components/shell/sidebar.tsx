@@ -14,7 +14,7 @@ export function Sidebar() {
   const pathname = usePathname()
 
   return (
-    <aside className="hidden h-screen w-[268px] shrink-0 flex-col border-r border-border bg-[#070707]/55 backdrop-blur-2xl lg:flex">
+    <aside className="hidden h-screen w-[268px] shrink-0 flex-col border-r border-border bg-[#070707] lg:flex">
       {/* Brand */}
       <div className="flex items-center gap-3 border-b border-border px-5 py-[18px]">
         <Image
