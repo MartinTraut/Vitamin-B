@@ -19,6 +19,7 @@ const KEYS: (keyof Database)[] = [
   "quotes",
   "invoices",
   "transactions",
+  "debts",
   "templates",
   "company",
   "whiteboards",

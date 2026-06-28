@@ -1,7 +1,8 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { Plus, TrendingUp, TrendingDown, Wallet, Receipt, Trash2, ArrowDownLeft, ArrowUpRight } from "lucide-react"
+import { Plus, TrendingUp, TrendingDown, Wallet, Receipt, Trash2, ArrowDownLeft, ArrowUpRight, Search, Building2 } from "lucide-react"
+import Link from "next/link"
 import { useStore } from "@/lib/store"
 import {
   EXPENSE_CATEGORIES,
@@ -10,7 +11,8 @@ import {
   type Transaction,
 } from "@/lib/types"
 import { eur, eur0, dateDE } from "@/lib/format"
-import { todayISO } from "@/lib/recurrence"
+import { todayISO, toISO } from "@/lib/recurrence"
+import { buildSeries, GRAN_LABEL, type Gran } from "@/lib/finance-series"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { FinanceChart, CategoryDonut } from "@/components/dashboard/charts"
@@ -34,9 +36,18 @@ function parseAmount(s: string): number {
 export function FinanceView() {
   const { db, addTransaction, removeTransaction } = useStore()
   const [adding, setAdding] = useState(false)
+  const [gran, setGran] = useState<Gran>("month")
+  // Ledger-Filter
+  const [search, setSearch] = useState("")
+  const [txType, setTxType] = useState<"all" | "income" | "expense">("all")
+  const [txPeriod, setTxPeriod] = useState<"all" | "week" | "month">("all")
+
+  // Nur geschäftliche Buchungen — private laufen getrennt unter /privat.
+  const businessTx = useMemo(() => db.transactions.filter((t) => t.scope !== "private"), [db.transactions])
+  const chartData = useMemo(() => buildSeries(businessTx, gran), [businessTx, gran])
 
   const m = useMemo(() => {
-    const tx = db.transactions
+    const tx = businessTx
     const income = tx.filter((t) => t.type === "income")
     const expense = tx.filter((t) => t.type === "expense")
     const sumIncome = income.reduce((s, t) => s + t.amount, 0)
@@ -54,12 +65,51 @@ export function FinanceView() {
       cats, maxCat,
       sorted: [...tx].sort((a, b) => b.date.localeCompare(a.date)),
     }
-  }, [db.transactions])
+  }, [businessTx])
+
+  // Gefilterte Buchungsliste (Suche + Typ + Zeitraum)
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    const now = new Date()
+    now.setHours(0, 0, 0, 0)
+    let startISO = ""
+    if (txPeriod === "week") {
+      const w = new Date(now)
+      w.setDate(w.getDate() - ((w.getDay() + 6) % 7))
+      startISO = toISO(w)
+    } else if (txPeriod === "month") {
+      startISO = toISO(new Date(now.getFullYear(), now.getMonth(), 1))
+    }
+    const list = m.sorted.filter((t) => {
+      if (txType !== "all" && t.type !== txType) return false
+      if (startISO && t.date < startISO) return false
+      if (q && !(t.category.toLowerCase().includes(q) || (t.note ?? "").toLowerCase().includes(q))) return false
+      return true
+    })
+    const net = list.reduce((s, t) => s + (t.type === "income" ? t.amount : -t.amount), 0)
+    return { list, net }
+  }, [m.sorted, search, txType, txPeriod])
 
   return (
     <div className="space-y-4">
+      {/* Firmen-Banner — klare Abgrenzung zu den privaten Finanzen */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-4" style={{ background: `linear-gradient(135deg, ${INCOME}1f, ${INCOME}06 70%)`, borderColor: `${INCOME}40` }}>
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${INCOME}24`, color: INCOME, border: `1px solid ${INCOME}55` }}>
+            <Building2 className="h-5 w-5" />
+          </span>
+          <div className="min-w-0">
+            <div className="font-heading text-base font-bold">Firmen-Finanzen{db.company?.name ? ` · ${db.company.name}` : ""}</div>
+            <div className="text-xs text-muted-foreground">Geschäftliche Einnahmen & Ausgaben · teamweit</div>
+          </div>
+        </div>
+        <Link href="/privat" className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground">
+          Private Finanzen →
+        </Link>
+      </div>
+
       {/* KPIs */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Kpi icon={TrendingUp} label="Einnahmen" value={eur0(m.sumIncome)} accent={INCOME} />
         <Kpi icon={TrendingDown} label="Ausgaben" value={eur0(m.sumExpense)} accent={EXPENSE} />
         <Kpi icon={Wallet} label="Gewinn" value={eur0(m.profit)} accent={m.profit >= 0 ? INCOME : EXPENSE} />
@@ -69,15 +119,33 @@ export function FinanceView() {
       <div className="grid gap-4 lg:grid-cols-3">
         {/* Verlauf */}
         <Card className="flex flex-col lg:col-span-2">
-          <div className="flex items-center justify-between p-4 pb-0">
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 p-4 pb-2">
             <h3 className="font-heading text-base font-bold">Verlauf · Einnahmen & Ausgaben</h3>
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: INCOME }} />Einnahmen</span>
-              <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: EXPENSE }} />Ausgaben</span>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: INCOME }} />Einnahmen</span>
+                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: EXPENSE }} />Ausgaben</span>
+              </div>
+              {/* Tag / Woche / Monat */}
+              <div className="flex items-center rounded-lg border border-border bg-white/[0.03] p-0.5">
+                {(["day", "week", "month"] as Gran[]).map((g) => (
+                  <button
+                    key={g}
+                    onClick={() => setGran(g)}
+                    aria-pressed={gran === g}
+                    className={cn(
+                      "rounded-md px-2.5 py-1 text-xs font-semibold transition-colors",
+                      gran === g ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {GRAN_LABEL[g]}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-          <div className="p-3">
-            <FinanceChart data={db.finance} height={230} />
+          <div className="min-h-[240px] flex-1 p-3 pt-1">
+            <FinanceChart data={chartData} height="full" />
           </div>
         </Card>
 
@@ -108,6 +176,30 @@ export function FinanceView() {
             <Plus className="h-4 w-4" /> Buchung
           </Button>
         </div>
+
+        {/* Filterleiste: Suche · Typ · Zeitraum */}
+        <div className="flex flex-wrap items-center gap-2 border-b border-border bg-white/[0.015] px-4 py-3">
+          <div className="relative min-w-[150px] flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Kategorie oder Notiz suchen…"
+              className="h-9 w-full rounded-lg border border-border bg-white/[0.03] pl-9 pr-3 text-sm outline-none focus:border-primary/50"
+            />
+          </div>
+          <Segmented
+            value={txType}
+            onChange={(v) => setTxType(v as typeof txType)}
+            options={[{ v: "all", l: "Alle" }, { v: "income", l: "Einnahmen", color: INCOME }, { v: "expense", l: "Ausgaben", color: EXPENSE }]}
+          />
+          <Segmented
+            value={txPeriod}
+            onChange={(v) => setTxPeriod(v as typeof txPeriod)}
+            options={[{ v: "all", l: "Gesamt" }, { v: "week", l: "Woche" }, { v: "month", l: "Monat" }]}
+          />
+        </div>
+
         {adding && (
           <AddTransaction
             onCancel={() => setAdding(false)}
@@ -115,8 +207,8 @@ export function FinanceView() {
           />
         )}
         <div className="divide-y divide-border">
-          {m.sorted.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">Noch keine Buchungen.</p>}
-          {m.sorted.map((t) => {
+          {filtered.list.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">{m.sorted.length === 0 ? "Noch keine Buchungen." : "Keine Treffer für diesen Filter."}</p>}
+          {filtered.list.map((t) => {
             const inc = t.type === "income"
             return (
               <div key={t.id} className="group flex items-center gap-3 px-4 py-3">
@@ -130,14 +222,48 @@ export function FinanceView() {
                 <span className="text-sm font-semibold tabular-nums" style={{ color: inc ? INCOME : EXPENSE }}>
                   {inc ? "+" : "−"}{eur(t.amount)}
                 </span>
-                <button onClick={() => removeTransaction(t.id)} aria-label="Buchung löschen" title="Buchung löschen" className="rounded-md p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/15 hover:text-destructive focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 group-hover:opacity-100">
+                <button onClick={() => removeTransaction(t.id)} aria-label="Buchung löschen" title="Buchung löschen" className="action-reveal rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60">
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
               </div>
             )
           })}
         </div>
+
+        {/* Auswahl-Summe */}
+        {filtered.list.length > 0 && (
+          <div className="flex items-center justify-between border-t border-border bg-white/[0.015] px-4 py-2.5 text-xs">
+            <span className="text-muted-foreground">{filtered.list.length} {filtered.list.length === 1 ? "Buchung" : "Buchungen"}</span>
+            <span className="font-semibold text-muted-foreground">
+              Saldo Auswahl <span className="num font-bold" style={{ color: filtered.net >= 0 ? INCOME : EXPENSE }}>{filtered.net >= 0 ? "+" : "−"}{eur(Math.abs(filtered.net))}</span>
+            </span>
+          </div>
+        )}
       </Card>
+    </div>
+  )
+}
+
+function Segmented({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: { v: string; l: string; color?: string }[] }) {
+  return (
+    <div className="flex items-center rounded-lg border border-border bg-white/[0.03] p-0.5">
+      {options.map((o) => {
+        const active = value === o.v
+        return (
+          <button
+            key={o.v}
+            onClick={() => onChange(o.v)}
+            aria-pressed={active}
+            className={cn(
+              "rounded-md px-2.5 py-1 text-xs font-semibold transition-colors",
+              active ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+            )}
+            style={active ? { backgroundColor: o.color ?? "var(--primary)", color: o.color ? "#fff" : "var(--primary-foreground)" } : undefined}
+          >
+            {o.l}
+          </button>
+        )
+      })}
     </div>
   )
 }
@@ -195,9 +321,9 @@ function Kpi({ icon: Icon, label, value, accent }: { icon: typeof TrendingUp; la
       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${accent}1f`, color: accent, border: `1px solid ${accent}33` }}>
         <Icon className="h-5 w-5" />
       </div>
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <div className="eyebrow truncate">{label}</div>
-        <div className="num font-heading text-2xl font-bold leading-tight tracking-tight">{value}</div>
+        <div className="num truncate font-heading text-[clamp(1rem,5vw,1.5rem)] font-bold leading-tight tracking-tight sm:text-2xl">{value}</div>
       </div>
     </Card>
   )

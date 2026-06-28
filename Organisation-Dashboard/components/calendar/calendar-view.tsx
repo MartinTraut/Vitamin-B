@@ -188,14 +188,14 @@ export function CalendarView() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4">
+    <div className="flex flex-col gap-4 lg:h-full lg:min-h-0">
       {/* Kopfzeile: Navigation + View-Switch */}
-      <Card className="flex flex-wrap items-center justify-between gap-3 p-4">
-        <div className="flex items-center gap-2">
+      <Card className="flex flex-wrap items-center justify-between gap-3 p-3 sm:p-4">
+        <div className="flex flex-1 items-center gap-1.5 sm:flex-none sm:gap-2">
           <Button variant="ghost" size="icon" onClick={() => move(-1)}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <h3 className="min-w-[220px] text-center font-heading text-lg font-bold">{headerLabel}</h3>
+          <h3 className="min-w-0 flex-1 text-center font-heading text-base font-bold sm:min-w-[220px] sm:flex-none sm:text-lg">{headerLabel}</h3>
           <Button variant="ghost" size="icon" onClick={() => move(1)}>
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -203,15 +203,15 @@ export function CalendarView() {
             Heute
           </Button>
         </div>
-        <div className="flex items-center gap-1 rounded-xl border border-border bg-white/[0.03] p-1">
+        <div className="flex w-full items-center gap-1 rounded-xl border border-border bg-white/[0.03] p-1 sm:w-auto">
           <SwitchBtn active={view === "day"} onClick={() => setView("day")} icon={<Sun className="h-4 w-4" />} label="Tag" />
           <SwitchBtn active={view === "week"} onClick={() => setView("week")} icon={<Clock className="h-4 w-4" />} label="Woche" />
           <SwitchBtn active={view === "month"} onClick={() => setView("month")} icon={<CalendarDays className="h-4 w-4" />} label="Monat" />
         </div>
       </Card>
 
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-3">
-        <div className="flex min-h-0 flex-col lg:col-span-2">
+      <div className="grid gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-3">
+        <div className="flex flex-col lg:col-span-2 lg:min-h-0">
           {view === "month" ? (
             <MonthGrid
               grid={grid}
@@ -234,7 +234,7 @@ export function CalendarView() {
         </div>
 
         {/* Tages-Panel */}
-        <Card className="flex h-full min-h-0 flex-col">
+        <Card className="flex flex-col lg:h-full lg:min-h-0">
           <div className="flex items-center justify-between border-b border-border p-4">
             <div>
               <div className="text-xs text-muted-foreground">Ausgewählter Tag</div>
@@ -325,7 +325,7 @@ export function CalendarView() {
       </div>
 
       <p className="text-center text-xs text-muted-foreground">
-        {view === "week" ? "Mit der Maus über die Stunden ziehen, um einen Timeslot anzulegen · " : ""}
+        {view === "week" ? "Auf eine Stunde tippen oder mit der Maus ziehen, um einen Timeslot anzulegen · " : ""}
         Kalender von <span style={{ color: person.color }}>{person.name}</span> · oben links die Person wechseln
       </p>
 
@@ -476,13 +476,13 @@ function CategoryRow({
           {cat.label}
         </button>
       )}
-      <div className="flex shrink-0 items-center gap-1.5">
+      <div className="flex flex-wrap items-center justify-end gap-1.5">
         {CATEGORY_COLOR_PALETTE.map((col) => (
           <button
             key={col}
             onClick={() => onUpdate({ color: col })}
             aria-label={`Farbe ${col}`}
-            className="h-5 w-5 rounded-full transition-transform hover:scale-110"
+            className="h-7 w-7 rounded-full transition-transform hover:scale-110 sm:h-5 sm:w-5"
             style={{
               backgroundColor: col,
               boxShadow: cat.color === col ? `0 0 0 2px var(--card), 0 0 0 4px ${col}` : "none",
@@ -647,7 +647,7 @@ function SwitchBtn({ active, onClick, icon, label }: { active: boolean; onClick:
     <button
       onClick={onClick}
       className={cn(
-        "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+        "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors sm:flex-none",
         active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
       )}
     >
@@ -675,7 +675,7 @@ function MonthGrid({
   onSelect: (d: string) => void
 }) {
   return (
-    <Card className="flex h-full flex-col overflow-hidden">
+    <Card className="flex flex-col overflow-hidden lg:h-full">
       <div className="grid shrink-0 grid-cols-7 border-b border-border bg-white/[0.02]">
         {WD.map((d) => (
           <div key={d} className="py-3 text-center text-xs font-bold uppercase tracking-wider text-muted-foreground">
@@ -694,7 +694,7 @@ function MonthGrid({
               key={date}
               onClick={() => onSelect(date)}
               className={cn(
-                "flex min-h-[84px] flex-col gap-1.5 overflow-hidden border-b border-r border-border/60 p-2 text-left transition-colors",
+                "flex min-h-[58px] flex-col gap-1.5 overflow-hidden border-b border-r border-border/60 p-1.5 text-left transition-colors sm:min-h-[84px] sm:p-2",
                 idx % 7 === 6 && "border-r-0",
                 idx >= 35 && "border-b-0",
                 isSelected ? "bg-primary/10 ring-1 ring-inset ring-primary/50" : "hover:bg-white/[0.03]",
@@ -704,7 +704,7 @@ function MonthGrid({
               <div className="flex shrink-0 items-center justify-between">
                 <span
                   className={cn(
-                    "flex h-7 w-7 items-center justify-center rounded-lg text-sm font-bold",
+                    "flex h-6 w-6 items-center justify-center rounded-lg text-xs font-bold sm:h-7 sm:w-7 sm:text-sm",
                     isToday && "bg-primary text-primary-foreground",
                     !isToday && isSelected && "text-primary",
                   )}
@@ -712,12 +712,24 @@ function MonthGrid({
                   {parseISO(date).getDate()}
                 </span>
                 {evs.length > 1 && (
-                  <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold text-primary">
+                  <span className="hidden rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold text-primary sm:inline">
                     {evs.length} Termine
                   </span>
                 )}
               </div>
-              <div className="min-h-0 flex-1 space-y-1 overflow-hidden">
+
+              {/* Mobile: kompakte Farbpunkte (Text-Chips wären bei ~40px Spaltenbreite unleserlich) */}
+              {evs.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1 sm:hidden">
+                  {evs.slice(0, 4).map((e, i) => (
+                    <span key={e.id + i} className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: e.categoryColor }} />
+                  ))}
+                  {evs.length > 4 && <span className="text-[9px] font-semibold text-muted-foreground">+{evs.length - 4}</span>}
+                </div>
+              )}
+
+              {/* Tablet/Desktop: Text-Chips */}
+              <div className="hidden min-h-0 flex-1 space-y-1 overflow-hidden sm:block">
                 {evs.slice(0, 4).map((e, i) => (
                   <div
                     key={e.id + i}
@@ -846,6 +858,17 @@ function WeekGrid({
                     <div
                       key={h}
                       onPointerDown={(e) => {
+                        // Touch: einzelne Stunde antippen legt direkt einen 1-Stunden-Termin an
+                        // (Drag-to-create würde sonst das vertikale Scrollen blockieren).
+                        if (e.pointerType !== "mouse") {
+                          onCreate({
+                            date: day,
+                            time: `${String(h).padStart(2, "0")}:00`,
+                            endTime: `${String(h + 1).padStart(2, "0")}:00`,
+                          })
+                          onSelectDay(day)
+                          return
+                        }
                         e.preventDefault()
                         dragging.current = true
                         setDrag({ day, a: hi, b: hi })

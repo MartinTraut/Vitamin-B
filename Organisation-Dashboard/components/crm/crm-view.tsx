@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import {
   Plus,
   Search,
@@ -43,6 +43,16 @@ export function CrmView() {
   const [query, setQuery] = useState("")
   const [selectedId, setSelectedId] = useState<string | null>(db.customers[0]?.id ?? null)
   const [adding, setAdding] = useState(false)
+  const detailRef = useRef<HTMLDivElement>(null)
+
+  // Mobile/Tablet: Liste und Detail stapeln. Nach Auswahl sanft zum Detail scrollen.
+  function selectCustomer(id: string) {
+    setSelectedId(id)
+    setAdding(false)
+    if (typeof window !== "undefined" && window.innerWidth < 1024) {
+      requestAnimationFrame(() => detailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }))
+    }
+  }
 
   // Aus der ⌘K-Suche vorselektieren (?sel=<id>).
   useEffect(() => {
@@ -96,7 +106,7 @@ export function CrmView() {
             return (
               <button
                 key={c.id}
-                onClick={() => { setSelectedId(c.id); setAdding(false) }}
+                onClick={() => selectCustomer(c.id)}
                 className={cn(
                   "w-full rounded-2xl border bg-card/80 p-4 text-left transition-all hover:border-white/15",
                   active ? "border-primary/50 ring-1 ring-inset ring-primary/30" : "border-border",
@@ -126,7 +136,7 @@ export function CrmView() {
         </div>
 
         {/* Detail / Anlegen */}
-        <div className="lg:col-span-2">
+        <div className="scroll-mt-24 lg:col-span-2" ref={detailRef}>
           {adding ? (
             <AddCustomer
               onCancel={() => setAdding(false)}
@@ -212,7 +222,7 @@ function CustomerDetail({
             {initials(customer.company)}
           </span>
           <div>
-            <h3 className="font-heading text-xl font-bold tracking-tight">{customer.company}</h3>
+            <h3 className="font-heading text-[clamp(1.15rem,4vw+0.3rem,1.25rem)] font-bold tracking-tight">{customer.company}</h3>
             <div className="mt-1 flex items-center gap-2">
               <Badge color={HEALTH_COLOR[customer.health]}>{HEALTH_LABEL[customer.health]}</Badge>
               {customer.source && <span className="text-xs text-muted-foreground">via {customer.source}</span>}
@@ -429,7 +439,7 @@ function MiniStat({ label, value, accent }: { label: string; value: string; acce
       }}
     >
       <div className="eyebrow truncate" style={{ color: `${accent}cc` }}>{label}</div>
-      <div className="num mt-1 truncate font-heading text-2xl font-bold leading-tight" style={{ color: accent }}>{value}</div>
+      <div className="num mt-1 truncate font-heading text-[clamp(1rem,5vw,1.5rem)] font-bold leading-tight sm:text-2xl" style={{ color: accent }}>{value}</div>
     </div>
   )
 }
@@ -480,7 +490,7 @@ function ProjectRow({
           </span>
         </button>
         <Badge color={color}>{PROJECT_STATUS_LABEL[project.status]}</Badge>
-        <button onClick={onRemove} aria-label="Projekt entfernen" title="Projekt entfernen" className="rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:text-destructive focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 group-hover:opacity-100">
+        <button onClick={onRemove} aria-label="Projekt entfernen" title="Projekt entfernen" className="action-reveal rounded-md p-1 text-muted-foreground transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60">
           <X className="h-3.5 w-3.5" />
         </button>
       </div>

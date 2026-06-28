@@ -258,6 +258,7 @@ export interface Quote {
   validUntil: string
   person: Person
   notes?: string
+  dealId?: string // verknüpfter Pipeline-Deal
   createdAt: string
 }
 
@@ -286,6 +287,10 @@ export interface Template {
 
 export type TxType = "income" | "expense"
 
+// Geschäftlich (Firma, teamweit) vs. privat (pro Person). Fehlt das Feld,
+// gilt die Buchung als geschäftlich — so bleiben Altdaten unverändert.
+export type TxScope = "business" | "private"
+
 export interface Transaction {
   id: string
   type: TxType
@@ -296,10 +301,35 @@ export interface Transaction {
   customerId?: string
   invoiceId?: string
   note?: string
+  scope?: TxScope // undefined = "business"
+  person?: Person // nur bei scope "private" gesetzt (Eigentümer)
 }
 
 export const EXPENSE_CATEGORIES = ["Material", "Miete", "Fahrzeuge", "Software", "Marketing", "Personal", "Steuern", "Sonstiges"]
 export const INCOME_CATEGORIES = ["Beschriftung", "Folierung", "Druck", "Design", "Web", "Wartung", "Sonstiges"]
+
+// Private Kategorien (pro Person, getrennt von der Firma)
+export const PRIVATE_EXPENSE_CATEGORIES = ["Wohnen", "Lebensmittel", "Mobilität", "Versicherung", "Freizeit", "Gesundheit", "Abos", "Kredit/Rate", "Sonstiges"]
+export const PRIVATE_INCOME_CATEGORIES = ["Gehalt", "Entnahme", "Nebenjob", "Erstattung", "Sonstiges"]
+
+/* ---------- Private Schulden ---------- */
+
+export interface DebtPayment {
+  date: string // YYYY-MM-DD
+  amount: number
+}
+
+export interface Debt {
+  id: string
+  person: Person
+  title: string // Gläubiger / Zweck, z. B. "Autokredit Sparkasse"
+  total: number // Gesamtbetrag
+  paid: number // bereits getilgt (kumuliert)
+  monthlyRate?: number // optionale monatliche Rate
+  payments?: DebtPayment[] // datierte Tilgungen → Schulden-Verlaufskurve
+  note?: string
+  createdAt: string
+}
 
 export interface CompanySettings {
   name: string
@@ -349,6 +379,7 @@ export interface Database {
   quotes: Quote[]
   invoices: Invoice[]
   transactions: Transaction[]
+  debts: Debt[]
   templates: Template[]
   company: CompanySettings
   whiteboards: Whiteboard[]

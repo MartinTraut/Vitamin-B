@@ -132,7 +132,7 @@ export function LoginScreen() {
           <motion.div variants={rise} className="mt-6 text-xs font-semibold uppercase tracking-[0.24em] text-primary">
             Organisations-OS
           </motion.div>
-          <motion.h1 variants={rise} className="mt-2 font-heading text-[1.7rem] font-bold leading-tight">
+          <motion.h1 variants={rise} className="mt-2 font-heading text-[clamp(1.4rem,5vw+0.5rem,1.7rem)] font-bold leading-tight">
             Team-Anmeldung
           </motion.h1>
           <motion.p variants={rise} className="mt-2 max-w-xs text-sm text-muted-foreground">

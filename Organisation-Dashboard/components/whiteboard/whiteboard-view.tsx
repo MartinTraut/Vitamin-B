@@ -45,9 +45,9 @@ export function WhiteboardView() {
   }
 
   return (
-    <div className="flex h-full min-h-0 gap-4">
+    <div className="flex h-full min-h-0 flex-col gap-4 lg:flex-row">
       {/* Board-Liste */}
-      <aside className="flex w-60 shrink-0 flex-col rounded-2xl border border-border bg-card/80">
+      <aside className="flex max-h-[55vh] w-full shrink-0 flex-col rounded-2xl border border-border bg-card/80 lg:max-h-none lg:w-60">
         <div className="flex items-center justify-between border-b border-border p-3">
           <span className="font-heading text-sm font-bold">Boards</span>
           <Button size="sm" onClick={create}>
@@ -81,7 +81,7 @@ export function WhiteboardView() {
                     <span className="block text-[11px] text-muted-foreground">{person ? person.name : "Team"}</span>
                   </span>
                 </button>
-                <div className="flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100">
+                <div className="action-reveal flex shrink-0 items-center">
                   <button onClick={() => rename(w.id, w.name)} aria-label="Board umbenennen" title="Umbenennen" className="rounded-md p-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60">
                     <Pencil className="h-3.5 w-3.5" />
                   </button>
@@ -95,8 +95,8 @@ export function WhiteboardView() {
         </div>
       </aside>
 
-      {/* Canvas */}
-      <div className="relative min-w-0 flex-1 overflow-hidden rounded-2xl border border-border">
+      {/* Canvas — tldraw ist ein Desktop-Zeichentool, daher nur ab lg sichtbar */}
+      <div className="relative hidden min-w-0 flex-1 overflow-hidden rounded-2xl border border-border lg:block">
         {selected ? (
           <Tldraw key={selected.id} persistenceKey={`vitaminb-wb-${selected.id}`} inferDarkMode />
         ) : (
@@ -106,6 +106,16 @@ export function WhiteboardView() {
             Board auswählen oder neu anlegen.
           </div>
         )}
+      </div>
+
+      {/* Mobile/Tablet: Zeichenfläche bewusst ausgeblendet, klarer Hinweis */}
+      <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-card/40 px-6 py-10 text-center lg:hidden">
+        <span className="flex h-12 w-12 items-center justify-center rounded-2xl" style={{ backgroundColor: "rgba(227,152,50,0.15)", color: "#E39832" }}>
+          <PenTool className="h-5 w-5" />
+        </span>
+        <p className="max-w-xs text-sm text-muted-foreground">
+          Boards anlegen, umbenennen und verwalten klappt hier. Zum <span className="font-medium text-foreground">Zeichnen</span> das Whiteboard am Desktop öffnen.
+        </p>
       </div>
     </div>
   )

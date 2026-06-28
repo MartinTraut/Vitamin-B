@@ -24,6 +24,7 @@ import type {
   Task,
   TaskStatus,
   Transaction,
+  Debt,
   Whiteboard,
 } from "./types"
 import { buildDemoData } from "./demo-data"
@@ -53,6 +54,8 @@ function mergeDb(partial: Partial<Database>): Database {
   return withOverdue({
     ...base,
     ...partial,
+    // Neues Feld: bei Bestandsdaten leer starten statt Demo-Schulden einzuspielen.
+    debts: partial.debts ?? [],
     company: { ...base.company, ...(partial.company ?? {}) },
   })
 }
@@ -75,7 +78,7 @@ interface StoreValue {
   updateAppointmentCategory: (id: string, patch: Partial<Omit<AppointmentCategoryDef, "id">>) => void
   removeAppointmentCategory: (id: string) => void
   // CRM
-  addCustomer: (input: Omit<Customer, "id" | "createdAt">) => void
+  addCustomer: (input: Omit<Customer, "id" | "createdAt">) => string
   updateCustomer: (id: string, patch: Partial<Omit<Customer, "id" | "createdAt">>) => void
   removeCustomer: (id: string) => void
   addProject: (input: Omit<Project, "id" | "createdAt">) => void
@@ -98,6 +101,11 @@ interface StoreValue {
   // Finanzen
   addTransaction: (input: Omit<Transaction, "id">) => void
   removeTransaction: (id: string) => void
+  // Private Schulden
+  addDebt: (input: Omit<Debt, "id" | "createdAt">) => void
+  updateDebt: (id: string, patch: Partial<Omit<Debt, "id" | "createdAt">>) => void
+  removeDebt: (id: string) => void
+  payDebt: (id: string, amount: number) => void
   updateCompany: (patch: Partial<CompanySettings>) => void
   // Daten-Backup
   exportDb: () => string
@@ -243,14 +251,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         })),
 
       // CRM
-      addCustomer: (input) =>
+      addCustomer: (input) => {
+        const id = nanoid(8)
         setDb((prev) => ({
           ...prev,
           customers: [
-            { ...input, id: nanoid(8), createdAt: new Date().toISOString() },
+            { ...input, id, createdAt: new Date().toISOString() },
             ...prev.customers,
           ],
-        })),
+        }))
+        return id
+      },
       updateCustomer: (id, patch) =>
         setDb((prev) => ({
           ...prev,
@@ -413,6 +424,35 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         })),
       removeTransaction: (id) =>
         setDb((prev) => ({ ...prev, transactions: prev.transactions.filter((t) => t.id !== id) })),
+
+      // Private Schulden
+      addDebt: (input) =>
+        setDb((prev) => ({
+          ...prev,
+          debts: [{ ...input, id: nanoid(8), createdAt: new Date().toISOString() }, ...prev.debts],
+        })),
+      updateDebt: (id, patch) =>
+        setDb((prev) => ({
+          ...prev,
+          debts: prev.debts.map((d) => (d.id === id ? { ...d, ...patch } : d)),
+        })),
+      removeDebt: (id) =>
+        setDb((prev) => ({ ...prev, debts: prev.debts.filter((d) => d.id !== id) })),
+      payDebt: (id, amount) =>
+        setDb((prev) => {
+          const t = new Date()
+          const iso = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`
+          return {
+            ...prev,
+            debts: prev.debts.map((d) => {
+              if (d.id !== id) return d
+              const add = Math.min(amount, Math.max(0, d.total - d.paid))
+              if (add <= 0) return d
+              return { ...d, paid: d.paid + add, payments: [...(d.payments ?? []), { date: iso, amount: add }] }
+            }),
+          }
+        }),
+
       updateCompany: (patch) =>
         setDb((prev) => ({ ...prev, company: { ...prev.company, ...patch } })),
 
