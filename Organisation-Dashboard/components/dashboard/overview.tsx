@@ -214,19 +214,27 @@ export function Overview() {
 function Stat({ icon: Icon, label, value, hint, accent, href }: { icon: LucideIcon; label: string; value: string; hint?: string; accent: string; href: string }) {
   return (
     <Link href={href} className="group block">
-      <Card className="hover-aura flex items-center gap-3 p-3.5 transition-colors hover:border-white/15 sm:p-4">
+      <Card
+        className="relative flex items-center gap-3 overflow-hidden p-3.5 transition-all duration-300 hover:-translate-y-0.5 sm:p-4"
+        style={{ borderColor: `${accent}33` }}
+      >
+        {/* Akzent-Glow je Kachel — verstaerkt sich beim Hover */}
         <div
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl sm:h-11 sm:w-11"
-          style={{ backgroundColor: `${accent}1f`, color: accent, border: `1px solid ${accent}33` }}
+          className="pointer-events-none absolute -right-7 -top-7 h-20 w-20 rounded-full opacity-50 blur-2xl transition-opacity duration-300 group-hover:opacity-90"
+          style={{ background: `radial-gradient(circle, ${accent}55, transparent 70%)` }}
+        />
+        <div
+          className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl sm:h-11 sm:w-11"
+          style={{ backgroundColor: `${accent}24`, color: accent, border: `1px solid ${accent}55`, boxShadow: `inset 0 1px 0 0 ${accent}33` }}
         >
           <Icon className="h-5 w-5" />
         </div>
-        <div className="min-w-0 flex-1">
-          <div className="eyebrow truncate">{label}</div>
+        <div className="relative min-w-0 flex-1">
+          <div className="eyebrow truncate" style={{ color: `${accent}cc` }}>{label}</div>
           <div className="num truncate font-heading text-[clamp(0.95rem,4.5vw,1.35rem)] font-bold leading-tight tracking-tight sm:text-2xl">{value}</div>
           {hint && <div className="truncate text-xs text-muted-foreground">{hint}</div>}
         </div>
-        <ArrowRight className="hidden h-4 w-4 shrink-0 -translate-x-1 text-muted-foreground opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100 sm:block" />
+        <ArrowRight className="relative hidden h-4 w-4 shrink-0 -translate-x-1 opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100 sm:block" style={{ color: accent }} />
       </Card>
     </Link>
   )
