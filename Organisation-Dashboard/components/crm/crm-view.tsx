@@ -13,7 +13,11 @@ import {
   X,
   TrendingUp,
   ChevronRight,
+  Paperclip,
+  Download,
+  FileText,
 } from "lucide-react"
+import { nanoid } from "nanoid"
 import { useStore } from "@/lib/store"
 import { useDialog } from "@/lib/dialog"
 import { useToast } from "@/lib/toast"
@@ -27,6 +31,7 @@ import {
   type CustomerHealth,
   type Customer,
   type ProjectStatus,
+  type ProjectFile,
 } from "@/lib/types"
 import { eur0 } from "@/lib/format"
 import { Card } from "@/components/ui/card"
@@ -199,11 +204,11 @@ function CustomerDetail({
   onRemoveProject,
 }: {
   customer: Customer
-  projects: { id: string; name: string; status: ProjectStatus; description?: string }[]
+  projects: { id: string; name: string; status: ProjectStatus; description?: string; attachments?: ProjectFile[] }[]
   deals: { id: string; title: string; stage: keyof typeof DEAL_STAGE_LABEL; value: number }[]
   onRemove: () => void
   onAddProject: (name: string, status: ProjectStatus) => void
-  onUpdateProject: (id: string, patch: { name?: string; status?: ProjectStatus; description?: string }) => void
+  onUpdateProject: (id: string, patch: { name?: string; status?: ProjectStatus; description?: string; attachments?: ProjectFile[] }) => void
   onRemoveProject: (id: string) => void
 }) {
   const [projName, setProjName] = useState("")
@@ -452,14 +457,15 @@ function ProjectRow({
   onUpdate,
   onRemove,
 }: {
-  project: { id: string; name: string; status: ProjectStatus; description?: string }
-  onUpdate: (patch: { name?: string; status?: ProjectStatus; description?: string }) => void
+  project: { id: string; name: string; status: ProjectStatus; description?: string; attachments?: ProjectFile[] }
+  onUpdate: (patch: { name?: string; status?: ProjectStatus; description?: string; attachments?: ProjectFile[] }) => void
   onRemove: () => void
 }) {
   const [open, setOpen] = useState(false)
   const [name, setName] = useState(project.name)
   const [desc, setDesc] = useState(project.description ?? "")
   const color = PROJECT_STATUS_COLOR[project.status]
+  const attachments = project.attachments ?? []
 
   function commitName() {
     const v = name.trim()
@@ -469,6 +475,52 @@ function ProjectRow({
   function commitDesc() {
     const v = desc.trim()
     if (v !== (project.description ?? "")) onUpdate({ description: v || undefined })
+  }
+
+  const toast = useToast()
+  const fileInput = useRef<HTMLInputElement>(null)
+  const MAX_BYTES = 4 * 1024 * 1024 // 4 MB pro Datei (Data-URL-Speicherung)
+
+  function readAsDataUrl(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader()
+      r.onload = () => resolve(String(r.result))
+      r.onerror = () => reject(r.error)
+      r.readAsDataURL(file)
+    })
+  }
+
+  async function handleFiles(list: FileList | null) {
+    if (!list || list.length === 0) return
+    const added: ProjectFile[] = []
+    for (const file of Array.from(list)) {
+      if (file.size > MAX_BYTES) {
+        toast.error(`„${file.name}" ist zu groß (max. 4 MB).`)
+        continue
+      }
+      try {
+        const dataUrl = await readAsDataUrl(file)
+        added.push({
+          id: nanoid(8),
+          name: file.name,
+          type: file.type || "application/octet-stream",
+          size: file.size,
+          dataUrl,
+          createdAt: new Date().toISOString(),
+        })
+      } catch {
+        toast.error(`„${file.name}" konnte nicht gelesen werden.`)
+      }
+    }
+    if (added.length) {
+      onUpdate({ attachments: [...attachments, ...added] })
+      toast.success(added.length === 1 ? "Datei angehängt" : `${added.length} Dateien angehängt`)
+    }
+    if (fileInput.current) fileInput.current.value = ""
+  }
+
+  function removeAttachment(id: string) {
+    onUpdate({ attachments: attachments.filter((a) => a.id !== id) })
   }
 
   return (
@@ -542,8 +594,82 @@ function ProjectRow({
               className="w-full rounded-lg border border-border bg-white/[0.04] px-2.5 py-2 text-sm outline-none focus:border-primary/50"
             />
           </label>
+
+          {/* Anhänge: Bilder & Dateien */}
+          <div>
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="text-[11px] text-muted-foreground">
+                Anhänge{attachments.length > 0 && ` · ${attachments.length}`}
+              </span>
+              <button
+                type="button"
+                onClick={() => fileInput.current?.click()}
+                className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors hover:brightness-110"
+                style={{ borderColor: `${color}66`, color, backgroundColor: `${color}1a` }}
+              >
+                <Paperclip className="h-3.5 w-3.5" /> Datei / Bild
+              </button>
+              <input
+                ref={fileInput}
+                type="file"
+                multiple
+                accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip"
+                className="hidden"
+                onChange={(e) => handleFiles(e.target.files)}
+              />
+            </div>
+
+            {attachments.length === 0 ? (
+              <button
+                type="button"
+                onClick={() => fileInput.current?.click()}
+                className="flex w-full flex-col items-center gap-1 rounded-xl border border-dashed py-5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                style={{ borderColor: `${color}3a` }}
+              >
+                <Paperclip className="h-4 w-4" />
+                Bilder oder Dateien hierher – klicken zum Auswählen
+              </button>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {attachments.map((a) => (
+                  <Attachment key={a.id} file={a} accent={color} onRemove={() => removeAttachment(a.id)} />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// Einzelner Anhang: Bild-Vorschau oder Datei-Kachel, mit Download & Entfernen.
+function Attachment({ file, accent, onRemove }: { file: ProjectFile; accent: string; onRemove: () => void }) {
+  const isImage = file.type.startsWith("image/")
+  const kb = file.size < 1024 * 1024 ? `${Math.max(1, Math.round(file.size / 1024))} KB` : `${(file.size / 1024 / 1024).toFixed(1)} MB`
+
+  return (
+    <div className="group relative overflow-hidden rounded-xl border" style={{ borderColor: `${accent}33`, background: `${accent}0d` }}>
+      <a href={file.dataUrl} download={file.name} target="_blank" rel="noreferrer" className="block" title={file.name}>
+        {isImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={file.dataUrl} alt={file.name} className="h-24 w-full object-cover" />
+        ) : (
+          <div className="flex h-24 w-full flex-col items-center justify-center gap-1 px-2 text-center" style={{ color: accent }}>
+            <FileText className="h-7 w-7" />
+            <span className="line-clamp-2 break-all text-[11px] font-medium text-foreground">{file.name}</span>
+          </div>
+        )}
+      </a>
+      <div className="flex items-center justify-between gap-1 px-2 py-1.5">
+        <span className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">{isImage ? file.name : kb}</span>
+        <a href={file.dataUrl} download={file.name} target="_blank" rel="noreferrer" aria-label="Herunterladen" title="Herunterladen" className="rounded p-1 text-muted-foreground transition-colors hover:text-foreground">
+          <Download className="h-3.5 w-3.5" />
+        </a>
+        <button onClick={onRemove} aria-label="Entfernen" title="Entfernen" className="rounded p-1 text-muted-foreground transition-colors hover:text-destructive">
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
     </div>
   )
 }

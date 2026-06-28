@@ -167,12 +167,25 @@ export const PROJECT_STATUS_COLOR: Record<ProjectStatus, string> = {
   fertig: "#34d399",
 }
 
+// Angehaengte Datei/Bild — als Data-URL gespeichert (laeuft so durch den
+// lokalen Demo-Store und die Supabase-Synchronisation). Fuer kleine Dateien
+// gedacht; grosse Uploads werden in der UI begrenzt.
+export interface ProjectFile {
+  id: string
+  name: string
+  type: string // MIME-Type, z. B. "image/png" oder "application/pdf"
+  size: number // Bytes
+  dataUrl: string
+  createdAt: string
+}
+
 export interface Project {
   id: string
   customerId: string
   name: string
   status: ProjectStatus
   description?: string
+  attachments?: ProjectFile[]
   createdAt: string
 }
 
