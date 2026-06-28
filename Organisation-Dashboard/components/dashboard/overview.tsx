@@ -180,7 +180,7 @@ export function Overview() {
               </span>
             </div>
           </CardHeader>
-          <CardContent className="grid content-start grid-cols-1 gap-5 p-4 [&>*:nth-child(2)]:border-t [&>*:nth-child(2)]:border-border [&>*:nth-child(2)]:pt-5 sm:grid-cols-2 sm:gap-7 sm:[&>*:nth-child(2)]:border-l sm:[&>*:nth-child(2)]:border-t-0 sm:[&>*:nth-child(2)]:pl-7 sm:[&>*:nth-child(2)]:pt-0 lg:min-h-0 lg:flex-1">
+          <CardContent className="grid content-start grid-cols-1 gap-5 p-4 [&>*:nth-child(2)]:border-t [&>*:nth-child(2)]:border-border [&>*:nth-child(2)]:pt-5 sm:grid-cols-2 sm:gap-7 sm:[&>*:nth-child(2)]:border-l sm:[&>*:nth-child(2)]:border-t-0 sm:[&>*:nth-child(2)]:pl-7 sm:[&>*:nth-child(2)]:pt-0 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
             <CashflowColumn title="Einnahmen" icon={<ArrowDownLeft className="h-3.5 w-3.5" />} color={INCOME} total={data.sumIncome} items={data.nextIncome} sign="+" href="/rechnungen" />
             <CashflowColumn title="Ausgaben" icon={<ArrowUpRight className="h-3.5 w-3.5" />} color={EXPENSE} total={data.sumExpense} items={data.nextExpense} sign="−" href="/finanzen" />
           </CardContent>
