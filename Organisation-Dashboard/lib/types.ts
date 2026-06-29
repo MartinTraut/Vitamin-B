@@ -216,6 +216,8 @@ export interface Deal {
   value: number
   person: Person
   note?: string // kurze Notiz, v. a. für selbst erfasste Leads
+  phone?: string // Kontakt (v. a. bei selbst erfassten Leads)
+  email?: string
   createdAt: string
 }
 

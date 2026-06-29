@@ -21,7 +21,7 @@ import {
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { useRouter } from "next/navigation"
-import { Plus, GripVertical, Trash2, X, TrendingUp, Trophy, Layers, ChevronLeft, ChevronRight, FileText, Receipt, type LucideIcon } from "lucide-react"
+import { Plus, GripVertical, Trash2, X, TrendingUp, Trophy, Layers, ChevronLeft, ChevronRight, FileText, Receipt, Phone, Mail, type LucideIcon } from "lucide-react"
 import { useStore } from "@/lib/store"
 import { useToast } from "@/lib/toast"
 import { todayISO, addDaysISO } from "@/lib/recurrence"
@@ -209,8 +209,8 @@ export function PipelineView() {
                 </SortableContext>
                 {stage === "lead" && (
                   <LeadQuickAdd
-                    onAdd={(title, note) =>
-                      addDeal({ title, value: 0, stage: "lead", customerId: "", person: activePerson, note })
+                    onAdd={(d) =>
+                      addDeal({ ...d, stage: "lead", customerId: "", person: activePerson })
                     }
                   />
                 )}
@@ -255,22 +255,39 @@ function Column({ stage, count, sum, children }: { stage: DealStage; count: numb
   )
 }
 
-// Schnellerfassung neuer Leads direkt in der Lead-Spalte: Name + kurze Notiz
-// (z. B. „hat sich gemeldet" / „vermuteter Bedarf"). Kein Kunde nötig.
-function LeadQuickAdd({ onAdd }: { onAdd: (title: string, note?: string) => void }) {
+// Schnellerfassung neuer Leads direkt in der Lead-Spalte: Name, Preis,
+// Telefon, E-Mail + kurze Notiz. Kein Kunde nötig.
+function LeadQuickAdd({
+  onAdd,
+}: {
+  onAdd: (data: { title: string; value: number; phone?: string; email?: string; note?: string }) => void
+}) {
   const accent = DEAL_STAGE_COLOR.lead
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState("")
+  const [price, setPrice] = useState("")
+  const [phone, setPhone] = useState("")
+  const [email, setEmail] = useState("")
   const [note, setNote] = useState("")
 
   function save() {
     const t = title.trim()
     if (!t) return
-    onAdd(t, note.trim() || undefined)
-    setTitle("")
-    setNote("")
+    const raw = price.trim().replace(/\./g, "").replace(",", ".")
+    const value = Number(raw)
+    onAdd({
+      title: t,
+      value: Number.isFinite(value) && value > 0 ? value : 0,
+      phone: phone.trim() || undefined,
+      email: email.trim() || undefined,
+      note: note.trim() || undefined,
+    })
+    setTitle(""); setPrice(""); setPhone(""); setEmail(""); setNote("")
     setOpen(false)
   }
+
+  const onKey = (e: React.KeyboardEvent) => { if (e.key === "Enter") save(); if (e.key === "Escape") setOpen(false) }
+  const field = "h-9 w-full rounded-lg border border-border bg-white/[0.04] px-2.5 text-sm outline-none focus:border-primary/50"
 
   if (!open) {
     return (
@@ -287,21 +304,11 @@ function LeadQuickAdd({ onAdd }: { onAdd: (title: string, note?: string) => void
 
   return (
     <div className="space-y-2 rounded-xl border p-2.5" style={{ borderColor: `${accent}66`, background: `${accent}12` }}>
-      <input
-        autoFocus
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        onKeyDown={(e) => { if (e.key === "Enter") save(); if (e.key === "Escape") setOpen(false) }}
-        placeholder="Name / Firma"
-        className="h-9 w-full rounded-lg border border-border bg-white/[0.04] px-2.5 text-sm outline-none focus:border-primary/50"
-      />
-      <input
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        onKeyDown={(e) => { if (e.key === "Enter") save(); if (e.key === "Escape") setOpen(false) }}
-        placeholder="Notiz (z. B. hat sich gemeldet)"
-        className="h-9 w-full rounded-lg border border-border bg-white/[0.04] px-2.5 text-sm outline-none focus:border-primary/50"
-      />
+      <input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={onKey} placeholder="Name / Firma" className={field} />
+      <input value={price} onChange={(e) => setPrice(e.target.value.replace(/[^0-9.,]/g, ""))} onKeyDown={onKey} inputMode="decimal" placeholder="Preis € (geschätzt)" className={field} />
+      <input value={phone} onChange={(e) => setPhone(e.target.value)} onKeyDown={onKey} type="tel" placeholder="Telefon" className={field} />
+      <input value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={onKey} type="email" placeholder="E-Mail" className={field} />
+      <input value={note} onChange={(e) => setNote(e.target.value)} onKeyDown={onKey} placeholder="Notiz (z. B. hat sich gemeldet)" className={field} />
       <div className="flex justify-end gap-1.5">
         <button onClick={() => setOpen(false)} className="rounded-lg px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
           Abbrechen
@@ -363,6 +370,20 @@ function DealCardInner({
           <div className="text-sm font-medium leading-snug">{deal.title}</div>
           {customer && customer !== "—" && <div className="mt-0.5 truncate text-xs text-muted-foreground">{customer}</div>}
           {deal.note && <div className="mt-1 line-clamp-2 text-xs italic text-muted-foreground/90">{deal.note}</div>}
+          {(deal.phone || deal.email) && (
+            <div className="mt-1.5 flex flex-col gap-1">
+              {deal.phone && (
+                <a href={`tel:${deal.phone}`} onClick={(e) => e.stopPropagation()} className="flex items-center gap-1.5 truncate text-xs text-muted-foreground transition-colors hover:text-primary">
+                  <Phone className="h-3 w-3 shrink-0" /> {deal.phone}
+                </a>
+              )}
+              {deal.email && (
+                <a href={`mailto:${deal.email}`} onClick={(e) => e.stopPropagation()} className="flex items-center gap-1.5 truncate text-xs text-muted-foreground transition-colors hover:text-primary">
+                  <Mail className="h-3 w-3 shrink-0" /> {deal.email}
+                </a>
+              )}
+            </div>
+          )}
           <div className="mt-2 flex items-center justify-between gap-2">
             <span className="font-heading text-base font-bold">{eur0(deal.value)}</span>
             {person && (
