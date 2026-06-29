@@ -196,7 +196,7 @@ export type DealStage = "lead" | "kontakt" | "angebot" | "gewonnen"
 export const DEAL_STAGES: DealStage[] = ["lead", "kontakt", "angebot", "gewonnen"]
 
 export const DEAL_STAGE_LABEL: Record<DealStage, string> = {
-  lead: "Lead",
+  lead: "Potenzieller Lead",
   kontakt: "Kontaktiert",
   angebot: "Angebot",
   gewonnen: "Gewonnen",

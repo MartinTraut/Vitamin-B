@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { Plus, TrendingUp, TrendingDown, Wallet, Receipt, Trash2, ArrowDownLeft, ArrowUpRight, Search, Building2 } from "lucide-react"
+import { Plus, TrendingUp, TrendingDown, Wallet, Receipt, Trash2, ArrowDownLeft, ArrowUpRight, Search, Building2, PiggyBank, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { useStore } from "@/lib/store"
 import {
@@ -106,8 +106,13 @@ export function FinanceView() {
             <div className="text-xs text-muted-foreground">Geschäftliche Einnahmen & Ausgaben · teamweit</div>
           </div>
         </div>
-        <Link href="/privat" className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground">
-          Private Finanzen →
+        <Link
+          href="/privat"
+          className="group flex shrink-0 items-center gap-2 rounded-xl border border-primary/45 bg-primary/15 px-4 py-2.5 text-sm font-bold text-primary shadow-sm transition-all hover:border-primary/70 hover:bg-primary/25 hover:shadow-md hover:shadow-primary/10"
+        >
+          <PiggyBank className="h-4 w-4 shrink-0" />
+          <span>Zu den privaten Finanzen</span>
+          <ArrowRight className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
         </Link>
       </div>
 

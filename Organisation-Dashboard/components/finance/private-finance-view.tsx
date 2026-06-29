@@ -4,7 +4,7 @@ import { useMemo, useState } from "react"
 import Link from "next/link"
 import {
   Plus, TrendingUp, TrendingDown, Wallet, Landmark, Trash2, ArrowDownLeft, ArrowUpRight,
-  ChevronRight, CreditCard, X,
+  ChevronRight, CreditCard, X, Building2, ArrowRight,
 } from "lucide-react"
 import { useStore } from "@/lib/store"
 import { useToast } from "@/lib/toast"
@@ -88,8 +88,13 @@ export function PrivateFinanceView() {
             <div className="text-xs text-muted-foreground">Streng getrennt von den Firmen-Finanzen · oben rechts die Person wechseln</div>
           </div>
         </div>
-        <Link href="/finanzen" className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground">
-          Firmen-Finanzen →
+        <Link
+          href="/finanzen"
+          className="group flex shrink-0 items-center gap-2 rounded-xl border border-primary/45 bg-primary/15 px-4 py-2.5 text-sm font-bold text-primary shadow-sm transition-all hover:border-primary/70 hover:bg-primary/25 hover:shadow-md hover:shadow-primary/10"
+        >
+          <Building2 className="h-4 w-4 shrink-0" />
+          <span>Zu den Firmen-Finanzen</span>
+          <ArrowRight className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
         </Link>
       </div>
 
