@@ -47,6 +47,37 @@ function withOverdue(db: Database): Database {
   }
 }
 
+// Verknüpfung Pipeline → Angebote: sobald ein Deal auf der Stufe "angebot"
+// steht und noch kein Angebot mit ihm verknüpft ist, automatisch ein
+// Entwurf-Angebot anlegen. So taucht jedes Angebot direkt in der Angebote-
+// Sektion auf, ohne manuellen Schritt. Greift bei Move, Drag und Neuanlage.
+function withAutoQuotes(prev: Database, deals: Deal[]): Database {
+  const need = deals.filter(
+    (d) => d.stage === "angebot" && !prev.quotes.some((q) => q.dealId === d.id),
+  )
+  if (need.length === 0) return { ...prev, deals }
+  const year = new Date().getFullYear()
+  const created: Quote[] = []
+  for (const d of need) {
+    const number = nextNumber(
+      [...prev.quotes.map((q) => q.number), ...created.map((c) => c.number)],
+      year,
+    )
+    created.push({
+      id: nanoid(8),
+      number,
+      customerId: d.customerId,
+      status: "entwurf",
+      items: [],
+      validUntil: addDaysISO(todayISO(), prev.company.paymentTermDays),
+      person: d.person,
+      dealId: d.id,
+      createdAt: new Date().toISOString(),
+    })
+  }
+  return { ...prev, deals, quotes: [...created, ...prev.quotes] }
+}
+
 // Gespeicherte Daten über die Demo-Defaults mergen, damit neue (auch
 // verschachtelte) Felder bei altem Cache vorhanden sind und nichts undefined wird.
 function mergeDb(partial: Partial<Database>): Database {
@@ -295,24 +326,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
       // Pipeline
       addDeal: (input) =>
-        setDb((prev) => ({
-          ...prev,
-          deals: [
+        setDb((prev) =>
+          withAutoQuotes(prev, [
             { ...input, id: nanoid(8), createdAt: new Date().toISOString() },
             ...prev.deals,
-          ],
-        })),
+          ]),
+        ),
       updateDeal: (id, patch) =>
         setDb((prev) => ({
           ...prev,
           deals: prev.deals.map((d) => (d.id === id ? { ...d, ...patch } : d)),
         })),
       moveDeal: (id, stage) =>
-        setDb((prev) => ({
-          ...prev,
-          deals: prev.deals.map((d) => (d.id === id ? { ...d, stage } : d)),
-        })),
-      reorderDeals: (next) => setDb((prev) => ({ ...prev, deals: next })),
+        setDb((prev) =>
+          withAutoQuotes(prev, prev.deals.map((d) => (d.id === id ? { ...d, stage } : d))),
+        ),
+      reorderDeals: (next) => setDb((prev) => withAutoQuotes(prev, next)),
       removeDeal: (id) =>
         setDb((prev) => ({
           ...prev,

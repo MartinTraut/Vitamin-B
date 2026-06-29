@@ -46,6 +46,13 @@ export function PipelineView() {
   const [adding, setAdding] = useState(false)
 
   function createQuoteFromDeal(deal: Deal) {
+    // Existiert bereits ein verknüpftes Angebot (z. B. automatisch bei Stufe
+    // „Angebot" angelegt), nicht doppeln — direkt dorthin springen.
+    const existing = db.quotes.find((q) => q.dealId === deal.id)
+    if (existing) {
+      router.push("/angebote")
+      return
+    }
     const term = db.company.paymentTermDays
     addQuote({
       customerId: deal.customerId,
@@ -200,6 +207,13 @@ export function PipelineView() {
                     />
                   ))}
                 </SortableContext>
+                {stage === "lead" && (
+                  <LeadQuickAdd
+                    onAdd={(title, note) =>
+                      addDeal({ title, value: 0, stage: "lead", customerId: "", person: activePerson, note })
+                    }
+                  />
+                )}
               </Column>
             )
           })}
@@ -237,6 +251,69 @@ function Column({ stage, count, sum, children }: { stage: DealStage; count: numb
         <div className="mt-1 text-[13px] font-semibold tabular-nums" style={{ color: accent }}>{eur0(sum)}</div>
       </div>
       <div className="flex-1 space-y-2.5 p-3">{children}</div>
+    </div>
+  )
+}
+
+// Schnellerfassung neuer Leads direkt in der Lead-Spalte: Name + kurze Notiz
+// (z. B. „hat sich gemeldet" / „vermuteter Bedarf"). Kein Kunde nötig.
+function LeadQuickAdd({ onAdd }: { onAdd: (title: string, note?: string) => void }) {
+  const accent = DEAL_STAGE_COLOR.lead
+  const [open, setOpen] = useState(false)
+  const [title, setTitle] = useState("")
+  const [note, setNote] = useState("")
+
+  function save() {
+    const t = title.trim()
+    if (!t) return
+    onAdd(t, note.trim() || undefined)
+    setTitle("")
+    setNote("")
+    setOpen(false)
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed py-2.5 text-xs font-semibold transition-colors hover:brightness-125"
+        style={{ borderColor: `${accent}55`, color: accent }}
+      >
+        <Plus className="h-3.5 w-3.5" /> Lead erfassen
+      </button>
+    )
+  }
+
+  return (
+    <div className="space-y-2 rounded-xl border p-2.5" style={{ borderColor: `${accent}66`, background: `${accent}12` }}>
+      <input
+        autoFocus
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        onKeyDown={(e) => { if (e.key === "Enter") save(); if (e.key === "Escape") setOpen(false) }}
+        placeholder="Name / Firma"
+        className="h-9 w-full rounded-lg border border-border bg-white/[0.04] px-2.5 text-sm outline-none focus:border-primary/50"
+      />
+      <input
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        onKeyDown={(e) => { if (e.key === "Enter") save(); if (e.key === "Escape") setOpen(false) }}
+        placeholder="Notiz (z. B. hat sich gemeldet)"
+        className="h-9 w-full rounded-lg border border-border bg-white/[0.04] px-2.5 text-sm outline-none focus:border-primary/50"
+      />
+      <div className="flex justify-end gap-1.5">
+        <button onClick={() => setOpen(false)} className="rounded-lg px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
+          Abbrechen
+        </button>
+        <button
+          onClick={save}
+          className="rounded-lg px-3 py-1 text-xs font-bold transition-colors"
+          style={{ backgroundColor: `${accent}26`, color: accent, border: `1px solid ${accent}66` }}
+        >
+          Hinzufügen
+        </button>
+      </div>
     </div>
   )
 }
@@ -284,7 +361,8 @@ function DealCardInner({
         </button>
         <div className="min-w-0 flex-1">
           <div className="text-sm font-medium leading-snug">{deal.title}</div>
-          <div className="mt-0.5 truncate text-xs text-muted-foreground">{customer}</div>
+          {customer && customer !== "—" && <div className="mt-0.5 truncate text-xs text-muted-foreground">{customer}</div>}
+          {deal.note && <div className="mt-1 line-clamp-2 text-xs italic text-muted-foreground/90">{deal.note}</div>}
           <div className="mt-2 flex items-center justify-between gap-2">
             <span className="font-heading text-base font-bold">{eur0(deal.value)}</span>
             {person && (

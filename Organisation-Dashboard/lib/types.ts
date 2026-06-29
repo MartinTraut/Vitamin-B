@@ -215,6 +215,7 @@ export interface Deal {
   stage: DealStage
   value: number
   person: Person
+  note?: string // kurze Notiz, v. a. für selbst erfasste Leads
   createdAt: string
 }
 
