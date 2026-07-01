@@ -94,7 +94,8 @@ export function FinanceView() {
   }, [m.sorted, search, txType, txPeriod])
 
   return (
-    <div className="space-y-4">
+    // System-Regel 1: Breiten-Deckel — nur auf Content-Seiten (nicht Whiteboard/Canvas).
+    <div className="mx-auto max-w-[1440px] space-y-4">
       {/* Firmen-Banner — klare Abgrenzung zu den privaten Finanzen */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-4" style={{ background: `linear-gradient(135deg, ${INCOME}1f, ${INCOME}06 70%)`, borderColor: `${INCOME}40` }}>
         <div className="flex items-center gap-3">
@@ -143,6 +144,7 @@ export function FinanceView() {
                 {(["day", "week", "month"] as Gran[]).map((g) => (
                   <button
                     key={g}
+                    type="button"
                     onClick={() => setGran(g)}
                     aria-pressed={gran === g}
                     className={cn(
@@ -218,23 +220,35 @@ export function FinanceView() {
             onSave={(input) => { addTransaction(input); setAdding(false) }}
           />
         )}
-        <div className="divide-y divide-border">
-          {filtered.list.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">{m.sorted.length === 0 ? "Noch keine Buchungen." : "Keine Treffer für diesen Filter."}</p>}
+        {/* System-Regel 4+5: Hierarchie pro Zeile (Identität links, Geld-Anker
+           rechts) — Farbe nur auf Betrag & Icon. min-h stabilisiert die Höhe,
+           damit die Seite beim Filtern nicht mehr springt. */}
+        <div className="min-h-[220px] divide-y divide-border">
+          {filtered.list.length === 0 && <p className="p-10 text-center text-sm text-muted-foreground">{m.sorted.length === 0 ? "Noch keine Buchungen." : "Keine Treffer für diesen Filter."}</p>}
           {filtered.list.map((t) => {
             const inc = t.type === "income"
+            const color = inc ? INCOME : EXPENSE
             return (
-              <div key={t.id} className="group flex items-center gap-3 px-4 py-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${inc ? INCOME : EXPENSE}1f`, color: inc ? INCOME : EXPENSE }}>
+              <div key={t.id} className="group relative flex items-center gap-3.5 px-4 py-3.5 transition-colors hover:bg-white/[0.025]">
+                {/* Farb-Kante links: taucht beim Hover auf und trägt den Blick über die Zeile */}
+                <span aria-hidden className="absolute inset-y-0 left-0 w-[3px] rounded-r bg-current opacity-0 transition-opacity group-hover:opacity-100" style={{ color }} />
+                {/* Typ-Anker */}
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${color}1a`, color }}>
                   {inc ? <ArrowDownLeft className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
                 </span>
+                {/* Identität: Kategorie fett, darunter ruhige Meta-Zeile */}
                 <div className="min-w-0 flex-1">
-                  <div className="text-sm font-medium">{t.category}{t.note ? <span className="font-normal text-muted-foreground"> · {t.note}</span> : ""}</div>
-                  <div className="text-xs text-muted-foreground">{dateDE(t.date)} · {t.taxRate}% USt</div>
+                  <div className="truncate text-[15px] font-semibold leading-tight">{t.category}</div>
+                  <div className="mt-0.5 truncate text-[13px] text-muted-foreground">{t.note ? `${t.note} · ` : ""}{dateDE(t.date)}</div>
                 </div>
-                <span className="text-sm font-semibold tabular-nums" style={{ color: inc ? INCOME : EXPENSE }}>
-                  {inc ? "+" : "−"}{eur(t.amount)}
-                </span>
-                <button onClick={() => removeTransaction(t.id)} aria-label="Buchung löschen" title="Buchung löschen" className="action-reveal rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60">
+                {/* Geld-Anker: feste, rechtsbündige Zahlen-Achse — der Held der Zeile */}
+                <div className="flex shrink-0 flex-col items-end">
+                  <span className="num font-heading text-[15px] font-bold leading-tight sm:text-base" style={{ color }}>
+                    {inc ? "+" : "−"}{eur(t.amount)}
+                  </span>
+                  <span className="mt-0.5 text-[11px] text-muted-foreground">{t.taxRate}% USt</span>
+                </div>
+                <button type="button" onClick={() => removeTransaction(t.id)} aria-label="Buchung löschen" title="Buchung löschen" className="action-reveal -mr-1 shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60">
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
               </div>
@@ -264,6 +278,7 @@ function Segmented({ value, onChange, options }: { value: string; onChange: (v: 
         return (
           <button
             key={o.v}
+            type="button"
             onClick={() => onChange(o.v)}
             aria-pressed={active}
             className={cn(
@@ -299,8 +314,8 @@ function AddTransaction({
   return (
     <div className="space-y-3 border-b border-border bg-white/[0.02] p-4">
       <div className="flex gap-2">
-        <button onClick={() => { setType("expense"); setCategory(EXPENSE_CATEGORIES[0]) }} className={cn("flex-1 rounded-lg border py-2 text-sm font-medium transition-colors", type === "expense" ? "border-transparent" : "border-border text-muted-foreground")} style={type === "expense" ? { backgroundColor: `${EXPENSE}26`, color: EXPENSE } : undefined}>Ausgabe</button>
-        <button onClick={() => { setType("income"); setCategory(INCOME_CATEGORIES[0]) }} className={cn("flex-1 rounded-lg border py-2 text-sm font-medium transition-colors", type === "income" ? "border-transparent" : "border-border text-muted-foreground")} style={type === "income" ? { backgroundColor: `${INCOME}26`, color: INCOME } : undefined}>Einnahme</button>
+        <button type="button" onClick={() => { setType("expense"); setCategory(EXPENSE_CATEGORIES[0]) }} className={cn("flex-1 rounded-lg border py-2 text-sm font-medium transition-colors", type === "expense" ? "border-transparent" : "border-border text-muted-foreground")} style={type === "expense" ? { backgroundColor: `${EXPENSE}26`, color: EXPENSE } : undefined}>Ausgabe</button>
+        <button type="button" onClick={() => { setType("income"); setCategory(INCOME_CATEGORIES[0]) }} className={cn("flex-1 rounded-lg border py-2 text-sm font-medium transition-colors", type === "income" ? "border-transparent" : "border-border text-muted-foreground")} style={type === "income" ? { backgroundColor: `${INCOME}26`, color: INCOME } : undefined}>Einnahme</button>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <select value={category} onChange={(e) => setCategory(e.target.value)} className="h-10 rounded-lg border border-border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50 [color-scheme:dark]">

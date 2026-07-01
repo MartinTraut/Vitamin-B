@@ -108,20 +108,20 @@ export function buildDemoData(): Database {
     ],
     invoices: [
       {
-        id: "in1", number: `${yr}-041`, customerId: "c1", status: "gesendet", issueDate: rel(-3), dueDate: rel(11), person: "robert", createdAt: now,
+        id: "in1", number: `${yr}-041`, customerId: "c1", status: "gesendet", issueDate: rel(-3), serviceDate: rel(-5), dueDate: rel(11), person: "robert", createdAt: now,
         items: [
           { id: "ii1", description: "Flottenbeschriftung – 1. Charge (6 Fahrzeuge)", qty: 6, unit: "Stk", price: 720, taxRate: 19 },
         ],
       },
       {
-        id: "in2", number: `${yr}-040`, customerId: "c2", status: "bezahlt", issueDate: rel(-20), dueDate: rel(-6), person: "bastian", createdAt: now,
+        id: "in2", number: `${yr}-040`, customerId: "c2", status: "bezahlt", issueDate: rel(-20), serviceDate: rel(-22), dueDate: rel(-6), person: "bastian", createdAt: now,
         items: [
           { id: "ii2", description: "Fahrzeugbeschriftung Pflegedienst", qty: 3, unit: "Stk", price: 480, taxRate: 19 },
           { id: "ii3", description: "Praxisschild Alu-Dibond", qty: 2, unit: "Stk", price: 95, taxRate: 19 },
         ],
       },
       {
-        id: "in3", number: `${yr}-039`, customerId: "c5", status: "ueberfaellig", issueDate: rel(-34), dueDate: rel(-6), person: "martin", createdAt: now,
+        id: "in3", number: `${yr}-039`, customerId: "c5", status: "ueberfaellig", issueDate: rel(-34), serviceDate: rel(-36), dueDate: rel(-6), person: "martin", createdAt: now,
         items: [
           { id: "ii4", description: "Logo & Corporate Design (Pauschale)", qty: 1, unit: "pausch.", price: 1600, taxRate: 19 },
         ],
@@ -214,6 +214,7 @@ export function buildDemoData(): Database {
       address: "Industriestraße 12, 74196 Neuenstadt am Kocher",
       taxId: "DE 312 456 789",
       iban: "DE12 6005 0101 0001 2345 67",
+      bic: "SOLADES1HNB",
       bank: "Sparkasse Heilbronn",
       email: "info@vitaminb-design.de",
       phone: "07139 123 456",

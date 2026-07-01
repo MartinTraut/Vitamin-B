@@ -34,6 +34,12 @@ export function dateDE(iso: string): string {
   return `${WEEKDAYS[d.getDay()]}, ${d.getDate()}. ${MONTHS[d.getMonth()]}`
 }
 
+// Vollständiges Datum mit Jahr — für rechtsverbindliche Belege (Rechnung/Angebot).
+export function dateLong(iso: string): string {
+  const d = new Date(iso + "T00:00:00")
+  return `${d.getDate()}. ${MONTHS[d.getMonth()]} ${d.getFullYear()}`
+}
+
 export function monthName(monthIndex: number): string {
   return MONTHS[monthIndex]
 }

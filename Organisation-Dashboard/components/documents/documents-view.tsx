@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, type CSSProperties } from "react"
 import {
   Plus,
   Trash2,
@@ -9,6 +9,8 @@ import {
   ArrowRight,
   LayoutTemplate,
   Search,
+  CheckCircle2,
+  AlertTriangle,
 } from "lucide-react"
 import { useStore } from "@/lib/store"
 import { useToast } from "@/lib/toast"
@@ -25,7 +27,8 @@ import {
   type InvoiceStatus,
 } from "@/lib/types"
 import { computeTotals, lineNet } from "@/lib/totals"
-import { eur, dateDE } from "@/lib/format"
+import { eur, dateDE, dateLong } from "@/lib/format"
+import type { Customer, CompanySettings } from "@/lib/types"
 import { todayISO, addDaysISO } from "@/lib/recurrence"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -201,6 +204,8 @@ export function DocumentsView({ kind }: { kind: Kind }) {
               kind={kind}
               doc={selected}
               customers={db.customers.map((c) => ({ id: c.id, company: c.company }))}
+              customer={db.customers.find((c) => c.id === selected.customerId)}
+              company={db.company}
               templates={templates.map((t) => ({ id: t.id, name: t.name, items: t.items }))}
               defaultTaxRate={db.company.defaultTaxRate}
               onPatch={patchDoc}
@@ -238,6 +243,8 @@ function Editor({
   kind,
   doc,
   customers,
+  customer,
+  company,
   templates,
   defaultTaxRate,
   onPatch,
@@ -247,6 +254,8 @@ function Editor({
   kind: Kind
   doc: Doc
   customers: { id: string; company: string }[]
+  customer?: Customer
+  company: CompanySettings
   templates: { id: string; name: string; items: Omit<LineItem, "id">[] }[]
   defaultTaxRate: number
   onPatch: (patch: Partial<Doc>) => void
@@ -255,6 +264,16 @@ function Editor({
 }) {
   const isQuote = kind === "quote"
   const totals = computeTotals(doc.items)
+  const checks = documentChecks(kind, doc, customer, company)
+  const ready = checks.every((c) => c.ok)
+
+  function printDoc() {
+    const prev = document.title
+    document.title = `${isQuote ? "Angebot" : "Rechnung"} ${doc.number}${customer?.company ? ` – ${customer.company}` : ""}`
+    const restore = () => { document.title = prev; window.removeEventListener("afterprint", restore) }
+    window.addEventListener("afterprint", restore)
+    window.print()
+  }
   const status = isQuote ? (doc as Quote).status : (doc as Invoice).status
   const color = isQuote ? QUOTE_STATUS_COLOR[status as QuoteStatus] : INVOICE_STATUS_COLOR[status as InvoiceStatus]
 
@@ -296,7 +315,7 @@ function Editor({
               <ArrowRight className="h-4 w-4" /> In Rechnung
             </Button>
           )}
-          <Button size="sm" variant="secondary" onClick={() => window.print()}>
+          <Button size="sm" variant="secondary" onClick={printDoc}>
             <Printer className="h-4 w-4" /> Drucken / PDF
           </Button>
           <button onClick={onRemove} aria-label="Beleg löschen" title="Löschen" className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60">
@@ -304,6 +323,9 @@ function Editor({
           </button>
         </div>
       </div>
+
+      {/* Fehler-Check: zeigt vor dem Druck, ob der Beleg vollständig & korrekt ist */}
+      <ChecklistBar ready={ready} checks={checks} isQuote={isQuote} />
 
       {/* Meta */}
       <div className="grid gap-3 border-b border-border p-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -324,7 +346,11 @@ function Editor({
         {isQuote ? (
           <DateField label="Gültig bis" value={(doc as Quote).validUntil} onChange={(v) => onPatch({ validUntil: v } as Partial<Doc>)} />
         ) : (
-          <DateField label="Fälligkeit" value={(doc as Invoice).dueDate} onChange={(v) => onPatch({ dueDate: v } as Partial<Doc>)} />
+          <>
+            <DateField label="Rechnungsdatum" value={(doc as Invoice).issueDate} onChange={(v) => onPatch({ issueDate: v } as Partial<Doc>)} />
+            <DateField label="Leistungsdatum" value={(doc as Invoice).serviceDate ?? (doc as Invoice).issueDate} onChange={(v) => onPatch({ serviceDate: v } as Partial<Doc>)} />
+            <DateField label="Fälligkeit" value={(doc as Invoice).dueDate} onChange={(v) => onPatch({ dueDate: v } as Partial<Doc>)} />
+          </>
         )}
       </div>
 
@@ -495,7 +521,54 @@ function Row({ label, value, muted }: { label: string; value: string; muted?: bo
   )
 }
 
-/* ---------- Druck-Layout (DE) ---------- */
+/* ---------- Fehler-Absicherung: Vollständigkeits-Prüfung ---------- */
+
+interface DocCheck { ok: boolean; label: string }
+
+function documentChecks(kind: Kind, doc: Doc, customer: Customer | undefined, company: CompanySettings): DocCheck[] {
+  const isQuote = kind === "quote"
+  const totals = computeTotals(doc.items)
+  const hasItems = doc.items.length > 0
+  const checks: DocCheck[] = [
+    { ok: !!customer, label: "Kunde ausgewählt" },
+    { ok: !!(customer?.address && customer.address.trim().length > 4), label: "Empfänger-Adresse vollständig" },
+    { ok: hasItems, label: "Mindestens eine Position" },
+    { ok: hasItems && doc.items.every((it) => it.description.trim() !== ""), label: "Alle Positionen beschrieben" },
+    { ok: hasItems && doc.items.every((it) => it.price > 0 && it.qty > 0), label: "Alle Preise & Mengen gesetzt" },
+    { ok: totals.gross > 0, label: "Gesamtbetrag größer 0" },
+    { ok: !!(company.name && company.address && company.taxId && company.iban), label: "Firmendaten vollständig (USt-IdNr & IBAN)" },
+  ]
+  if (!isQuote) {
+    checks.push({ ok: !!(doc as Invoice).issueDate, label: "Rechnungsdatum gesetzt" })
+    checks.push({ ok: !!((doc as Invoice).serviceDate ?? (doc as Invoice).issueDate), label: "Leistungsdatum gesetzt" })
+    checks.push({ ok: !!(doc as Invoice).dueDate, label: "Fälligkeit gesetzt" })
+  }
+  return checks
+}
+
+function ChecklistBar({ ready, checks, isQuote }: { ready: boolean; checks: DocCheck[]; isQuote: boolean }) {
+  const open = checks.filter((c) => !c.ok)
+  return (
+    <div className="border-b border-border px-4 py-3">
+      {ready ? (
+        <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: "#34d399" }}>
+          <CheckCircle2 className="h-4 w-4 shrink-0" /> {isQuote ? "Angebot" : "Rechnung"} vollständig — bereit zum Drucken &amp; Senden.
+        </div>
+      ) : (
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: "#f59e0b" }}>
+            <AlertTriangle className="h-4 w-4 shrink-0" /> {open.length} {open.length === 1 ? "Angabe fehlt" : "Angaben fehlen"} — bitte vor dem Senden ergänzen:
+          </div>
+          <ul className="flex flex-wrap gap-x-5 gap-y-1 pl-6 text-xs text-muted-foreground">
+            {open.map((c) => <li key={c.label} className="list-disc">{c.label}</li>)}
+          </ul>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ---------- Druck-Layout (DE, §14 UStG-konform) ---------- */
 
 function PrintDoc({
   kind,
@@ -505,103 +578,132 @@ function PrintDoc({
 }: {
   kind: Kind
   doc: Doc
-  customer?: { company: string; contactName?: string; address?: string }
-  company: { name: string; owner: string; address: string; taxId: string; iban: string; bank: string; email: string; phone: string }
+  customer?: Customer
+  company: CompanySettings
 }) {
   const isQuote = kind === "quote"
   const totals = computeTotals(doc.items)
   const title = isQuote ? "Angebot" : "Rechnung"
+  const issue = isQuote ? (doc as Quote).createdAt.slice(0, 10) : (doc as Invoice).issueDate
+  const service = !isQuote ? ((doc as Invoice).serviceDate ?? (doc as Invoice).issueDate) : undefined
+
+  const ink = "#1a1a1a"
+  const soft = "#6b7280"
+  const line = "#e5e7eb"
+  const accent = "#E39832"
+  const label: CSSProperties = { fontSize: 8.5, letterSpacing: "0.09em", textTransform: "uppercase", color: soft, fontWeight: 600 }
+  const numCell: CSSProperties = { textAlign: "right", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }
+
+  const metaRows: { k: string; v: string }[] = [
+    { k: isQuote ? "Angebots-Nr." : "Rechnungs-Nr.", v: doc.number },
+    { k: isQuote ? "Angebotsdatum" : "Rechnungsdatum", v: dateLong(issue) },
+    ...(service ? [{ k: "Leistungsdatum", v: dateLong(service) }] : []),
+    isQuote
+      ? { k: "Gültig bis", v: dateLong((doc as Quote).validUntil) }
+      : { k: "Fällig bis", v: dateLong((doc as Invoice).dueDate) },
+  ]
+
   return (
-    <div style={{ color: "#000", fontFamily: "Arial, sans-serif", fontSize: 12, lineHeight: 1.5 }}>
+    <div style={{ color: ink, fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif", fontSize: 11.5, lineHeight: 1.55 }}>
       {/* Kopf */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "2px solid #E39832", paddingBottom: 12, marginBottom: 24 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: `2px solid ${accent}`, paddingBottom: 14, marginBottom: 26 }}>
         <div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-vitaminb-orange.png" alt="Vitamin B" style={{ height: 34, width: "auto", marginBottom: 4 }} />
-          <div style={{ fontSize: 11, color: "#555" }}>{company.name}</div>
+          <img src="/logo-vitaminb-orange.png" alt="Vitamin B" style={{ height: 36, width: "auto", marginBottom: 6 }} />
+          <div style={{ fontSize: 10.5, color: soft }}>{company.name}</div>
         </div>
-        <div style={{ textAlign: "right", fontSize: 11, color: "#333" }}>
-          <div>{company.address}</div>
+        <div style={{ textAlign: "right", fontSize: 10.5, color: ink }}>
+          <div style={{ whiteSpace: "pre-line" }}>{company.address}</div>
           <div>{company.email} · {company.phone}</div>
-          <div>USt-IdNr.: {company.taxId}</div>
+          <div style={{ color: soft }}>USt-IdNr.: {company.taxId}</div>
         </div>
       </div>
 
       {/* Empfänger + Belegdaten */}
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 28 }}>
-        <div>
-          <div style={{ fontSize: 10, color: "#888", marginBottom: 4 }}>{company.name} · {company.address}</div>
-          <div style={{ fontWeight: 700 }}>{customer?.company ?? "—"}</div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 32, marginBottom: 30 }}>
+        <div style={{ maxWidth: "58%" }}>
+          <div style={{ ...label, fontSize: 8, marginBottom: 6 }}>{company.name} · {company.address.replace(/\n/g, ", ")}</div>
+          <div style={{ fontWeight: 700, fontSize: 13 }}>{customer?.company ?? "—"}</div>
           {customer?.contactName && <div>{customer.contactName}</div>}
-          {customer?.address && <div>{customer.address}</div>}
+          {customer?.address && <div style={{ whiteSpace: "pre-line" }}>{customer.address}</div>}
         </div>
-        <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: 20, fontWeight: 800 }}>{title}</div>
-          <div>Nr. {doc.number}</div>
-          <div>Datum: {dateDE(isQuote ? (doc as Quote).createdAt.slice(0, 10) : (doc as Invoice).issueDate).replace(/^\w+, /, "")}</div>
-          {isQuote
-            ? <div>Gültig bis: {dateDE((doc as Quote).validUntil).replace(/^\w+, /, "")}</div>
-            : <div>Fällig bis: {dateDE((doc as Invoice).dueDate).replace(/^\w+, /, "")}</div>}
+        <div style={{ minWidth: 220 }}>
+          <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.01em", marginBottom: 10 }}>{title}</div>
+          <table style={{ borderCollapse: "collapse", fontSize: 10.5, width: "100%" }}>
+            <tbody>
+              {metaRows.map((r) => (
+                <tr key={r.k}>
+                  <td style={{ ...label, padding: "2px 12px 2px 0", verticalAlign: "top" }}>{r.k}</td>
+                  <td style={{ padding: "2px 0", textAlign: "right", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{r.v}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
       {/* Positionen */}
-      <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 18 }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 20 }}>
         <thead>
-          <tr style={{ borderBottom: "1px solid #000", textAlign: "left" }}>
-            <th style={{ padding: "6px 4px" }}>Pos.</th>
-            <th style={{ padding: "6px 4px" }}>Beschreibung</th>
-            <th style={{ padding: "6px 4px", textAlign: "right" }}>Menge</th>
-            <th style={{ padding: "6px 4px" }}>Einh.</th>
-            <th style={{ padding: "6px 4px", textAlign: "right" }}>Einzel</th>
-            <th style={{ padding: "6px 4px", textAlign: "right" }}>USt</th>
-            <th style={{ padding: "6px 4px", textAlign: "right" }}>Netto</th>
+          <tr style={{ borderBottom: `1.5px solid ${ink}` }}>
+            <th style={{ ...label, padding: "0 6px 7px 0", textAlign: "left", width: 26 }}>Pos.</th>
+            <th style={{ ...label, padding: "0 6px 7px 0", textAlign: "left" }}>Beschreibung</th>
+            <th style={{ ...label, padding: "0 6px 7px", textAlign: "right", width: 52 }}>Menge</th>
+            <th style={{ ...label, padding: "0 6px 7px", textAlign: "left", width: 52 }}>Einh.</th>
+            <th style={{ ...label, padding: "0 6px 7px", textAlign: "right", width: 78 }}>Einzel</th>
+            <th style={{ ...label, padding: "0 6px 7px", textAlign: "right", width: 44 }}>USt</th>
+            <th style={{ ...label, padding: "0 0 7px 6px", textAlign: "right", width: 88 }}>Netto</th>
           </tr>
         </thead>
         <tbody>
           {doc.items.map((it, i) => (
-            <tr key={it.id} style={{ borderBottom: "1px solid #ddd" }}>
-              <td style={{ padding: "6px 4px" }}>{i + 1}</td>
-              <td style={{ padding: "6px 4px" }}>{it.description}</td>
-              <td style={{ padding: "6px 4px", textAlign: "right" }}>{it.qty}</td>
-              <td style={{ padding: "6px 4px" }}>{it.unit}</td>
-              <td style={{ padding: "6px 4px", textAlign: "right" }}>{eur(it.price)}</td>
-              <td style={{ padding: "6px 4px", textAlign: "right" }}>{it.taxRate}%</td>
-              <td style={{ padding: "6px 4px", textAlign: "right" }}>{eur(lineNet(it))}</td>
+            <tr key={it.id} style={{ borderBottom: `1px solid ${line}`, background: i % 2 === 1 ? "#fafafa" : "transparent" }}>
+              <td style={{ padding: "7px 6px 7px 0", color: soft }}>{i + 1}</td>
+              <td style={{ padding: "7px 6px 7px 0" }}>{it.description || <span style={{ color: "#c00" }}>— Beschreibung fehlt —</span>}</td>
+              <td style={{ ...numCell, padding: "7px 6px" }}>{it.qty}</td>
+              <td style={{ padding: "7px 6px" }}>{it.unit}</td>
+              <td style={{ ...numCell, padding: "7px 6px" }}>{eur(it.price)}</td>
+              <td style={{ ...numCell, padding: "7px 6px" }}>{it.taxRate}%</td>
+              <td style={{ ...numCell, padding: "7px 0 7px 6px", fontWeight: 600 }}>{eur(lineNet(it))}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
       {/* Summen */}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 24 }}>
-        <table style={{ minWidth: 260 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 26 }}>
+        <table style={{ minWidth: 280, borderCollapse: "collapse" }}>
           <tbody>
-            <tr><td style={{ padding: "2px 8px", color: "#555" }}>Nettobetrag</td><td style={{ padding: "2px 8px", textAlign: "right" }}>{eur(totals.net)}</td></tr>
+            <tr><td style={{ padding: "3px 12px 3px 0", color: soft }}>Nettobetrag</td><td style={{ ...numCell, padding: "3px 0" }}>{eur(totals.net)}</td></tr>
             {totals.taxByRate.map((r) => (
-              <tr key={r.rate}><td style={{ padding: "2px 8px", color: "#555" }}>zzgl. {r.rate}% USt</td><td style={{ padding: "2px 8px", textAlign: "right" }}>{eur(r.tax)}</td></tr>
+              <tr key={r.rate}><td style={{ padding: "3px 12px 3px 0", color: soft }}>zzgl. {r.rate}% USt</td><td style={{ ...numCell, padding: "3px 0" }}>{eur(r.tax)}</td></tr>
             ))}
-            <tr style={{ borderTop: "2px solid #000", fontWeight: 800, fontSize: 14 }}>
-              <td style={{ padding: "6px 8px" }}>Gesamtbetrag</td>
-              <td style={{ padding: "6px 8px", textAlign: "right" }}>{eur(totals.gross)}</td>
+            <tr style={{ borderTop: `2px solid ${ink}` }}>
+              <td style={{ padding: "8px 12px 0 0", fontWeight: 800, fontSize: 13 }}>Gesamtbetrag</td>
+              <td style={{ ...numCell, padding: "8px 0 0", fontWeight: 800, fontSize: 14, color: accent }}>{eur(totals.gross)}</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      {doc.notes && <div style={{ marginBottom: 20 }}>{doc.notes}</div>}
+      {doc.notes && <div style={{ marginBottom: 16, color: ink }}>{doc.notes}</div>}
 
       {!isQuote && (
-        <div style={{ marginBottom: 20 }}>
-          Bitte überweisen Sie den Gesamtbetrag bis zum {dateDE((doc as Invoice).dueDate).replace(/^\w+, /, "")} auf das unten genannte Konto.
+        <div style={{ marginBottom: 26, padding: "12px 14px", background: "#fafafa", border: `1px solid ${line}`, borderRadius: 6 }}>
+          Zahlbar ohne Abzug bis <strong>{dateLong((doc as Invoice).dueDate)}</strong> auf das unten genannte Konto.
+          Bitte geben Sie bei der Überweisung die Rechnungsnummer <strong>{doc.number}</strong> an.
         </div>
       )}
 
+      <div style={{ fontSize: 11, color: soft, marginBottom: 26 }}>
+        Vielen Dank für die gute Zusammenarbeit.
+      </div>
+
       {/* Fußzeile */}
-      <div style={{ borderTop: "1px solid #ccc", paddingTop: 10, fontSize: 10, color: "#666", display: "flex", justifyContent: "space-between" }}>
-        <div>{company.name}<br />{company.owner}</div>
-        <div>{company.bank}<br />IBAN: {company.iban}</div>
-        <div>USt-IdNr.: {company.taxId}<br />{company.email}</div>
+      <div style={{ borderTop: `1px solid ${line}`, paddingTop: 12, fontSize: 9.5, color: soft, display: "flex", justifyContent: "space-between", gap: 20 }}>
+        <div><strong style={{ color: ink }}>{company.name}</strong><br />{company.owner}<br />{company.address.replace(/\n/g, ", ")}</div>
+        <div><strong style={{ color: ink }}>Bankverbindung</strong><br />{company.bank}<br />IBAN: {company.iban}{company.bic ? <><br />BIC: {company.bic}</> : null}</div>
+        <div><strong style={{ color: ink }}>Kontakt &amp; Steuer</strong><br />USt-IdNr.: {company.taxId}<br />{company.email} · {company.phone}</div>
       </div>
     </div>
   )

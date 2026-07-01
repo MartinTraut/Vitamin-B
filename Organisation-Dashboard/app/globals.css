@@ -189,6 +189,9 @@
     body { visibility: hidden; background: #fff; }
     .print-only { display: block; }
     #print-root, #print-root * { visibility: visible; }
-    #print-root { position: absolute; left: 0; top: 0; width: 100%; padding: 0; }
-    @page { margin: 18mm 16mm; }
+    /* Seitenrand 0 → der Browser druckt KEINE eigene Kopf-/Fußzeile mehr
+       (kein „…Organisations-Dashboard“, keine URL, keine Seitenzahl).
+       Der Rand kommt stattdessen als Innenabstand direkt aus dem Beleg. */
+    #print-root { position: absolute; left: 0; top: 0; width: 100%; padding: 16mm 15mm; }
+    @page { margin: 0; }
 }

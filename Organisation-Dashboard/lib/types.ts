@@ -285,6 +285,7 @@ export interface Invoice {
   status: InvoiceStatus
   items: LineItem[]
   issueDate: string
+  serviceDate?: string // Leistungs-/Lieferdatum (§14 UStG Pflicht). Fehlt → entspricht issueDate
   dueDate: string
   person: Person
   notes?: string
@@ -353,6 +354,7 @@ export interface CompanySettings {
   address: string
   taxId: string
   iban: string
+  bic?: string // BIC/SWIFT der Bank — gehört zu einer vollständigen Zahlungsangabe
   bank: string
   email: string
   phone: string
