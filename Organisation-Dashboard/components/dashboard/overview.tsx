@@ -330,7 +330,7 @@ function CashflowColumn({
           return (
             <Link key={c.id} href={href} className="flex items-center gap-3 rounded-xl bg-white/[0.03] px-3 py-3 transition-colors hover:bg-white/[0.06]">
               <div className="h-10 w-1 shrink-0 rounded-full" style={{ backgroundColor: potential ? POTENTIAL : color }} />
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 max-w-[65%] shrink">
                 <div className="truncate text-base font-medium leading-tight">{c.title}</div>
                 <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
                   {relDayLabel(c.date)}
@@ -339,6 +339,7 @@ function CashflowColumn({
                   )}
                 </div>
               </div>
+              <div aria-hidden className="mb-[3px] h-px min-w-4 flex-1 self-end border-b border-dashed border-white/[0.08]" />
               <div className="num shrink-0 font-heading text-base font-bold" style={{ color: potential ? POTENTIAL : color }}>{sign}{eur0(c.amount)}</div>
             </Link>
           )

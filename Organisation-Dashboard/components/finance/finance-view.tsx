@@ -225,11 +225,14 @@ export function FinanceView() {
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${color}1a`, color }}>
                   {inc ? <ArrowDownLeft className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
                 </span>
-                {/* Identität: Kategorie fett, darunter ruhige Meta-Zeile */}
-                <div className="min-w-0 flex-1">
+                {/* Identität: Kategorie fett, darunter ruhige Meta-Zeile — nur so breit wie nötig,
+                    damit die Leader-Linie den Blick weiterträgt statt in leerer Fläche zu enden. */}
+                <div className="min-w-0 max-w-[65%] shrink">
                   <div className="truncate text-[15px] font-semibold leading-tight">{t.category}</div>
                   <div className="mt-0.5 truncate text-[13px] text-muted-foreground">{t.note ? `${t.note} · ` : ""}{dateDE(t.date)}</div>
                 </div>
+                {/* Leader-Linie (Beleg-Optik) — verbindet Bezeichnung und Betrag über die volle Zeilenbreite */}
+                <div aria-hidden className="mb-[3px] h-px min-w-4 flex-1 self-end border-b border-dashed border-white/[0.08]" />
                 {/* Geld-Anker: feste, rechtsbündige Zahlen-Achse — der Held der Zeile */}
                 <div className="flex shrink-0 flex-col items-end">
                   <span className="num font-heading text-[15px] font-bold leading-tight sm:text-base" style={{ color }}>

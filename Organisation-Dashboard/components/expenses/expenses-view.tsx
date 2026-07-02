@@ -154,11 +154,12 @@ export function ExpensesView() {
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${EXPENSE}1f`, color: EXPENSE }}>
                   <ArrowUpRight className="h-4 w-4" />
                 </span>
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 max-w-[65%] shrink">
                   <div className="truncate text-sm font-medium">{t.category}{t.note ? <span className="font-normal text-muted-foreground"> · {t.note}</span> : ""}</div>
                   <div className="text-xs text-muted-foreground">{dateDE(t.date)} · {t.taxRate}% USt</div>
                 </div>
-                <span className="text-sm font-semibold tabular-nums" style={{ color: EXPENSE }}>−{eur(t.amount)}</span>
+                <div aria-hidden className="mb-[3px] h-px min-w-4 flex-1 self-end border-b border-dashed border-white/[0.08]" />
+                <span className="shrink-0 text-sm font-semibold tabular-nums" style={{ color: EXPENSE }}>−{eur(t.amount)}</span>
                 <button onClick={() => removeTransaction(t.id)} aria-label="Beleg löschen" title="Beleg löschen" className="action-reveal rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60">
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
