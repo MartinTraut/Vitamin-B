@@ -23,15 +23,15 @@ export function buildDemoData(): Database {
     tasks: [
       { id: "t1", person: "robert", listId: "l-orga", title: "Angebot Autofolierung Müller GmbH rausschicken", status: "doing", priority: "high", due: rel(1), createdAt: now },
       { id: "t2", person: "robert", listId: "l-orga", title: "Rechnung #2026-041 nachfassen", status: "todo", priority: "high", due: rel(0), createdAt: now },
-      { id: "t3", person: "bastian", listId: "l-prod", title: "Fahrzeugbeschriftung Pflegedienst zuschneiden", status: "doing", priority: "normal", due: rel(2), createdAt: now },
+      { id: "t3", person: "bastian", listId: "l-prod", title: "Fahrzeugbeschriftung Pflegedienst zuschneiden", status: "doing", priority: "normal", due: rel(2), createdAt: now, projectId: "p2", customerId: "c2", trackedMinutes: 95 },
       { id: "t4", person: "bastian", listId: "l-prod", title: "Plottfolie Orange nachbestellen", status: "todo", priority: "low", due: rel(4), createdAt: now },
-      { id: "t5", person: "martin", listId: "l-web", title: "Landingpage Relaunch Kunde Bäckerei live stellen", status: "todo", priority: "normal", due: rel(3), createdAt: now },
+      { id: "t5", person: "martin", listId: "l-web", title: "Landingpage Relaunch Kunde Bäckerei live stellen", status: "todo", priority: "normal", due: rel(3), createdAt: now, projectId: "p3", customerId: "c4" },
       { id: "t6", person: "martin", listId: "l-web", title: "Google Business Profil optimieren", status: "done", priority: "low", createdAt: now },
       { id: "t7", person: "robert", listId: "l-orga", title: "Materialeinkauf Messe vorbereiten", status: "todo", priority: "normal", due: rel(6), createdAt: now },
       { id: "t8", person: "bastian", listId: "l-prod", title: "T-Shirt-Druck Sportverein – Freigabe einholen", status: "todo", priority: "high", due: rel(1), createdAt: now },
     ],
     appointments: [
-      { id: "a1", person: "robert", title: "Kundentermin Autohaus Schäfer", category: "termin", date: rel(0), time: "10:00", endTime: "11:30", location: "Neuenstadt", recurrence: { freq: "none", interval: 1 }, completedDates: [], createdAt: now },
+      { id: "a1", person: "robert", title: "Kundentermin Autohaus Schäfer", category: "termin", date: rel(0), time: "10:00", endTime: "11:30", location: "Neuenstadt", recurrence: { freq: "none", interval: 1 }, completedDates: [], createdAt: now, customerId: "c1", projectId: "p1" },
       { id: "a2", person: "bastian", title: "Lieferung Werbetafeln Baustelle B27", category: "liefertermin", date: rel(2), time: "08:30", endTime: "09:30", recurrence: { freq: "none", interval: 1 }, completedDates: [], createdAt: now },
       { id: "a3", person: "martin", title: "Team-Meeting Wochenplanung", category: "meeting", date: rel(0), time: "16:00", endTime: "17:00", recurrence: { freq: "weekly", interval: 1 }, completedDates: [], createdAt: now },
       { id: "a4", person: "robert", title: "Deadline: Logo-Konzept Steuerkanzlei", category: "deadline", date: rel(3), recurrence: { freq: "none", interval: 1 }, completedDates: [], createdAt: now },
@@ -82,8 +82,8 @@ export function buildDemoData(): Database {
       { id: "p4", customerId: "c5", name: "Logo & Corporate Design", status: "fertig", description: "Logo, Visitenkarten, Briefpapier.", createdAt: now },
     ],
     deals: [
-      { id: "d1", customerId: "c3", title: "Autofolierung Komplettflotte", stage: "angebot", value: 5200, person: "robert", createdAt: now },
-      { id: "d2", customerId: "c4", title: "Schaufenster + Landingpage", stage: "kontakt", value: 2800, person: "martin", createdAt: now },
+      { id: "d1", customerId: "c3", title: "Autofolierung Komplettflotte", stage: "angebot", value: 5200, person: "robert", createdAt: now, probability: 70, expectedCloseDate: rel(10), stageChangedAt: rel(-9) },
+      { id: "d2", customerId: "c4", title: "Schaufenster + Landingpage", stage: "kontakt", value: 2800, person: "martin", createdAt: now, stageChangedAt: rel(-2) },
       { id: "d3", customerId: "c1", title: "Flottenbeschriftung 2026", stage: "gewonnen", value: 8600, person: "robert", createdAt: now },
       { id: "d4", customerId: "c2", title: "Fahrzeug- & Schilderpaket", stage: "angebot", value: 3400, person: "bastian", createdAt: now },
       { id: "d5", customerId: "c5", title: "Erweiterung Geschäftsausstattung", stage: "lead", value: 1500, person: "martin", createdAt: now },
@@ -226,6 +226,16 @@ export function buildDemoData(): Database {
     whiteboards: [
       { id: "wb1", name: "Ideen & Brainstorming", createdAt: now },
       { id: "wb2", name: "Messestand-Konzept", person: "robert", createdAt: now },
+    ],
+    notes: [
+      { id: "n1", customerId: "c1", person: "robert", text: "Anruf: Freigabe für 6 weitere Fahrzeuge erteilt.", createdAt: rel(-9) },
+      { id: "n2", customerId: "c1", person: "robert", text: "Termin vor Ort vereinbart, Montage nächste Woche.", createdAt: rel(-2) },
+      { id: "n3", dealId: "d1", person: "robert", text: "Angebot verschickt, Rückmeldung bis Ende der Woche zugesagt.", createdAt: rel(-9) },
+      { id: "n4", customerId: "c4", person: "martin", text: "Erstgespräch: Wunsch nach hellem, reduziertem Look.", createdAt: rel(-2) },
+    ],
+    timeEntries: [
+      { id: "te1", person: "bastian", taskId: "t3", projectId: "p2", minutes: 60, date: rel(-1), createdAt: now },
+      { id: "te2", person: "bastian", taskId: "t3", projectId: "p2", minutes: 35, date: rel(0), createdAt: now },
     ],
   }
 }

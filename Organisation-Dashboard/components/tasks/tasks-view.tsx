@@ -20,7 +20,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { Plus, Check, Trash2, ArrowRight, GripVertical, CalendarDays } from "lucide-react"
+import { Plus, Check, Trash2, ArrowRight, GripVertical, CalendarDays, Clock } from "lucide-react"
 import { useStore } from "@/lib/store"
 import {
   PEOPLE,
@@ -30,7 +30,8 @@ import {
   type Task,
   type TaskStatus,
 } from "@/lib/types"
-import { dateDE } from "@/lib/format"
+import { dateDE, formatMinutes } from "@/lib/format"
+import { todayISO } from "@/lib/recurrence"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -47,10 +48,11 @@ const PRIORITY_DOT: Record<Priority, string> = {
 }
 
 export function TasksView() {
-  const { db, activePerson, addTask, updateTaskStatus, toggleTask, removeTask, reorderTasks } =
+  const { db, activePerson, addTask, updateTaskStatus, toggleTask, removeTask, reorderTasks, addTimeEntry } =
     useStore()
   const [title, setTitle] = useState("")
   const [priority, setPriority] = useState<Priority>("normal")
+  const [projectId, setProjectId] = useState("")
   const [activeId, setActiveId] = useState<string | null>(null)
 
   const person = PEOPLE.find((p) => p.id === activePerson)!
@@ -69,15 +71,19 @@ export function TasksView() {
   function submit() {
     const value = title.trim()
     if (!value) return
+    const project = db.projects.find((p) => p.id === projectId)
     addTask({
       person: activePerson,
       listId: db.lists[0]?.id ?? "l-orga",
       title: value,
       status: "todo",
       priority,
+      projectId: projectId || undefined,
+      customerId: project?.customerId,
     })
     setTitle("")
     setPriority("normal")
+    setProjectId("")
   }
 
   function handleDragStart(e: DragStartEvent) {
@@ -136,6 +142,19 @@ export function TasksView() {
             placeholder={`Neue Aufgabe für ${person.name}…`}
             className="h-12 flex-1 rounded-xl border border-border bg-white/[0.03] px-4 text-[15px] outline-none placeholder:text-muted-foreground/70 focus:border-primary/50"
           />
+          {db.projects.length > 0 && (
+            <select
+              value={projectId}
+              onChange={(e) => setProjectId(e.target.value)}
+              className="h-12 rounded-xl border border-border bg-white/[0.03] px-3 text-sm text-muted-foreground outline-none focus:border-primary/50 [color-scheme:dark]"
+              title="Mit Projekt verknüpfen"
+            >
+              <option value="">Kein Projekt</option>
+              {db.projects.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          )}
           <div className="flex flex-wrap items-center gap-2">
             {(["low", "normal", "high"] as Priority[]).map((p) => (
               <button
@@ -193,6 +212,8 @@ export function TasksView() {
                       onToggle={() => toggleTask(t.id)}
                       onAdvance={() => updateTaskStatus(t.id, nextStatus(t.status))}
                       onRemove={() => removeTask(t.id)}
+                      onLogTime={(minutes) => addTimeEntry({ person: t.person, taskId: t.id, projectId: t.projectId, minutes, date: todayISO() })}
+                      projectName={db.projects.find((p) => p.id === t.projectId)?.name}
                     />
                   ))}
                 </SortableContext>
@@ -265,11 +286,15 @@ function SortableTaskCard({
   onToggle,
   onAdvance,
   onRemove,
+  onLogTime,
+  projectName,
 }: {
   task: Task
   onToggle: () => void
   onAdvance: () => void
   onRemove: () => void
+  onLogTime: (minutes: number) => void
+  projectName?: string
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
@@ -286,6 +311,8 @@ function SortableTaskCard({
         onToggle={onToggle}
         onAdvance={onAdvance}
         onRemove={onRemove}
+        onLogTime={onLogTime}
+        projectName={projectName}
         handleProps={{ ...attributes, ...listeners }}
       />
     </div>
@@ -299,6 +326,8 @@ function TaskCardInner({
   onToggle,
   onAdvance,
   onRemove,
+  onLogTime,
+  projectName,
   handleProps,
   dragging,
 }: {
@@ -306,10 +335,14 @@ function TaskCardInner({
   onToggle?: () => void
   onAdvance?: () => void
   onRemove?: () => void
+  onLogTime?: (minutes: number) => void
+  projectName?: string
   handleProps?: Record<string, unknown>
   dragging?: boolean
 }) {
   const done = task.status === "done"
+  const [logging, setLogging] = useState(false)
+  const [minutesInput, setMinutesInput] = useState("15")
   return (
     <div
       className={cn(
@@ -374,12 +407,63 @@ function TaskCardInner({
                 {dateDE(task.due)}
               </span>
             )}
+            {projectName && (
+              <span className="inline-flex items-center gap-1.5 truncate rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+                {projectName}
+              </span>
+            )}
+            {!!task.trackedMinutes && (
+              <span className="inline-flex items-center gap-1.5 rounded-md bg-white/[0.05] px-2 py-1 text-xs text-muted-foreground">
+                <Clock className="h-3.5 w-3.5" />
+                {formatMinutes(task.trackedMinutes)}
+              </span>
+            )}
           </div>
+
+          {logging && onLogTime && (
+            <div className="mt-2.5 flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+              <input
+                type="number"
+                min={1}
+                value={minutesInput}
+                onChange={(e) => setMinutesInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter") return
+                  const n = Number(minutesInput)
+                  if (n > 0) { onLogTime(n); setLogging(false); setMinutesInput("15") }
+                }}
+                className="h-8 w-20 rounded-md border border-border bg-white/[0.03] px-2 text-sm outline-none focus:border-primary/50"
+                autoFocus
+              />
+              <span className="text-xs text-muted-foreground">Min.</span>
+              <button
+                onClick={() => {
+                  const n = Number(minutesInput)
+                  if (n > 0) { onLogTime(n); setLogging(false); setMinutesInput("15") }
+                }}
+                className="rounded-md bg-primary/15 px-2.5 py-1.5 text-xs font-semibold text-primary hover:bg-primary/25"
+              >
+                Erfassen
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Aktionen */}
         {!dragging && (
           <div className="action-reveal flex shrink-0 items-center gap-1">
+            {onLogTime && (
+              <button
+                onClick={() => setLogging((v) => !v)}
+                title="Zeit erfassen"
+                className={cn(
+                  "rounded-md p-1.5 hover:bg-primary/15 hover:text-primary",
+                  logging ? "text-primary" : "text-muted-foreground",
+                )}
+              >
+                <Clock className="h-4 w-4" />
+              </button>
+            )}
             {!done && onAdvance && (
               <button
                 onClick={onAdvance}

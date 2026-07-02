@@ -47,6 +47,21 @@ export interface Task {
   priority: Priority
   due?: string // YYYY-MM-DD
   createdAt: string // ISO
+  projectId?: string // verknüpftes Kundenprojekt (Work-OS-Verknüpfung)
+  customerId?: string // direkter Kundenbezug, falls kein Projekt existiert
+  trackedMinutes?: number // aufsummierte Zeiterfassung (aus TimeEntry)
+}
+
+// Zeiterfassung — an Task oder direkt an Projekt hängbar.
+export interface TimeEntry {
+  id: string
+  person: Person
+  taskId?: string
+  projectId?: string
+  minutes: number
+  date: string // YYYY-MM-DD
+  note?: string
+  createdAt: string
 }
 
 // Kategorie-ID (referenziert eine editierbare AppointmentCategoryDef).
@@ -99,6 +114,9 @@ export interface Appointment {
   recurrence: Recurrence
   completedDates: string[]
   createdAt: string
+  customerId?: string // Work-OS-Verknüpfung
+  dealId?: string
+  projectId?: string
 }
 
 export interface FinanceMonth {
@@ -219,6 +237,28 @@ export interface Deal {
   phone?: string // Kontakt (v. a. bei selbst erfassten Leads)
   email?: string
   createdAt: string
+  probability?: number // 0–100, für gewichtete Pipeline (fehlt → Default aus Stage)
+  expectedCloseDate?: string // YYYY-MM-DD
+  stageChangedAt?: string // ISO, für Follow-up-Nudges ("seit X Tagen keine Bewegung")
+}
+
+// Default-Abschlusswahrscheinlichkeit je Pipeline-Stufe, falls Deal.probability nicht gesetzt ist.
+export const DEAL_STAGE_DEFAULT_PROBABILITY: Record<DealStage, number> = {
+  lead: 10,
+  kontakt: 35,
+  angebot: 65,
+  gewonnen: 100,
+}
+
+/* ---------- Notizen (chronologische Timeline bei Kunde/Deal) ---------- */
+
+export interface Note {
+  id: string
+  customerId?: string
+  dealId?: string
+  person: Person
+  text: string
+  createdAt: string // ISO
 }
 
 /* ---------- Belege (Angebote & Rechnungen) ---------- */
@@ -278,6 +318,15 @@ export interface Quote {
   createdAt: string
 }
 
+export type DunningLevel = 0 | 1 | 2 | 3
+
+export const DUNNING_LABEL: Record<DunningLevel, string> = {
+  0: "Keine Mahnung",
+  1: "1. Mahnung",
+  2: "2. Mahnung",
+  3: "3. Mahnung",
+}
+
 export interface Invoice {
   id: string
   number: string
@@ -291,6 +340,13 @@ export interface Invoice {
   notes?: string
   quoteId?: string
   createdAt: string
+  recurrence?: Recurrence // wiederkehrende Rechnung (z. B. monatlicher Wartungsvertrag)
+  recurrenceParentId?: string // verweist auf die "Vorlagen"-Rechnung, aus der Folgerechnungen generiert werden
+  nextRecurrenceDate?: string // YYYY-MM-DD — wann die nächste Folgerechnung fällig ist
+  dunningLevel?: DunningLevel
+  dunningDates?: string[] // ISO, ein Eintrag pro versendeter Mahnstufe
+  voided?: boolean // storniert (Original bleibt für Nummernkreis erhalten, siehe creditNoteFor)
+  creditNoteFor?: string // gesetzt bei einer Stornorechnung: id der stornierten Original-Rechnung
 }
 
 export interface Template {
@@ -401,4 +457,6 @@ export interface Database {
   templates: Template[]
   company: CompanySettings
   whiteboards: Whiteboard[]
+  notes: Note[]
+  timeEntries: TimeEntry[]
 }

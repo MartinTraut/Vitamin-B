@@ -39,9 +39,27 @@ export function QuickAdd() {
     }
   }, [open])
 
+  // Desktop-Zugang: ⌘⇧A / Strg⇧A sowie ein Event, das die Topbar auslöst
+  // (gleiche Komponente wie die Mobile-FAB, nur ohne festen Trigger-Button).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "a") {
+        e.preventDefault()
+        setOpen(true)
+      }
+    }
+    const onOpen = () => setOpen(true)
+    document.addEventListener("keydown", onKey)
+    window.addEventListener("open-quick-add", onOpen)
+    return () => {
+      document.removeEventListener("keydown", onKey)
+      window.removeEventListener("open-quick-add", onOpen)
+    }
+  }, [])
+
   return (
     <>
-      {/* FAB */}
+      {/* FAB — Mobile/Tablet. Desktop nutzt den Button in der Topbar (gleiche Komponente). */}
       <button
         onClick={() => setOpen(true)}
         aria-label="Schnell erfassen"
@@ -52,7 +70,7 @@ export function QuickAdd() {
 
       <AnimatePresence>
         {open && (
-          <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Schnell erfassen">
+          <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Schnell erfassen">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

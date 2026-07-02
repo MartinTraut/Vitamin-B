@@ -18,18 +18,21 @@ import type {
   Deal,
   DealStage,
   Invoice,
+  Note,
   Person,
   Project,
   Quote,
   Task,
   TaskStatus,
+  Template,
+  TimeEntry,
   Transaction,
   Debt,
   Whiteboard,
 } from "./types"
 import { buildDemoData } from "./demo-data"
 import { nextNumber, computeTotals } from "./totals"
-import { todayISO, addDaysISO } from "./recurrence"
+import { todayISO, addDaysISO, nthOccurrenceOf } from "./recurrence"
 import { useSupabaseSync } from "./sync"
 
 const DB_KEY = "vitaminb-os-db-v2"
@@ -78,17 +81,63 @@ function withAutoQuotes(prev: Database, deals: Deal[]): Database {
   return { ...prev, deals, quotes: [...created, ...prev.quotes] }
 }
 
+// Wiederkehrende Rechnungen: für jede "Vorlagen"-Rechnung mit fälliger
+// nextRecurrenceDate wird ein neuer Entwurf generiert (Original bleibt als
+// Vorlage bestehen, die nächste Fälligkeit rückt einen Zyklus weiter).
+function withRecurringInvoices(db: Database): Database {
+  const today = todayISO()
+  const due = db.invoices.filter(
+    (i) => i.recurrence && i.recurrence.freq !== "none" && !i.recurrenceParentId && i.nextRecurrenceDate && i.nextRecurrenceDate <= today,
+  )
+  if (due.length === 0) return db
+  const year = new Date().getFullYear()
+  const generated: Invoice[] = []
+  const updatedOriginals = new Map<string, string>() // id -> neue nextRecurrenceDate
+  for (const original of due) {
+    const issue = original.nextRecurrenceDate!
+    const number = nextNumber([...db.invoices.map((i) => i.number), ...generated.map((g) => g.number)], year)
+    generated.push({
+      ...original,
+      id: nanoid(8),
+      number,
+      status: "entwurf",
+      issueDate: issue,
+      serviceDate: issue,
+      dueDate: addDaysISO(issue, db.company.paymentTermDays),
+      createdAt: new Date().toISOString(),
+      items: original.items.map((it) => ({ ...it, id: nanoid(6) })),
+      recurrence: undefined,
+      recurrenceParentId: original.id,
+      nextRecurrenceDate: undefined,
+      dunningLevel: undefined,
+      dunningDates: undefined,
+      voided: undefined,
+      creditNoteFor: undefined,
+    })
+    updatedOriginals.set(original.id, nthOccurrenceOf(issue, original.recurrence!, 1))
+  }
+  return {
+    ...db,
+    invoices: [
+      ...generated,
+      ...db.invoices.map((i) => (updatedOriginals.has(i.id) ? { ...i, nextRecurrenceDate: updatedOriginals.get(i.id) } : i)),
+    ],
+  }
+}
+
 // Gespeicherte Daten über die Demo-Defaults mergen, damit neue (auch
 // verschachtelte) Felder bei altem Cache vorhanden sind und nichts undefined wird.
 function mergeDb(partial: Partial<Database>): Database {
   const base = buildDemoData()
-  return withOverdue({
+  return withRecurringInvoices(withOverdue({
     ...base,
     ...partial,
-    // Neues Feld: bei Bestandsdaten leer starten statt Demo-Schulden einzuspielen.
+    // Neues Feld: bei Bestandsdaten leer starten statt Demo-Daten einzuspielen.
     debts: partial.debts ?? [],
+    notes: partial.notes ?? [],
+    timeEntries: partial.timeEntries ?? [],
     company: { ...base.company, ...(partial.company ?? {}) },
-  })
+  }))
 }
 
 interface StoreValue {
@@ -129,6 +178,8 @@ interface StoreValue {
   addInvoice: (input: Omit<Invoice, "id" | "createdAt" | "number">) => void
   updateInvoice: (id: string, patch: Partial<Omit<Invoice, "id" | "createdAt">>) => void
   removeInvoice: (id: string) => void
+  voidInvoice: (id: string) => void
+  sendDunning: (id: string) => void
   // Finanzen
   addTransaction: (input: Omit<Transaction, "id">) => void
   removeTransaction: (id: string) => void
@@ -145,6 +196,16 @@ interface StoreValue {
   addWhiteboard: (input: Omit<Whiteboard, "id" | "createdAt">) => string
   renameWhiteboard: (id: string, name: string) => void
   removeWhiteboard: (id: string) => void
+  // Notizen (Timeline bei Kunde/Deal)
+  addNote: (input: Omit<Note, "id" | "createdAt">) => void
+  removeNote: (id: string) => void
+  // Zeiterfassung
+  addTimeEntry: (input: Omit<TimeEntry, "id" | "createdAt">) => void
+  removeTimeEntry: (id: string) => void
+  // Vorlagen
+  addTemplate: (input: Omit<Template, "id">) => void
+  updateTemplate: (id: string, patch: Partial<Omit<Template, "id">>) => void
+  removeTemplate: (id: string) => void
 }
 
 const StoreContext = createContext<StoreValue | null>(null)
@@ -328,7 +389,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       addDeal: (input) =>
         setDb((prev) =>
           withAutoQuotes(prev, [
-            { ...input, id: nanoid(8), createdAt: new Date().toISOString() },
+            { ...input, id: nanoid(8), createdAt: new Date().toISOString(), stageChangedAt: new Date().toISOString() },
             ...prev.deals,
           ]),
         ),
@@ -339,7 +400,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         })),
       moveDeal: (id, stage) =>
         setDb((prev) =>
-          withAutoQuotes(prev, prev.deals.map((d) => (d.id === id ? { ...d, stage } : d))),
+          withAutoQuotes(
+            prev,
+            prev.deals.map((d) => (d.id === id ? { ...d, stage, stageChangedAt: new Date().toISOString() } : d)),
+          ),
         ),
       reorderDeals: (next) => setDb((prev) => withAutoQuotes(prev, next)),
       removeDeal: (id) =>
@@ -442,8 +506,49 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           }
           return { ...prev, invoices, transactions }
         }),
+      // Nur Entwürfe dürfen gelöscht werden — vergebene Nummern bleiben §14/GoBD-konform lückenlos.
+      // Für gesendete/bezahlte Rechnungen siehe voidInvoice (Storno statt Löschung).
       removeInvoice: (id) =>
-        setDb((prev) => ({ ...prev, invoices: prev.invoices.filter((i) => i.id !== id) })),
+        setDb((prev) => ({
+          ...prev,
+          invoices: prev.invoices.filter((i) => i.id !== id || i.status !== "entwurf"),
+        })),
+      // Storniert eine versendete/bezahlte Rechnung: Original bleibt (Nummernkreis lückenlos),
+      // eine neue Stornorechnung mit Negativpositionen wird als Gegenbuchung angelegt.
+      voidInvoice: (id) =>
+        setDb((prev) => {
+          const original = prev.invoices.find((i) => i.id === id)
+          if (!original || original.status === "entwurf" || original.voided) return prev
+          const issue = todayISO()
+          const creditNote: Invoice = {
+            id: nanoid(8),
+            number: nextNumber(prev.invoices.map((i) => i.number), new Date().getFullYear()),
+            customerId: original.customerId,
+            status: "bezahlt",
+            items: original.items.map((it) => ({ ...it, id: nanoid(6), qty: -it.qty })),
+            issueDate: issue,
+            serviceDate: original.serviceDate,
+            dueDate: issue,
+            person: original.person,
+            notes: `Storno zu Rechnung ${original.number}`,
+            createdAt: new Date().toISOString(),
+            creditNoteFor: original.id,
+          }
+          return {
+            ...prev,
+            invoices: [creditNote, ...prev.invoices.map((i) => (i.id === id ? { ...i, voided: true } : i))],
+          }
+        }),
+      // Erhöht die Mahnstufe (max. 3) und protokolliert das Datum der Mahnung.
+      sendDunning: (id) =>
+        setDb((prev) => ({
+          ...prev,
+          invoices: prev.invoices.map((i) => {
+            if (i.id !== id) return i
+            const level = Math.min(3, ((i.dunningLevel ?? 0) + 1)) as 0 | 1 | 2 | 3
+            return { ...i, dunningLevel: level, dunningDates: [...(i.dunningDates ?? []), new Date().toISOString()] }
+          }),
+        })),
 
       // Finanzen
       addTransaction: (input) =>
@@ -514,6 +619,51 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         })),
       removeWhiteboard: (id) =>
         setDb((prev) => ({ ...prev, whiteboards: prev.whiteboards.filter((w) => w.id !== id) })),
+
+      // Notizen (Timeline bei Kunde/Deal)
+      addNote: (input) =>
+        setDb((prev) => ({
+          ...prev,
+          notes: [{ ...input, id: nanoid(8), createdAt: new Date().toISOString() }, ...prev.notes],
+        })),
+      removeNote: (id) =>
+        setDb((prev) => ({ ...prev, notes: prev.notes.filter((n) => n.id !== id) })),
+
+      // Zeiterfassung — erfasste Minuten fließen zusätzlich in Task.trackedMinutes ein.
+      addTimeEntry: (input) =>
+        setDb((prev) => ({
+          ...prev,
+          timeEntries: [{ ...input, id: nanoid(8), createdAt: new Date().toISOString() }, ...prev.timeEntries],
+          tasks: input.taskId
+            ? prev.tasks.map((t) =>
+                t.id === input.taskId ? { ...t, trackedMinutes: (t.trackedMinutes ?? 0) + input.minutes } : t,
+              )
+            : prev.tasks,
+        })),
+      removeTimeEntry: (id) =>
+        setDb((prev) => {
+          const entry = prev.timeEntries.find((e) => e.id === id)
+          return {
+            ...prev,
+            timeEntries: prev.timeEntries.filter((e) => e.id !== id),
+            tasks: entry?.taskId
+              ? prev.tasks.map((t) =>
+                  t.id === entry.taskId ? { ...t, trackedMinutes: Math.max(0, (t.trackedMinutes ?? 0) - entry.minutes) } : t,
+                )
+              : prev.tasks,
+          }
+        }),
+
+      // Vorlagen
+      addTemplate: (input) =>
+        setDb((prev) => ({ ...prev, templates: [{ ...input, id: nanoid(8) }, ...prev.templates] })),
+      updateTemplate: (id, patch) =>
+        setDb((prev) => ({
+          ...prev,
+          templates: prev.templates.map((t) => (t.id === id ? { ...t, ...patch } : t)),
+        })),
+      removeTemplate: (id) =>
+        setDb((prev) => ({ ...prev, templates: prev.templates.filter((t) => t.id !== id) })),
     }),
     [db, activePerson],
   )

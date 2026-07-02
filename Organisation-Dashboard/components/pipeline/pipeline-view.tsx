@@ -21,21 +21,24 @@ import {
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { useRouter } from "next/navigation"
-import { Plus, GripVertical, Trash2, X, TrendingUp, Trophy, Layers, ChevronLeft, ChevronRight, FileText, Receipt, Phone, Mail, type LucideIcon } from "lucide-react"
+import { Plus, GripVertical, Trash2, X, TrendingUp, Trophy, Layers, Scale, ChevronLeft, ChevronRight, FileText, Receipt, Phone, Mail } from "lucide-react"
 import { useStore } from "@/lib/store"
 import { useToast } from "@/lib/toast"
-import { todayISO, addDaysISO } from "@/lib/recurrence"
+import { todayISO, addDaysISO, diffDays } from "@/lib/recurrence"
 import {
   PEOPLE,
   DEAL_STAGES,
   DEAL_STAGE_LABEL,
   DEAL_STAGE_COLOR,
+  DEAL_STAGE_DEFAULT_PROBABILITY,
   type Deal,
   type DealStage,
 } from "@/lib/types"
 import { eur0 } from "@/lib/format"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { KpiTile } from "@/components/ui/kpi-tile"
+import { ORANGE, INCOME, PURPLE } from "@/lib/theme-colors"
 import { cn } from "@/lib/utils"
 
 export function PipelineView() {
@@ -113,6 +116,10 @@ export function PipelineView() {
 
   const totalOpen = myDeals.filter((d) => d.stage !== "gewonnen").reduce((s, d) => s + d.value, 0)
   const totalWon = myDeals.filter((d) => d.stage === "gewonnen").reduce((s, d) => s + d.value, 0)
+  // Gewichtete Pipeline: realistischerer Forecast als die reine Summe offener Deals.
+  const weightedOpen = myDeals
+    .filter((d) => d.stage !== "gewonnen")
+    .reduce((s, d) => s + (d.value * (d.probability ?? DEAL_STAGE_DEFAULT_PROBABILITY[d.stage])) / 100, 0)
 
   const activeDeal = activeId ? db.deals.find((d) => d.id === activeId) ?? null : null
 
@@ -155,10 +162,11 @@ export function PipelineView() {
     <div className="space-y-4">
       {/* Kopf — prominente KPI-Kacheln */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch">
-        <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-3">
-          <Metric icon={TrendingUp} label="Offene Pipeline" value={eur0(totalOpen)} accent="#E39832" />
-          <Metric icon={Trophy} label="Gewonnen" value={eur0(totalWon)} accent="#34d399" />
-          <Metric icon={Layers} label="Deals" value={String(myDeals.length)} accent="#a855f7" />
+        <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-4">
+          <KpiTile icon={TrendingUp} label="Offene Pipeline" value={eur0(totalOpen)} accent={ORANGE} />
+          <KpiTile icon={Scale} label="Gewichtet" value={eur0(weightedOpen)} hint="nach Abschluss-Wahrsch." accent="#3b82f6" />
+          <KpiTile icon={Trophy} label="Gewonnen" value={eur0(totalWon)} accent={INCOME} />
+          <KpiTile icon={Layers} label="Deals" value={String(myDeals.length)} accent={PURPLE} />
         </div>
         <Button onClick={() => setAdding((v) => !v)} className="h-auto lg:px-6">
           <Plus className="h-4 w-4" /> Neuer Deal
@@ -360,6 +368,9 @@ function DealCardInner({
   const stageIdx = DEAL_STAGES.indexOf(deal.stage)
   const prevStage = stageIdx > 0 ? DEAL_STAGES[stageIdx - 1] : null
   const nextStage = stageIdx < DEAL_STAGES.length - 1 ? DEAL_STAGES[stageIdx + 1] : null
+  // Nachfass-Nudge: seit über 7 Tagen keine Stufenbewegung mehr (nur offene Deals).
+  const daysSinceStageChange = deal.stageChangedAt ? diffDays(todayISO(), deal.stageChangedAt.slice(0, 10)) : 0
+  const stale = deal.stage !== "gewonnen" && !!deal.stageChangedAt && daysSinceStageChange > 7
   return (
     <div className={cn("group relative rounded-xl border border-border bg-[#101010] p-3.5 transition-all", dragging ? "rotate-[1.5deg] border-primary/40 shadow-2xl shadow-black/60" : "hover:border-white/15 hover:bg-[#141414]")}>
       <div className="flex items-start gap-2.5">
@@ -382,6 +393,11 @@ function DealCardInner({
                   <Mail className="h-3 w-3 shrink-0" /> {deal.email}
                 </a>
               )}
+            </div>
+          )}
+          {stale && (
+            <div className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-destructive/15 px-2 py-0.5 text-[11px] font-semibold text-destructive">
+              Nachfassen? · seit {daysSinceStageChange} T. ohne Bewegung
             </div>
           )}
           <div className="mt-2 flex items-center justify-between gap-2">
@@ -548,28 +564,3 @@ function AddDeal({
   )
 }
 
-function Metric({ icon: Icon, label, value, accent }: { icon: LucideIcon; label: string; value: string; accent: string }) {
-  return (
-    <div
-      className="relative flex items-center gap-3 overflow-hidden rounded-2xl p-4 transition-transform hover:-translate-y-0.5"
-      style={{
-        background: `linear-gradient(135deg, ${accent}2e, ${accent}0d 70%)`,
-        border: `1px solid ${accent}55`,
-        boxShadow: `inset 0 1px 0 0 ${accent}33, 0 10px 34px -14px ${accent}99`,
-      }}
-    >
-      {/* satter Farb-Schimmer oben */}
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${accent}, transparent)` }} />
-      <div
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
-        style={{ backgroundColor: `${accent}33`, color: accent, border: `1px solid ${accent}66` }}
-      >
-        <Icon className="h-5 w-5" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="eyebrow truncate" style={{ color: `${accent}cc` }}>{label}</div>
-        <div className="num truncate font-heading text-[clamp(1.15rem,4.5vw,1.5rem)] font-bold leading-tight sm:text-2xl" style={{ color: accent }}>{value}</div>
-      </div>
-    </div>
-  )
-}

@@ -11,6 +11,8 @@ import {
   Search,
   CheckCircle2,
   AlertTriangle,
+  X,
+  Save,
 } from "lucide-react"
 import { useStore } from "@/lib/store"
 import { useToast } from "@/lib/toast"
@@ -20,16 +22,18 @@ import {
   QUOTE_STATUS_COLOR,
   INVOICE_STATUS_LABEL,
   INVOICE_STATUS_COLOR,
+  DUNNING_LABEL,
   type LineItem,
   type Quote,
   type Invoice,
   type QuoteStatus,
   type InvoiceStatus,
+  type RecurrenceFreq,
 } from "@/lib/types"
 import { computeTotals, lineNet } from "@/lib/totals"
 import { eur, dateDE, dateLong } from "@/lib/format"
 import type { Customer, CompanySettings } from "@/lib/types"
-import { todayISO, addDaysISO } from "@/lib/recurrence"
+import { todayISO, addDaysISO, nthOccurrenceOf } from "@/lib/recurrence"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -103,6 +107,10 @@ export function DocumentsView({ kind }: { kind: Kind }) {
     if (isQuote) store.removeQuote(id)
     else store.removeInvoice(id)
     setSelectedId(docs.find((d) => d.id !== id)?.id ?? null)
+  }
+  function voidDoc(id: string) {
+    store.voidInvoice(id)
+    toast.success("Rechnung storniert — Stornorechnung wurde angelegt")
   }
   function createNew() {
     const cid = db.customers[0]?.id ?? ""
@@ -190,7 +198,7 @@ export function DocumentsView({ kind }: { kind: Kind }) {
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-5">
                   <Badge color={color}>{label}</Badge>
-                  <span className="num text-right font-heading text-base font-bold sm:w-32 sm:text-xl" style={{ color }}>{eur(t.gross)}</span>
+                  <span className="num text-right font-heading text-[clamp(1rem,1vw+0.75rem,1.25rem)] font-bold sm:w-32" style={{ color }}>{eur(t.gross)}</span>
                 </div>
               </button>
             )
@@ -210,7 +218,14 @@ export function DocumentsView({ kind }: { kind: Kind }) {
               defaultTaxRate={db.company.defaultTaxRate}
               onPatch={patchDoc}
               onRemove={() => removeDoc(selected.id)}
+              onVoid={!isQuote && (selected as Invoice).status !== "entwurf" && !(selected as Invoice).voided && !(selected as Invoice).creditNoteFor ? () => voidDoc(selected.id) : undefined}
+              onSendDunning={() => { store.sendDunning(selected.id); toast.success("Mahnung erfasst") }}
               onConvert={isQuote ? () => { store.convertQuoteToInvoice(selected.id); toast.success("Angebot in Rechnung umgewandelt") } : undefined}
+              onSaveTemplate={(name) => {
+                store.addTemplate({ kind, name, items: selected.items.map(({ id: _id, ...rest }) => rest) })
+                toast.success("Als Vorlage gespeichert")
+              }}
+              onDeleteTemplate={(id) => store.removeTemplate(id)}
             />
           ) : (
             <Card className="flex h-full flex-col items-center justify-center gap-4 p-12 text-sm text-muted-foreground">
@@ -249,7 +264,11 @@ function Editor({
   defaultTaxRate,
   onPatch,
   onRemove,
+  onVoid,
+  onSendDunning,
   onConvert,
+  onSaveTemplate,
+  onDeleteTemplate,
 }: {
   kind: Kind
   doc: Doc
@@ -260,7 +279,11 @@ function Editor({
   defaultTaxRate: number
   onPatch: (patch: Partial<Doc>) => void
   onRemove: () => void
+  onVoid?: () => void
+  onSendDunning: () => void
   onConvert?: () => void
+  onSaveTemplate: (name: string) => void
+  onDeleteTemplate: (id: string) => void
 }) {
   const isQuote = kind === "quote"
   const totals = computeTotals(doc.items)
@@ -318,9 +341,19 @@ function Editor({
           <Button size="sm" variant="secondary" onClick={printDoc}>
             <Printer className="h-4 w-4" /> Drucken / PDF
           </Button>
-          <button onClick={onRemove} aria-label="Beleg löschen" title="Löschen" className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60">
-            <Trash2 className="h-4 w-4" />
-          </button>
+          {isQuote || doc.status === "entwurf" ? (
+            <button onClick={onRemove} aria-label="Beleg löschen" title="Löschen" className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60">
+              <Trash2 className="h-4 w-4" />
+            </button>
+          ) : onVoid ? (
+            <Button size="sm" variant="secondary" onClick={onVoid} title="Rechnung stornieren (Original bleibt für den Nummernkreis erhalten)">
+              <AlertTriangle className="h-4 w-4" /> Stornieren
+            </Button>
+          ) : (doc as Invoice).voided ? (
+            <Badge color="#ef4444">Storniert</Badge>
+          ) : (doc as Invoice).creditNoteFor ? (
+            <Badge color="#9ca3af">Stornorechnung</Badge>
+          ) : null}
         </div>
       </div>
 
@@ -353,6 +386,14 @@ function Editor({
           </>
         )}
       </div>
+
+      {/* Mahnwesen & wiederkehrende Rechnung — nur bei Rechnungen */}
+      {!isQuote && !(doc as Invoice).voided && !(doc as Invoice).creditNoteFor && (
+        <div className="grid gap-3 border-b border-border p-4 sm:grid-cols-2">
+          <DunningPanel doc={doc as Invoice} onSendDunning={onSendDunning} />
+          <RecurrencePanel doc={doc as Invoice} onPatch={onPatch} paymentTermDays={company.paymentTermDays} />
+        </div>
+      )}
 
       {/* Positionen */}
       <div className="p-4">
@@ -433,19 +474,28 @@ function Editor({
             <Plus className="h-4 w-4" /> Position
           </Button>
           {templates.length > 0 && (
-            <div className="flex items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
               <LayoutTemplate className="h-4 w-4 text-muted-foreground" />
               {templates.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => setItems([...doc.items, ...t.items.map((it) => ({ ...it, id: newId() }))])}
-                  className="rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
-                >
-                  + {t.name}
-                </button>
+                <span key={t.id} className="group inline-flex items-center rounded-full border border-border transition-colors hover:border-primary/50">
+                  <button
+                    onClick={() => setItems([...doc.items, ...t.items.map((it) => ({ ...it, id: newId() }))])}
+                    className="px-2.5 py-1 text-xs text-muted-foreground group-hover:text-foreground"
+                  >
+                    + {t.name}
+                  </button>
+                  <button
+                    onClick={() => onDeleteTemplate(t.id)}
+                    title="Vorlage löschen"
+                    className="pr-2 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
               ))}
             </div>
           )}
+          {doc.items.length > 0 && <SaveAsTemplateButton onSave={onSaveTemplate} />}
         </div>
       </div>
 
@@ -458,7 +508,7 @@ function Editor({
           ))}
           <div className="mt-1 flex items-center justify-between border-t border-border pt-2">
             <span className="font-heading text-base font-bold">Gesamt</span>
-            <span className="font-heading text-lg font-bold text-primary">{eur(totals.gross)}</span>
+            <span className="font-heading text-[clamp(1.05rem,1vw+0.85rem,1.25rem)] font-bold text-primary">{eur(totals.gross)}</span>
           </div>
         </div>
       </div>
@@ -475,6 +525,130 @@ function Editor({
         />
       </div>
     </Card>
+  )
+}
+
+const RECURRENCE_LABEL: Record<RecurrenceFreq, string> = {
+  none: "Einmalig",
+  weekly: "Wöchentlich",
+  monthly: "Monatlich",
+  yearly: "Jährlich",
+}
+
+function SaveAsTemplateButton({ onSave }: { onSave: (name: string) => void }) {
+  const [open, setOpen] = useState(false)
+  const [name, setName] = useState("")
+
+  function commit() {
+    const v = name.trim()
+    if (!v) return
+    onSave(v)
+    setName("")
+    setOpen(false)
+  }
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-1.5 rounded-full border border-dashed border-border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
+        title="Aktuelle Positionen als Vorlage speichern"
+      >
+        <Save className="h-3.5 w-3.5" /> Als Vorlage speichern
+      </button>
+    )
+  }
+  return (
+    <div className="flex items-center gap-1.5">
+      <input
+        autoFocus
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={(e) => { if (e.key === "Enter") commit(); if (e.key === "Escape") setOpen(false) }}
+        placeholder="Name der Vorlage"
+        className="h-8 w-40 rounded-lg border border-border bg-white/[0.03] px-2.5 text-xs outline-none focus:border-primary/50"
+      />
+      <button onClick={commit} className="rounded-lg bg-primary/15 px-2.5 py-1.5 text-xs font-semibold text-primary hover:bg-primary/25">
+        Speichern
+      </button>
+      <button onClick={() => setOpen(false)} className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground">
+        <X className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  )
+}
+
+function DunningPanel({ doc, onSendDunning }: { doc: Invoice; onSendDunning: () => void }) {
+  const level = doc.dunningLevel ?? 0
+  const canDun = doc.status === "ueberfaellig" || level > 0
+  if (!canDun) {
+    return (
+      <div className="rounded-xl border border-dashed border-border p-3 text-xs text-muted-foreground">
+        Mahnwesen greift automatisch, sobald die Rechnung überfällig ist.
+      </div>
+    )
+  }
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-white/[0.02] p-3">
+      <div className="min-w-0">
+        <div className="text-xs text-muted-foreground">Mahnstatus</div>
+        <div className="text-sm font-semibold" style={{ color: level > 0 ? "#ef4444" : undefined }}>
+          {DUNNING_LABEL[level as 0 | 1 | 2 | 3]}
+        </div>
+      </div>
+      {level < 3 && (
+        <Button size="sm" variant="secondary" onClick={onSendDunning}>
+          <AlertTriangle className="h-4 w-4" /> {level === 0 ? "1. Mahnung" : `${level + 1}. Mahnung`}
+        </Button>
+      )}
+    </div>
+  )
+}
+
+function RecurrencePanel({
+  doc,
+  onPatch,
+  paymentTermDays,
+}: {
+  doc: Invoice
+  onPatch: (patch: Partial<Doc>) => void
+  paymentTermDays: number
+}) {
+  const freq = doc.recurrence?.freq ?? "none"
+
+  function setFreq(next: RecurrenceFreq) {
+    if (next === "none") {
+      onPatch({ recurrence: undefined, nextRecurrenceDate: undefined } as Partial<Doc>)
+      return
+    }
+    const recurrence = { freq: next, interval: 1 }
+    onPatch({ recurrence, nextRecurrenceDate: nthOccurrenceOf(doc.issueDate, recurrence, 1) } as Partial<Doc>)
+  }
+
+  return (
+    <div className="rounded-xl border border-border bg-white/[0.02] p-3">
+      <div className="mb-1.5 text-xs text-muted-foreground">Wiederkehrende Rechnung</div>
+      <div className="flex flex-wrap gap-1.5">
+        {(Object.keys(RECURRENCE_LABEL) as RecurrenceFreq[]).map((f) => (
+          <button
+            key={f}
+            onClick={() => setFreq(f)}
+            className={cn(
+              "rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors",
+              freq === f ? "border-primary/50 bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {RECURRENCE_LABEL[f]}
+          </button>
+        ))}
+      </div>
+      {doc.nextRecurrenceDate && (
+        <p className="mt-2 text-xs text-muted-foreground">
+          Nächste Folgerechnung: <span className="font-medium text-foreground">{dateDE(doc.nextRecurrenceDate)}</span>
+          {" · Zahlungsziel "}{paymentTermDays} Tage
+        </p>
+      )}
+    </div>
   )
 }
 

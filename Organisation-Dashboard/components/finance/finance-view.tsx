@@ -15,11 +15,11 @@ import { todayISO, toISO } from "@/lib/recurrence"
 import { buildSeries, GRAN_LABEL, type Gran } from "@/lib/finance-series"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { KpiTile } from "@/components/ui/kpi-tile"
+import { SegmentedControl } from "@/components/ui/segmented-control"
 import { FinanceChart, CategoryDonut, ChartLegend, type SeriesKey } from "@/components/dashboard/charts"
 import { cn } from "@/lib/utils"
-
-const INCOME = "#34d399"
-const EXPENSE = "#ef4444"
+import { INCOME, EXPENSE, ORANGE } from "@/lib/theme-colors"
 
 function netOf(amount: number, rate: number) {
   return amount / (1 + rate / 100)
@@ -119,10 +119,10 @@ export function FinanceView() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Kpi icon={TrendingUp} label="Einnahmen" value={eur0(m.sumIncome)} accent={INCOME} />
-        <Kpi icon={TrendingDown} label="Ausgaben" value={eur0(m.sumExpense)} accent={EXPENSE} />
-        <Kpi icon={Wallet} label="Gewinn" value={eur0(m.profit)} accent={m.profit >= 0 ? INCOME : EXPENSE} />
-        <Kpi icon={Receipt} label="USt-Zahllast" value={eur0(m.zahllast)} accent="#E39832" />
+        <KpiTile icon={TrendingUp} label="Einnahmen" value={eur0(m.sumIncome)} accent={INCOME} />
+        <KpiTile icon={TrendingDown} label="Ausgaben" value={eur0(m.sumExpense)} accent={EXPENSE} />
+        <KpiTile icon={Wallet} label="Gewinn" value={eur0(m.profit)} accent={m.profit >= 0 ? INCOME : EXPENSE} />
+        <KpiTile icon={Receipt} label="USt-Zahllast" value={eur0(m.zahllast)} accent={ORANGE} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -140,22 +140,11 @@ export function FinanceView() {
                 ]}
               />
               {/* Tag / Woche / Monat */}
-              <div className="flex items-center rounded-lg border border-border bg-white/[0.03] p-0.5">
-                {(["day", "week", "month"] as Gran[]).map((g) => (
-                  <button
-                    key={g}
-                    type="button"
-                    onClick={() => setGran(g)}
-                    aria-pressed={gran === g}
-                    className={cn(
-                      "rounded-md px-2.5 py-1 text-xs font-semibold transition-colors",
-                      gran === g ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    {GRAN_LABEL[g]}
-                  </button>
-                ))}
-              </div>
+              <SegmentedControl
+                value={gran}
+                onChange={(v) => setGran(v as Gran)}
+                options={(["day", "week", "month"] as Gran[]).map((g) => ({ v: g, l: GRAN_LABEL[g] }))}
+              />
             </div>
           </div>
           <div className="min-h-[240px] flex-1 p-3 pt-1">
@@ -171,7 +160,7 @@ export function FinanceView() {
             <UstRow label="Vorsteuer (abziehbar)" value={-m.vorsteuer} />
             <div className="mt-2 flex items-center justify-between border-t border-border pt-2.5">
               <span className="text-sm font-semibold">Zahllast ans Finanzamt</span>
-              <span className="font-heading text-lg font-bold" style={{ color: "#E39832" }}>{eur(m.zahllast)}</span>
+              <span className="font-heading text-lg font-bold" style={{ color: ORANGE }}>{eur(m.zahllast)}</span>
             </div>
           </Card>
 
@@ -202,12 +191,12 @@ export function FinanceView() {
               className="h-9 w-full rounded-lg border border-border bg-white/[0.03] pl-9 pr-3 text-sm outline-none focus:border-primary/50"
             />
           </div>
-          <Segmented
+          <SegmentedControl
             value={txType}
             onChange={(v) => setTxType(v as typeof txType)}
             options={[{ v: "all", l: "Alle" }, { v: "income", l: "Einnahmen", color: INCOME }, { v: "expense", l: "Ausgaben", color: EXPENSE }]}
           />
-          <Segmented
+          <SegmentedControl
             value={txPeriod}
             onChange={(v) => setTxPeriod(v as typeof txPeriod)}
             options={[{ v: "all", l: "Gesamt" }, { v: "week", l: "Woche" }, { v: "month", l: "Monat" }]}
@@ -270,31 +259,6 @@ export function FinanceView() {
   )
 }
 
-function Segmented({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: { v: string; l: string; color?: string }[] }) {
-  return (
-    <div className="flex items-center rounded-lg border border-border bg-white/[0.03] p-0.5">
-      {options.map((o) => {
-        const active = value === o.v
-        return (
-          <button
-            key={o.v}
-            type="button"
-            onClick={() => onChange(o.v)}
-            aria-pressed={active}
-            className={cn(
-              "rounded-md px-2.5 py-1 text-xs font-semibold transition-colors",
-              active ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground",
-            )}
-            style={active ? { backgroundColor: o.color ?? "var(--primary)", color: o.color ? "#fff" : "var(--primary-foreground)" } : undefined}
-          >
-            {o.l}
-          </button>
-        )
-      })}
-    </div>
-  )
-}
-
 function AddTransaction({
   onSave,
   onCancel,
@@ -339,20 +303,6 @@ function AddTransaction({
         }}>Speichern</Button>
       </div>
     </div>
-  )
-}
-
-function Kpi({ icon: Icon, label, value, accent }: { icon: typeof TrendingUp; label: string; value: string; accent: string }) {
-  return (
-    <Card className="hover-aura flex items-center gap-3 p-4">
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${accent}1f`, color: accent, border: `1px solid ${accent}33` }}>
-        <Icon className="h-5 w-5" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="eyebrow truncate">{label}</div>
-        <div className="num truncate font-heading text-[clamp(1rem,5vw,1.5rem)] font-bold leading-tight tracking-tight sm:text-2xl">{value}</div>
-      </div>
-    </Card>
   )
 }
 

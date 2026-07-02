@@ -24,11 +24,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { FinanceChart, CategoryDonut, ChartLegend, type SeriesKey } from "@/components/dashboard/charts"
 import { cn } from "@/lib/utils"
-
-const INCOME = "#34d399"
-const EXPENSE = "#ef4444"
-const ACCENT = "#a855f7" // privat = violett, klar getrennt von der Firma (grün)
-const DEBT = "#f59e0b"
+import { INCOME, EXPENSE, PURPLE as ACCENT, DEBT } from "@/lib/theme-colors" // privat = violett, klar getrennt von der Firma (grün)
 
 function parseAmount(s: string): number {
   let t = s.trim()
@@ -276,7 +272,7 @@ function DebtCard({ debt }: { debt: Debt }) {
           </span>
         </button>
         <div className="shrink-0 text-right">
-          <div className="num font-heading text-xl font-bold leading-none" style={{ color: done ? INCOME : DEBT }}>{done ? "Getilgt" : eur0(remaining)}</div>
+          <div className="num font-heading text-[clamp(1.05rem,1vw+0.85rem,1.25rem)] font-bold leading-none" style={{ color: done ? INCOME : DEBT }}>{done ? "Getilgt" : eur0(remaining)}</div>
           {!done && <div className="mt-0.5 text-[11px] font-medium text-muted-foreground">offen</div>}
         </div>
       </div>

@@ -20,6 +20,25 @@ import { ALL_ITEMS } from "./nav"
 import { eur0 } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
+const RECENTS_KEY = "vitaminb-recent-palette"
+const MAX_RECENTS = 5
+
+function loadRecents(): string[] {
+  try {
+    const raw = localStorage.getItem(RECENTS_KEY)
+    return raw ? (JSON.parse(raw) as string[]) : []
+  } catch {
+    return []
+  }
+}
+function saveRecents(ids: string[]) {
+  try {
+    localStorage.setItem(RECENTS_KEY, JSON.stringify(ids))
+  } catch {
+    /* ignore */
+  }
+}
+
 interface Result {
   id: string
   title: string
@@ -36,10 +55,14 @@ export function CommandPalette() {
   const [mounted, setMounted] = useState(false)
   const [query, setQuery] = useState("")
   const [active, setActive] = useState(0)
+  const [recentIds, setRecentIds] = useState<string[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => setMounted(true), [])
+  useEffect(() => {
+    setMounted(true)
+    setRecentIds(loadRecents())
+  }, [])
 
   // Globaler ⌘K / Strg-K Listener.
   useEffect(() => {
@@ -69,9 +92,9 @@ export function CommandPalette() {
     }
   }, [open])
 
-  const results = useMemo<Result[]>(() => {
+  const all = useMemo<Result[]>(() => {
     const customerName = (id: string) => db.customers.find((c) => c.id === id)?.company ?? "—"
-    const all: Result[] = [
+    return [
       ...ALL_ITEMS.map((i) => ({ id: `nav-${i.href}`, title: i.label, subtitle: i.subtitle, group: "Navigation", href: i.href, icon: i.icon })),
       ...db.customers.map((c) => ({ id: c.id, title: c.company, subtitle: c.contactName ?? "Kunde", group: "Kunden", href: "/crm", icon: Users })),
       ...db.deals.map((d) => ({ id: d.id, title: d.title, subtitle: `${customerName(d.customerId)} · ${eur0(d.value)}`, group: "Pipeline", href: "/pipeline", icon: GitBranch })),
@@ -80,10 +103,18 @@ export function CommandPalette() {
       ...db.tasks.map((t) => ({ id: t.id, title: t.title, subtitle: "Aufgabe", group: "Aufgaben", href: "/aufgaben", icon: CheckSquare })),
       ...db.appointments.map((a) => ({ id: a.id, title: a.title, subtitle: a.date, group: "Termine", href: "/kalender", icon: Calendar })),
     ]
+  }, [db])
+
+  const results = useMemo<Result[]>(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return all.filter((r) => r.group === "Navigation")
+    if (!q) {
+      // Leere Suche: zuletzt genutzte Einträge zuerst (Linear/Notion-Muster), dann Navigation.
+      const byId = new Map(all.map((r) => [r.id, r]))
+      const recent = recentIds.map((id) => byId.get(id)).filter((r): r is Result => !!r && r.group !== "Navigation").map((r) => ({ ...r, group: "Zuletzt genutzt" }))
+      return [...recent, ...all.filter((r) => r.group === "Navigation")]
+    }
     return all.filter((r) => `${r.title} ${r.subtitle}`.toLowerCase().includes(q)).slice(0, 24)
-  }, [db, query])
+  }, [all, query, recentIds])
 
   useEffect(() => {
     if (active >= results.length) setActive(Math.max(0, results.length - 1))
@@ -93,6 +124,11 @@ export function CommandPalette() {
     // Bei Entitäten die ID mitgeben → Zielview selektiert den Datensatz vor.
     router.push(r.group === "Navigation" ? r.href : `${r.href}?sel=${r.id}`)
     setOpen(false)
+    if (r.group !== "Navigation" && r.group !== "Zuletzt genutzt") {
+      const next = [r.id, ...recentIds.filter((id) => id !== r.id)].slice(0, MAX_RECENTS)
+      setRecentIds(next)
+      saveRecents(next)
+    }
   }
 
   function onListKey(e: React.KeyboardEvent) {

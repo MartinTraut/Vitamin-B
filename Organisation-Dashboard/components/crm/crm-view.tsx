@@ -22,6 +22,7 @@ import { useStore } from "@/lib/store"
 import { useDialog } from "@/lib/dialog"
 import { useToast } from "@/lib/toast"
 import {
+  PEOPLE,
   HEALTH_LABEL,
   HEALTH_COLOR,
   DEAL_STAGE_LABEL,
@@ -32,17 +33,21 @@ import {
   type Customer,
   type ProjectStatus,
   type ProjectFile,
+  type Task,
+  type Note,
 } from "@/lib/types"
-import { eur0 } from "@/lib/format"
+import { eur0, formatMinutes } from "@/lib/format"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { KpiTile } from "@/components/ui/kpi-tile"
+import { ORANGE, INCOME, BLUE, PURPLE } from "@/lib/theme-colors"
 import { cn } from "@/lib/utils"
 
 const HEALTHS: CustomerHealth[] = ["lead", "active", "churned"]
 
 export function CrmView() {
-  const { db, addCustomer, removeCustomer, addProject, updateProject, removeProject } = useStore()
+  const { db, activePerson, addCustomer, removeCustomer, addProject, updateProject, removeProject, addNote, removeNote } = useStore()
   const dialog = useDialog()
   const toast = useToast()
   const [query, setQuery] = useState("")
@@ -155,6 +160,10 @@ export function CrmView() {
               customer={selected}
               projects={db.projects.filter((p) => p.customerId === selected.id)}
               deals={db.deals.filter((d) => d.customerId === selected.id)}
+              tasks={db.tasks}
+              notes={db.notes.filter((n) => n.customerId === selected.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt))}
+              onAddNote={(text) => addNote({ customerId: selected.id, person: activePerson, text })}
+              onRemoveNote={removeNote}
               onRemove={async () => {
                 const nDeals = db.deals.filter((d) => d.customerId === selected.id).length
                 const nProjects = db.projects.filter((p) => p.customerId === selected.id).length
@@ -198,18 +207,26 @@ function CustomerDetail({
   customer,
   projects,
   deals,
+  tasks,
+  notes,
   onRemove,
   onAddProject,
   onUpdateProject,
   onRemoveProject,
+  onAddNote,
+  onRemoveNote,
 }: {
   customer: Customer
   projects: { id: string; name: string; status: ProjectStatus; description?: string; attachments?: ProjectFile[] }[]
   deals: { id: string; title: string; stage: keyof typeof DEAL_STAGE_LABEL; value: number }[]
+  tasks: Task[]
+  notes: Note[]
   onRemove: () => void
   onAddProject: (name: string, status: ProjectStatus) => void
   onUpdateProject: (id: string, patch: { name?: string; status?: ProjectStatus; description?: string; attachments?: ProjectFile[] }) => void
   onRemoveProject: (id: string) => void
+  onAddNote: (text: string) => void
+  onRemoveNote: (id: string) => void
 }) {
   const [projName, setProjName] = useState("")
   const dealsOpen = deals.filter((d) => d.stage !== "gewonnen").reduce((s, d) => s + d.value, 0)
@@ -251,10 +268,10 @@ function CustomerDetail({
 
         {/* Zahlen */}
         <div className="grid grid-cols-2 gap-3">
-          <MiniStat label="Offene Deals" value={eur0(dealsOpen)} accent="#E39832" />
-          <MiniStat label="Gewonnen" value={eur0(dealsWon)} accent="#34d399" />
-          <MiniStat label="Projekte" value={String(projects.length)} accent="#3b82f6" />
-          <MiniStat label="Deals gesamt" value={String(deals.length)} accent="#a855f7" />
+          <KpiTile label="Offene Deals" value={eur0(dealsOpen)} accent={ORANGE} />
+          <KpiTile label="Gewonnen" value={eur0(dealsWon)} accent={INCOME} />
+          <KpiTile label="Projekte" value={String(projects.length)} accent={BLUE} />
+          <KpiTile label="Deals gesamt" value={String(deals.length)} accent={PURPLE} />
         </div>
       </div>
 
@@ -288,6 +305,7 @@ function CustomerDetail({
             <ProjectRow
               key={p.id}
               project={p}
+              tasks={tasks.filter((t) => t.projectId === p.id)}
               onUpdate={(patch) => onUpdateProject(p.id, patch)}
               onRemove={() => onRemoveProject(p.id)}
             />
@@ -320,12 +338,7 @@ function CustomerDetail({
         </div>
       </div>
 
-      {customer.notes && (
-        <div className="border-t border-border p-5 pt-4">
-          <div className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Notizen</div>
-          <p className="text-sm text-muted-foreground">{customer.notes}</p>
-        </div>
-      )}
+      <NotesTimeline legacyNote={customer.notes} notes={notes} onAdd={onAddNote} onRemove={onRemoveNote} />
     </Card>
   )
 }
@@ -433,18 +446,79 @@ function InfoRow({ icon, value, href }: { icon: React.ReactNode; value: string; 
   return href ? <a href={href} className="block hover:text-primary">{content}</a> : <div>{content}</div>
 }
 
-function MiniStat({ label, value, accent }: { label: string; value: string; accent: string }) {
+
+// Chronologische Notizen-Timeline (ersetzt das frühere statische Freitext-Feld).
+function NotesTimeline({
+  legacyNote,
+  notes,
+  onAdd,
+  onRemove,
+}: {
+  legacyNote?: string
+  notes: Note[]
+  onAdd: (text: string) => void
+  onRemove: (id: string) => void
+}) {
+  const [text, setText] = useState("")
+
+  function submit() {
+    const v = text.trim()
+    if (!v) return
+    onAdd(v)
+    setText("")
+  }
+
   return (
-    <div
-      className="relative overflow-hidden rounded-xl p-3.5"
-      style={{
-        background: `linear-gradient(135deg, ${accent}2e, ${accent}0a 70%)`,
-        border: `1px solid ${accent}4d`,
-        boxShadow: `inset 0 1px 0 0 ${accent}26`,
-      }}
-    >
-      <div className="eyebrow truncate" style={{ color: `${accent}cc` }}>{label}</div>
-      <div className="num mt-1 truncate font-heading text-[clamp(1rem,5vw,1.5rem)] font-bold leading-tight sm:text-2xl" style={{ color: accent }}>{value}</div>
+    <div className="border-t border-border p-5 pt-4">
+      <div className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Notizen</div>
+      <div className="flex gap-2">
+        <input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && submit()}
+          placeholder="Notiz hinzufügen — Anruf, Termin, Entscheidung…"
+          className="h-10 flex-1 rounded-lg border border-border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50"
+        />
+        <Button size="sm" variant="secondary" onClick={submit}>
+          <Plus className="h-4 w-4" /> Notiz
+        </Button>
+      </div>
+      <div className="mt-3 space-y-2">
+        {legacyNote && (
+          <div className="rounded-lg border border-dashed border-border bg-white/[0.02] p-2.5 text-sm text-muted-foreground">
+            {legacyNote}
+          </div>
+        )}
+        {notes.length === 0 && !legacyNote && (
+          <p className="text-sm text-muted-foreground">Noch keine Notizen.</p>
+        )}
+        {notes.map((n) => {
+          const person = PEOPLE.find((p) => p.id === n.person)
+          return (
+            <div key={n.id} className="group flex items-start gap-2.5 rounded-lg border border-border bg-white/[0.02] p-2.5">
+              <span
+                className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
+                style={{ backgroundColor: `${person?.color ?? "#9ca3af"}26`, color: person?.color ?? "#9ca3af" }}
+              >
+                {person?.initials ?? "?"}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="whitespace-pre-wrap text-sm">{n.text}</p>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  {person?.name ?? "—"} · {new Date(n.createdAt).toLocaleDateString("de-DE", { day: "2-digit", month: "short", year: "numeric" })}
+                </div>
+              </div>
+              <button
+                onClick={() => onRemove(n.id)}
+                title="Notiz löschen"
+                className="action-reveal rounded-md p-1 text-muted-foreground transition-colors hover:text-destructive"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -454,13 +528,16 @@ const PROJECT_STATUSES: ProjectStatus[] = ["geplant", "laufend", "fertig"]
 // Klickbare, aufklappbare Projekt-Zeile mit Inline-Bearbeitung (Name, Status, Beschreibung).
 function ProjectRow({
   project,
+  tasks,
   onUpdate,
   onRemove,
 }: {
   project: { id: string; name: string; status: ProjectStatus; description?: string; attachments?: ProjectFile[] }
+  tasks: Task[]
   onUpdate: (patch: { name?: string; status?: ProjectStatus; description?: string; attachments?: ProjectFile[] }) => void
   onRemove: () => void
 }) {
+  const trackedMinutes = tasks.reduce((s, t) => s + (t.trackedMinutes ?? 0), 0)
   const [open, setOpen] = useState(false)
   const [name, setName] = useState(project.name)
   const [desc, setDesc] = useState(project.description ?? "")
@@ -541,6 +618,12 @@ function ProjectRow({
             {!open && project.description && <span className="block truncate text-xs text-muted-foreground">{project.description}</span>}
           </span>
         </button>
+        {tasks.length > 0 && (
+          <span className="hidden shrink-0 items-center gap-1 text-xs text-muted-foreground sm:flex">
+            {tasks.length} Aufgabe{tasks.length === 1 ? "" : "n"}
+            {trackedMinutes > 0 && ` · ${formatMinutes(trackedMinutes)}`}
+          </span>
+        )}
         <Badge color={color}>{PROJECT_STATUS_LABEL[project.status]}</Badge>
         <button onClick={onRemove} aria-label="Projekt entfernen" title="Projekt entfernen" className="action-reveal rounded-md p-1 text-muted-foreground transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60">
           <X className="h-3.5 w-3.5" />

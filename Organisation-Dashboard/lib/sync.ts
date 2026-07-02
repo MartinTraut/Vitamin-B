@@ -23,6 +23,8 @@ const KEYS: (keyof Database)[] = [
   "templates",
   "company",
   "whiteboards",
+  "notes",
+  "timeEntries",
 ]
 
 /**

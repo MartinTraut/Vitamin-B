@@ -2,13 +2,16 @@
 
 import { useEffect, useRef, useState } from "react"
 import { usePathname } from "next/navigation"
-import { Search, Check, ChevronDown } from "lucide-react"
+import { Search, Check, ChevronDown, Plus } from "lucide-react"
 import { ALL_ITEMS } from "./nav"
 import { PEOPLE } from "@/lib/types"
 import { useStore } from "@/lib/store"
 
 function openSearch() {
   window.dispatchEvent(new Event("open-command-palette"))
+}
+function openQuickAdd() {
+  window.dispatchEvent(new Event("open-quick-add"))
 }
 
 export function Topbar() {
@@ -50,6 +53,16 @@ export function Topbar() {
         </div>
       </div>
       <div className="flex items-center gap-3">
+        <button
+          onClick={openQuickAdd}
+          aria-label="Schnell erfassen"
+          title="Schnell erfassen (⌘⇧A)"
+          className="hidden items-center gap-2 rounded-xl border border-border bg-white/[0.03] px-3 py-2 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground lg:flex"
+        >
+          <Plus className="h-4 w-4" />
+          <span className="hidden xl:inline">Erfassen</span>
+          <kbd className="hidden rounded-md border border-border px-1.5 py-0.5 text-[10px] xl:inline">⌘⇧A</kbd>
+        </button>
         <button
           onClick={openSearch}
           aria-label="Suche öffnen"

@@ -1,8 +1,9 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
+import Link from "next/link"
 import { motion, AnimatePresence, type PanInfo } from "framer-motion"
-import { ChevronLeft, ChevronRight, Plus, Trash2, Check, CalendarDays, Clock, Sun, RotateCcw, Tags, X, Pencil } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus, Trash2, Check, CalendarDays, Clock, Sun, RotateCcw, Tags, X, Pencil, CheckSquare } from "lucide-react"
 import { useStore } from "@/lib/store"
 import {
   PEOPLE,
@@ -17,6 +18,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { ORANGE } from "@/lib/theme-colors"
 
 const WD = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
 
@@ -37,6 +39,8 @@ interface DayEvent {
   time?: string
   endTime?: string
   done: boolean
+  isTask?: boolean
+  taskId?: string
 }
 
 interface Draft {
@@ -64,6 +68,7 @@ export function CalendarView() {
     addAppointmentCategory,
     updateAppointmentCategory,
     removeAppointmentCategory,
+    toggleTask,
   } = useStore()
   const person = PEOPLE.find((p) => p.id === activePerson)!
   const today = todayISO()
@@ -80,6 +85,10 @@ export function CalendarView() {
   const myAppts = useMemo(
     () => db.appointments.filter((a) => a.person === activePerson),
     [db.appointments, activePerson],
+  )
+  const myTasksWithDue = useMemo(
+    () => db.tasks.filter((t) => t.person === activePerson && t.due),
+    [db.tasks, activePerson],
   )
 
   const categories = db.appointmentCategories
@@ -128,18 +137,35 @@ export function CalendarView() {
         map.set(date, arr)
       }
     }
+    // Aufgaben-Fälligkeiten als eigene, erkennbare Einträge einblenden — Work-OS-Verknüpfung
+    // Task ↔ Kalender: Deadlines tauchen automatisch auf, ohne doppelte Datenpflege.
+    for (const t of myTasksWithDue) {
+      if (!t.due || t.due < from || t.due > to) continue
+      const arr = map.get(t.due) ?? []
+      arr.push({
+        id: `task-${t.id}`,
+        title: t.title,
+        category: "aufgabe",
+        categoryColor: ORANGE,
+        categoryLabel: "Aufgabe",
+        done: t.status === "done",
+        isTask: true,
+        taskId: t.id,
+      })
+      map.set(t.due, arr)
+    }
     return map
   }
 
   const monthEvents = useMemo(
     () => eventsFor(grid[0], grid[grid.length - 1]),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [myAppts, grid, categories],
+    [myAppts, myTasksWithDue, grid, categories],
   )
   const weekEvents = useMemo(
     () => eventsFor(weekDays[0], weekDays[6]),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [myAppts, weekDays, categories],
+    [myAppts, myTasksWithDue, weekDays, categories],
   )
 
   // Day- und Week-View lesen beide aus weekEvents (deckt selected garantiert ab);
@@ -293,9 +319,9 @@ export function CalendarView() {
                         key={e.id}
                         e={e}
                         active={editEvt?.id === e.id}
-                        onToggle={() => toggleAppointmentDone(e.id, selected)}
-                        onRemove={() => removeAppointment(e.id)}
-                        onEdit={() => { setDraft(null); setEditEvt(editEvt?.id === e.id ? null : e) }}
+                        onToggle={() => (e.isTask && e.taskId ? toggleTask(e.taskId) : toggleAppointmentDone(e.id, selected))}
+                        onRemove={e.isTask ? undefined : () => removeAppointment(e.id)}
+                        onEdit={e.isTask ? undefined : () => { setDraft(null); setEditEvt(editEvt?.id === e.id ? null : e) }}
                       />
                     ))}
                   </AnimatePresence>
@@ -311,9 +337,9 @@ export function CalendarView() {
                         key={e.id}
                         e={e}
                         active={editEvt?.id === e.id}
-                        onToggle={() => toggleAppointmentDone(e.id, selected)}
-                        onRemove={() => removeAppointment(e.id)}
-                        onEdit={() => { setDraft(null); setEditEvt(editEvt?.id === e.id ? null : e) }}
+                        onToggle={() => (e.isTask && e.taskId ? toggleTask(e.taskId) : toggleAppointmentDone(e.id, selected))}
+                        onRemove={e.isTask ? undefined : () => removeAppointment(e.id)}
+                        onEdit={e.isTask ? undefined : () => { setDraft(null); setEditEvt(editEvt?.id === e.id ? null : e) }}
                       />
                     ))}
                   </AnimatePresence>
@@ -541,8 +567,8 @@ function DayEventRow({
   e: DayEvent
   active: boolean
   onToggle: () => void
-  onRemove: () => void
-  onEdit: () => void
+  onRemove?: () => void
+  onEdit?: () => void
 }) {
   const done = e.done
   const color = e.categoryColor
@@ -551,7 +577,7 @@ function DayEventRow({
 
   function handleDragEnd(_: unknown, info: PanInfo) {
     if (info.offset.x > 92) onToggle()
-    else if (info.offset.x < -92) onRemove()
+    else if (info.offset.x < -92) onRemove?.()
   }
 
   return (
@@ -569,13 +595,15 @@ function DayEventRow({
           {done ? <RotateCcw className="h-4 w-4" /> : <Check className="h-4 w-4" />}
           {done ? "Offen" : "Erledigt"}
         </span>
-        <span className="flex items-center gap-1.5 text-destructive">
-          Löschen <Trash2 className="h-4 w-4" />
-        </span>
+        {onRemove && (
+          <span className="flex items-center gap-1.5 text-destructive">
+            Löschen <Trash2 className="h-4 w-4" />
+          </span>
+        )}
       </div>
 
       <motion.div
-        drag="x"
+        drag={onRemove ? "x" : false}
         dragDirectionLock
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.5}
@@ -609,34 +637,48 @@ function DayEventRow({
           )}
         </button>
 
-        {/* Inhalt (Klick = bearbeiten) */}
-        <button onClick={onEdit} className="min-w-0 flex-1 text-left" title="Termin bearbeiten">
-          <div className={cn("text-base font-medium transition-colors", done && "text-muted-foreground line-through")}>{e.title}</div>
-          <div className="mt-1 flex flex-wrap items-center gap-2">
-            {done && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-xs font-semibold text-success">
-                <Check className="h-3 w-3" strokeWidth={3} /> Erledigt
-              </span>
-            )}
-            {e.time && (
-              <span className="text-sm text-muted-foreground">
-                {e.time}{e.endTime ? `–${e.endTime}` : ""}
-              </span>
-            )}
-            <Badge color={color}>{e.categoryLabel}</Badge>
-          </div>
-        </button>
+        {/* Inhalt (Klick = bearbeiten, bei Aufgaben Link zum Aufgaben-Board) */}
+        {e.isTask ? (
+          <Link href="/aufgaben" className="min-w-0 flex-1 text-left" title="Zur Aufgabe">
+            <div className={cn("text-base font-medium transition-colors", done && "text-muted-foreground line-through")}>{e.title}</div>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              {done && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-xs font-semibold text-success">
+                  <Check className="h-3 w-3" strokeWidth={3} /> Erledigt
+                </span>
+              )}
+              <Badge color={color}><CheckSquare className="mr-1 -mt-px inline h-3 w-3" />{e.categoryLabel}</Badge>
+            </div>
+          </Link>
+        ) : (
+          <button onClick={onEdit} className="min-w-0 flex-1 text-left" title="Termin bearbeiten">
+            <div className={cn("text-base font-medium transition-colors", done && "text-muted-foreground line-through")}>{e.title}</div>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              {done && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-xs font-semibold text-success">
+                  <Check className="h-3 w-3" strokeWidth={3} /> Erledigt
+                </span>
+              )}
+              {e.time && (
+                <span className="text-sm text-muted-foreground">
+                  {e.time}{e.endTime ? `–${e.endTime}` : ""}
+                </span>
+              )}
+              <Badge color={color}>{e.categoryLabel}</Badge>
+            </div>
+          </button>
+        )}
 
         {/* Aktion rechts */}
         {done ? (
           <button onClick={onToggle} title="Rückgängig" className="shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground">
             <RotateCcw className="h-4 w-4" />
           </button>
-        ) : (
+        ) : onRemove ? (
           <button onClick={onRemove} title="Löschen" className="shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive">
             <Trash2 className="h-4 w-4" />
           </button>
-        )}
+        ) : null}
       </motion.div>
     </motion.div>
   )

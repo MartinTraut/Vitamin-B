@@ -1,8 +1,7 @@
 "use client"
 
-import { useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import type { LucideIcon } from "lucide-react"
 import {
   CheckSquare,
   CalendarClock,
@@ -13,6 +12,8 @@ import {
   ArrowUpRight,
   Target,
   Trophy,
+  Sparkles,
+  AlertCircle,
 } from "lucide-react"
 import { useStore } from "@/lib/store"
 import {
@@ -22,14 +23,14 @@ import {
 } from "@/lib/types"
 import { eur0, dateDE } from "@/lib/format"
 import { buildSeries } from "@/lib/finance-series"
+import { computeTotals } from "@/lib/totals"
+import { cn } from "@/lib/utils"
 import { occurrencesInRange, todayISO, addDaysISO } from "@/lib/recurrence"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { KpiTile } from "@/components/ui/kpi-tile"
 import { FinanceChart } from "./charts"
-
-const INCOME = "#34d399"
-const EXPENSE = "#ef4444"
-const POTENTIAL = "#eab308"
+import { INCOME, EXPENSE, POTENTIAL, ORANGE, PURPLE, BLUE } from "@/lib/theme-colors"
 
 function daysUntil(iso: string): number {
   const today = new Date()
@@ -45,9 +46,45 @@ function relDayLabel(iso: string): string {
   return dateDE(iso).replace(/^\w+, /, "")
 }
 
+// Tageszeit-abhängige Begrüßung — bewusst erst nach dem Mount gesetzt (kein
+// Server/Client-Zeitversatz, `new Date()` darf nicht während des Renders laufen).
+function useTimeGreeting(): string {
+  const [hour, setHour] = useState<number | null>(null)
+  useEffect(() => setHour(new Date().getHours()), [])
+  if (hour === null) return "Willkommen zurück"
+  if (hour < 5) return "Noch wach"
+  if (hour < 11) return "Guten Morgen"
+  if (hour < 18) return "Guten Tag"
+  return "Guten Abend"
+}
+
+const FOCUS_KEY_PREFIX = "vitaminb-focus-"
+
 export function Overview() {
   const { db, activePerson } = useStore()
   const person = PEOPLE.find((p) => p.id === activePerson)!
+  const greeting = useTimeGreeting()
+
+  // "Fokus heute" — pro Person gemerkt, blendet alles außer dem Dringenden aus.
+  const [focusMode, setFocusMode] = useState(false)
+  useEffect(() => {
+    try {
+      setFocusMode(localStorage.getItem(FOCUS_KEY_PREFIX + activePerson) === "1")
+    } catch {
+      /* ignore */
+    }
+  }, [activePerson])
+  function toggleFocus() {
+    setFocusMode((v) => {
+      const next = !v
+      try {
+        localStorage.setItem(FOCUS_KEY_PREFIX + activePerson, next ? "1" : "0")
+      } catch {
+        /* ignore */
+      }
+      return next
+    })
+  }
 
   // Live-Finanzreihe aus den echten Buchungen (geschäftlich) — bezahlte
   // Rechnungen und erfasste Belege schlagen so direkt aufs Dashboard durch.
@@ -60,11 +97,16 @@ export function Overview() {
 
     const myTasks = db.tasks.filter((t) => t.person === activePerson)
     const openTasks = myTasks.filter((t) => t.status !== "done")
+    const urgentTasks = openTasks.filter((t) => !!t.due && t.due <= today)
 
     const myAppts = db.appointments.filter((a) => a.person === activePerson)
     const upcoming = myAppts
       .flatMap((a) => occurrencesInRange(a, today, weekEnd).map((date) => ({ appt: a, date })))
       .sort((x, y) => x.date.localeCompare(y.date))
+    const todayAppts = upcoming.filter((u) => u.date === today)
+
+    const overdueInvoices = db.invoices.filter((i) => i.person === activePerson && i.status === "ueberfaellig")
+    const overdueSum = overdueInvoices.reduce((s, i) => s + computeTotals(i.items).gross, 0)
 
     // Pipeline — personenbezogen (nur die Deals der aktiven Ansicht).
     const myDeals = db.deals.filter((d) => d.person === activePerson)
@@ -86,7 +128,11 @@ export function Overview() {
 
     return {
       openTasks,
+      urgentTasks,
       upcoming,
+      todayAppts,
+      overdueInvoices,
+      overdueSum,
       income: last.income,
       expense: last.expense,
       profit: last.income - last.expense,
@@ -101,24 +147,61 @@ export function Overview() {
     }
   }, [db, activePerson, chartData])
 
+  // Ein einziger, priorisierter Kontext-Hinweis statt Reizüberflutung.
+  const nudge =
+    data.overdueInvoices.length > 0
+      ? { text: `${data.overdueInvoices.length} Rechnung${data.overdueInvoices.length > 1 ? "en" : ""} überfällig · ${eur0(data.overdueSum)} offen`, href: "/rechnungen", tone: "warn" as const }
+      : data.urgentTasks.length > 0
+        ? { text: `${data.urgentTasks.length} Aufgabe${data.urgentTasks.length > 1 ? "n" : ""} heute fällig`, href: "/aufgaben", tone: "warn" as const }
+        : data.todayAppts.length > 0
+          ? { text: `${data.todayAppts.length} Termin${data.todayAppts.length > 1 ? "e" : ""} heute`, href: "/kalender", tone: "info" as const }
+          : { text: "Alles im grünen Bereich", href: null, tone: "ok" as const }
+
+  const taskList = focusMode ? data.urgentTasks : data.openTasks
+  const apptList = focusMode ? data.todayAppts : data.upcoming
+
   return (
     <div className="flex flex-col gap-4 lg:h-full lg:min-h-0">
-      {/* Begrüßung — kompakt */}
-      <div className="flex items-baseline gap-2">
-        <h2 className="font-heading text-[clamp(1.15rem,4vw+0.3rem,1.25rem)] font-bold tracking-tight">
-          <span style={{ color: person.color }}>{person.name}</span>
-        </h2>
-        <span className="text-sm text-muted-foreground">— dein Überblick auf einen Blick</span>
+      {/* Begrüßung — adaptiv (Tageszeit + wichtigster offener Punkt) */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-baseline gap-2">
+          <h2 className="font-heading text-[clamp(1.15rem,4vw+0.3rem,1.25rem)] font-bold tracking-tight">
+            {greeting}, <span style={{ color: person.color }}>{person.name}</span>
+          </h2>
+          <Link
+            href={nudge.href ?? "#"}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors",
+              !nudge.href && "pointer-events-none",
+              nudge.tone === "warn" && "bg-destructive/15 text-destructive hover:bg-destructive/25",
+              nudge.tone === "info" && "bg-primary/15 text-primary hover:bg-primary/25",
+              nudge.tone === "ok" && "bg-success/15 text-success",
+            )}
+          >
+            {nudge.tone === "ok" ? <Sparkles className="h-3.5 w-3.5" /> : <AlertCircle className="h-3.5 w-3.5" />}
+            {nudge.text}
+          </Link>
+        </div>
+        <button
+          onClick={toggleFocus}
+          className={cn(
+            "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+            focusMode ? "border-primary/50 bg-primary/15 text-primary" : "border-border text-muted-foreground hover:text-foreground",
+          )}
+          title="Nur heute Wichtiges zeigen"
+        >
+          <Target className="h-3.5 w-3.5" /> {focusMode ? "Fokus: Heute" : "Alles anzeigen"}
+        </button>
       </div>
 
       {/* KPIs — kompakte Tiles (inkl. personenbezogener Pipeline) */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-        <Stat icon={CheckSquare} label="Offene Aufgaben" value={String(data.openTasks.length)} accent="#E39832" href="/aufgaben" />
-        <Stat icon={CalendarClock} label="Termine (7 T.)" value={String(data.upcoming.length)} accent="#3b82f6" href="/kalender" />
-        <Stat icon={Target} label="Offene Pipeline" value={eur0(data.openPipeline)} hint={data.openDealCount > 0 ? `${data.openDealCount} Deals` : undefined} accent="#a855f7" href="/pipeline" />
-        <Stat icon={Trophy} label="Gewonnen" value={eur0(data.wonPipeline)} accent={INCOME} href="/pipeline" />
-        <Stat icon={TrendingUp} label="Einnahmen / Mt." value={eur0(data.income)} accent={INCOME} href="/finanzen" />
-        <Stat icon={TrendingDown} label="Ausgaben / Mt." value={eur0(data.expense)} accent={EXPENSE} href="/finanzen" />
+        <KpiTile icon={CheckSquare} label={focusMode ? "Heute fällig" : "Offene Aufgaben"} value={String(taskList.length)} accent={ORANGE} href="/aufgaben" />
+        <KpiTile icon={CalendarClock} label={focusMode ? "Termine heute" : "Termine (7 T.)"} value={String(apptList.length)} accent={BLUE} href="/kalender" />
+        <KpiTile icon={Target} label="Offene Pipeline" value={eur0(data.openPipeline)} hint={data.openDealCount > 0 ? `${data.openDealCount} Deals` : undefined} accent={PURPLE} href="/pipeline" />
+        <KpiTile icon={Trophy} label="Gewonnen" value={eur0(data.wonPipeline)} accent={INCOME} href="/pipeline" />
+        <KpiTile icon={TrendingUp} label="Einnahmen / Mt." value={eur0(data.income)} accent={INCOME} href="/finanzen" />
+        <KpiTile icon={TrendingDown} label="Ausgaben / Mt." value={eur0(data.expense)} accent={EXPENSE} href="/finanzen" />
       </div>
 
       {/* Reihe 1: Chart (oben) + Termine */}
@@ -144,14 +227,14 @@ export function Overview() {
 
         <Card className="flex flex-col">
           <CardHeader className="pb-0">
-            <CardTitle>Anstehende Termine</CardTitle>
+            <CardTitle>{focusMode ? "Termine heute" : "Anstehende Termine"}</CardTitle>
             <Link href="/kalender" className="text-sm font-medium text-primary hover:underline">Kalender</Link>
           </CardHeader>
           <CardContent className="flex-1 space-y-2 p-3">
-            {data.upcoming.length === 0 && (
-              <p className="py-6 text-center text-sm text-muted-foreground">Keine Termine (7 Tage).</p>
+            {apptList.length === 0 && (
+              <p className="py-6 text-center text-sm text-muted-foreground">{focusMode ? "Keine Termine heute." : "Keine Termine (7 Tage)."}</p>
             )}
-            {data.upcoming.slice(0, 4).map(({ appt, date }) => {
+            {apptList.slice(0, 4).map(({ appt, date }) => {
               const cat = resolveCategory(db.appointmentCategories, appt.category)
               return (
                 <Link key={appt.id + date} href="/kalender" className="flex items-center gap-2.5 rounded-lg border border-border bg-white/[0.02] p-2.5 transition-colors hover:bg-white/[0.05]">
@@ -175,7 +258,7 @@ export function Overview() {
             <CardTitle>Anstehende Zahlungen <span className="ml-1 text-sm font-normal text-muted-foreground">· 30 Tage</span></CardTitle>
             <div className="flex items-baseline gap-1.5">
               <span className="text-sm text-muted-foreground">Saldo</span>
-              <span className="num font-heading text-xl font-bold" style={{ color: data.net >= 0 ? INCOME : EXPENSE }}>
+              <span className="num font-heading text-[clamp(1.05rem,1vw+0.85rem,1.25rem)] font-bold" style={{ color: data.net >= 0 ? INCOME : EXPENSE }}>
                 {data.net >= 0 ? "+" : ""}{eur0(data.net)}
               </span>
             </div>
@@ -188,16 +271,16 @@ export function Overview() {
 
         <Card className="flex flex-col">
           <CardHeader className="pb-0">
-            <CardTitle>Offene Aufgaben</CardTitle>
+            <CardTitle>{focusMode ? "Heute fällig" : "Offene Aufgaben"}</CardTitle>
             <Link href="/aufgaben" className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
               Alle <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </CardHeader>
           <CardContent className="flex-1 space-y-2 p-3">
-            {data.openTasks.length === 0 && (
+            {taskList.length === 0 && (
               <p className="py-6 text-center text-sm text-muted-foreground">Alles erledigt. 🎯</p>
             )}
-            {data.openTasks.slice(0, 5).map((t) => (
+            {taskList.slice(0, 5).map((t) => (
               <Link key={t.id} href="/aufgaben" className="flex items-center gap-2.5 rounded-lg border border-border bg-white/[0.02] px-3 py-2.5 transition-colors hover:bg-white/[0.05]">
                 <div className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: t.priority === "high" ? "#ef4444" : t.priority === "normal" ? "#E39832" : "#9ca3af" }} />
                 <span className="flex-1 truncate text-base">{t.title}</span>
@@ -208,35 +291,6 @@ export function Overview() {
         </Card>
       </div>
     </div>
-  )
-}
-
-function Stat({ icon: Icon, label, value, hint, accent, href }: { icon: LucideIcon; label: string; value: string; hint?: string; accent: string; href: string }) {
-  return (
-    <Link href={href} className="group block">
-      <Card
-        className="relative flex items-center gap-3 overflow-hidden p-3.5 transition-all duration-300 hover:-translate-y-0.5 sm:p-4"
-        style={{ borderColor: `${accent}33` }}
-      >
-        {/* Akzent-Glow je Kachel — verstaerkt sich beim Hover */}
-        <div
-          className="pointer-events-none absolute -right-7 -top-7 h-20 w-20 rounded-full opacity-50 blur-2xl transition-opacity duration-300 group-hover:opacity-90"
-          style={{ background: `radial-gradient(circle, ${accent}55, transparent 70%)` }}
-        />
-        <div
-          className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl sm:h-11 sm:w-11"
-          style={{ backgroundColor: `${accent}24`, color: accent, border: `1px solid ${accent}55`, boxShadow: `inset 0 1px 0 0 ${accent}33` }}
-        >
-          <Icon className="h-5 w-5" />
-        </div>
-        <div className="relative min-w-0 flex-1">
-          <div className="eyebrow truncate" style={{ color: `${accent}cc` }}>{label}</div>
-          <div className="num truncate font-heading text-[clamp(0.95rem,4.5vw,1.35rem)] font-bold leading-tight tracking-tight sm:text-2xl">{value}</div>
-          {hint && <div className="truncate text-xs text-muted-foreground">{hint}</div>}
-        </div>
-        <ArrowRight className="relative hidden h-4 w-4 shrink-0 -translate-x-1 opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100 sm:block" style={{ color: accent }} />
-      </Card>
-    </Link>
   )
 }
 
@@ -265,7 +319,7 @@ function CashflowColumn({
           <span className="flex h-6 w-6 items-center justify-center rounded-lg" style={{ backgroundColor: `${color}1f` }}>{icon}</span>
           {title}
         </div>
-        <div className="num font-heading text-lg font-bold" style={{ color }}>{sign}{eur0(total)}</div>
+        <div className="num font-heading text-[clamp(1rem,0.8vw+0.85rem,1.125rem)] font-bold" style={{ color }}>{sign}{eur0(total)}</div>
       </div>
       <div className="space-y-2">
         {items.length === 0 && (
