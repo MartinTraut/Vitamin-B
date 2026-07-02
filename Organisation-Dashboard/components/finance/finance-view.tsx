@@ -7,9 +7,11 @@ import { useStore } from "@/lib/store"
 import {
   EXPENSE_CATEGORIES,
   INCOME_CATEGORIES,
+  PEOPLE,
   type TxType,
   type Transaction,
 } from "@/lib/types"
+import { computeTotals } from "@/lib/totals"
 import { eur, eur0, dateShort } from "@/lib/format"
 import { downloadCsv, deNum } from "@/lib/csv"
 import { todayISO, toISO } from "@/lib/recurrence"
@@ -47,6 +49,17 @@ function parseAmount(s: string): number {
 
 export function FinanceView() {
   const { db, addTransaction, removeTransaction } = useStore()
+  // Umsatzbeitrag je Person aus bezahlten Rechnungen — die Buchhaltung selbst bleibt ungeteilt.
+  const revenueByPerson = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const i of db.invoices) {
+      if (i.status !== "bezahlt" || i.voided) continue
+      map.set(i.person, (map.get(i.person) ?? 0) + computeTotals(i.items).gross)
+    }
+    const rows = PEOPLE.map((p) => ({ p, sum: map.get(p.id) ?? 0 })).filter((r) => r.sum > 0).sort((a, b) => b.sum - a.sum)
+    const max = rows.reduce((m, r) => Math.max(m, r.sum), 0)
+    return { rows, max }
+  }, [db.invoices])
   const [adding, setAdding] = useState(false)
   const [gran, setGran] = useState<Gran>("month")
   // Welche Verlauf-Linien sichtbar sind (über die Legende umschaltbar).
@@ -215,6 +228,31 @@ export function FinanceView() {
             <h3 className="mb-3 font-heading text-base font-bold">Ausgaben nach Kategorie</h3>
             <CategoryDonut data={m.cats} />
           </Card>
+
+          {revenueByPerson.rows.length > 0 && (
+            <Card className="p-4">
+              <h3 className="font-heading text-base font-bold">Umsatz nach Person</h3>
+              <p className="mb-3 mt-0.5 text-xs text-muted-foreground">aus bezahlten Rechnungen — wer hat was reingeholt</p>
+              <div className="space-y-3">
+                {revenueByPerson.rows.map(({ p, sum }) => (
+                  <div key={p.id} className="flex items-center gap-2.5">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold" style={{ backgroundColor: `${p.color}26`, color: p.color, border: `1px solid ${p.color}55` }}>
+                      {p.initials}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="truncate text-sm font-semibold">{p.name}</span>
+                        <span className="num font-heading text-[clamp(0.95rem,0.4vw+0.85rem,1.1rem)] font-bold" style={{ color: p.color }}>{eur0(sum)}</span>
+                      </div>
+                      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
+                        <div className="h-full rounded-full" style={{ width: `${(sum / revenueByPerson.max) * 100}%`, background: p.color }} />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
         </div>
       </div>
 

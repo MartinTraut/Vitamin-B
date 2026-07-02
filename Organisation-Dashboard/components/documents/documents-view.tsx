@@ -16,6 +16,8 @@ import {
 } from "lucide-react"
 import { useStore } from "@/lib/store"
 import { useToast } from "@/lib/toast"
+import { PersonBadge } from "@/components/ui/person-badge"
+import { SegmentedControl } from "@/components/ui/segmented-control"
 import {
   UNITS,
   QUOTE_STATUS_LABEL,
@@ -64,6 +66,8 @@ export function DocumentsView({ kind }: { kind: Kind }) {
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [sort, setSort] = useState<"date" | "amount" | "number">("date")
+  // "Meine" = nur von der aktiven Person erstellte Belege — der Nummernkreis bleibt gemeinsam.
+  const [who, setWho] = useState<"all" | "mine">("all")
 
   const statusLabels = isQuote ? QUOTE_STATUS_LABEL : INVOICE_STATUS_LABEL
 
@@ -89,7 +93,8 @@ export function DocumentsView({ kind }: { kind: Kind }) {
     const list = docs.filter((d) => {
       const matchQ = !q || d.number.toLowerCase().includes(q) || customerName(d.customerId).toLowerCase().includes(q)
       const matchS = statusFilter === "all" || (d as Quote | Invoice).status === statusFilter
-      return matchQ && matchS
+      const matchW = who === "all" || d.person === activePerson
+      return matchQ && matchS && matchW
     })
     return [...list].sort((a, b) => {
       if (sort === "amount") return computeTotals(b.items).gross - computeTotals(a.items).gross
@@ -156,6 +161,11 @@ export function DocumentsView({ kind }: { kind: Kind }) {
           <option value="amount">Betrag</option>
           <option value="number">Nummer</option>
         </select>
+        <SegmentedControl
+          value={who}
+          onChange={(v) => setWho(v as typeof who)}
+          options={[{ v: "all", l: "Alle" }, { v: "mine", l: "Meine" }]}
+        />
         <Button onClick={createNew} className="sm:ml-auto">
           <Plus className="h-4 w-4" /> {isQuote ? "Neues Angebot" : "Neue Rechnung"}
         </Button>
@@ -197,6 +207,7 @@ export function DocumentsView({ kind }: { kind: Kind }) {
                   </div>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-5">
+                  <PersonBadge person={d.person} className="hidden sm:flex" />
                   <Badge color={color}>{label}</Badge>
                   <span className="num text-right font-heading text-[clamp(1rem,1vw+0.75rem,1.25rem)] font-bold sm:w-32" style={{ color }}>{eur(t.gross)}</span>
                 </div>

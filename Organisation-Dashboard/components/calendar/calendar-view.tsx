@@ -11,12 +11,15 @@ import {
   resolveCategory,
   type AppointmentCategory,
   type AppointmentCategoryDef,
+  type Person,
 } from "@/lib/types"
 import { occurrencesInRange, toISO, parseISO, todayISO } from "@/lib/recurrence"
 import { dateDE, monthName } from "@/lib/format"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { PersonBadge } from "@/components/ui/person-badge"
+import { SegmentedControl } from "@/components/ui/segmented-control"
 import { cn } from "@/lib/utils"
 import { ORANGE } from "@/lib/theme-colors"
 
@@ -40,6 +43,7 @@ interface DayEvent {
   endTime?: string
   location?: string
   notes?: string
+  person: Person
   done: boolean
   isTask?: boolean
   taskId?: string
@@ -86,13 +90,17 @@ export function CalendarView() {
   const [selected, setSelected] = useState(today)
   const [draft, setDraft] = useState<Draft | null>(null)
 
+  // "Team" zeigt automatisch die Termine ALLER Personen — kein Doppel-Eintragen nötig.
+  const [scope, setScope] = useState<"mine" | "team">("mine")
+  const team = scope === "team"
+
   const myAppts = useMemo(
-    () => db.appointments.filter((a) => a.person === activePerson),
-    [db.appointments, activePerson],
+    () => (team ? db.appointments : db.appointments.filter((a) => a.person === activePerson)),
+    [db.appointments, activePerson, team],
   )
   const myTasksWithDue = useMemo(
-    () => db.tasks.filter((t) => t.person === activePerson && t.due),
-    [db.tasks, activePerson],
+    () => db.tasks.filter((t) => (team || t.person === activePerson) && t.due),
+    [db.tasks, activePerson, team],
   )
 
   const categories = db.appointmentCategories
@@ -138,6 +146,7 @@ export function CalendarView() {
           endTime: a.endTime,
           location: a.location,
           notes: a.notes,
+          person: a.person,
           done: a.completedDates.includes(date),
         })
         map.set(date, arr)
@@ -154,6 +163,7 @@ export function CalendarView() {
         category: "aufgabe",
         categoryColor: ORANGE,
         categoryLabel: "Aufgabe",
+        person: t.person,
         done: t.status === "done",
         isTask: true,
         taskId: t.id,
@@ -235,10 +245,18 @@ export function CalendarView() {
             Heute
           </Button>
         </div>
-        <div className="flex w-full items-center gap-1 rounded-xl border border-border bg-white/[0.03] p-1 sm:w-auto">
-          <SwitchBtn active={view === "day"} onClick={() => setView("day")} icon={<Sun className="h-4 w-4" />} label="Tag" />
-          <SwitchBtn active={view === "week"} onClick={() => setView("week")} icon={<Clock className="h-4 w-4" />} label="Woche" />
-          <SwitchBtn active={view === "month"} onClick={() => setView("month")} icon={<CalendarDays className="h-4 w-4" />} label="Monat" />
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+          {/* Mein Kalender vs. Team — Team zeigt alle Personen automatisch */}
+          <SegmentedControl
+            value={scope}
+            onChange={(v) => setScope(v as typeof scope)}
+            options={[{ v: "mine", l: person.name, color: person.color }, { v: "team", l: "Team" }]}
+          />
+          <div className="flex flex-1 items-center gap-1 rounded-xl border border-border bg-white/[0.03] p-1 sm:flex-none">
+            <SwitchBtn active={view === "day"} onClick={() => setView("day")} icon={<Sun className="h-4 w-4" />} label="Tag" />
+            <SwitchBtn active={view === "week"} onClick={() => setView("week")} icon={<Clock className="h-4 w-4" />} label="Woche" />
+            <SwitchBtn active={view === "month"} onClick={() => setView("month")} icon={<CalendarDays className="h-4 w-4" />} label="Monat" />
+          </div>
         </div>
       </Card>
 
@@ -259,6 +277,7 @@ export function CalendarView() {
               today={today}
               selected={selected}
               events={weekEvents}
+              showPerson={team}
               onSelectDay={(d) => setSelected(d)}
               onCreate={(d) => setDraft(d)}
             />
@@ -328,6 +347,7 @@ export function CalendarView() {
                         e={e}
                         active={editEvt?.id === e.id}
                         expanded={detailId === e.id}
+                        showPerson={team}
                         onToggleDetail={e.isTask ? undefined : () => setDetailId(detailId === e.id ? null : e.id)}
                         onToggle={() => (e.isTask && e.taskId ? toggleTask(e.taskId) : toggleAppointmentDone(e.id, selected))}
                         onRemove={e.isTask ? undefined : () => removeAppointment(e.id)}
@@ -348,6 +368,7 @@ export function CalendarView() {
                         e={e}
                         active={editEvt?.id === e.id}
                         expanded={detailId === e.id}
+                        showPerson={team}
                         onToggleDetail={e.isTask ? undefined : () => setDetailId(detailId === e.id ? null : e.id)}
                         onToggle={() => (e.isTask && e.taskId ? toggleTask(e.taskId) : toggleAppointmentDone(e.id, selected))}
                         onRemove={e.isTask ? undefined : () => removeAppointment(e.id)}
@@ -364,7 +385,9 @@ export function CalendarView() {
 
       <p className="text-center text-xs text-muted-foreground">
         {view === "week" ? "Auf eine Stunde tippen oder mit der Maus ziehen, um einen Timeslot anzulegen · " : ""}
-        Kalender von <span style={{ color: person.color }}>{person.name}</span> · oben links die Person wechseln
+        {team
+          ? "Team-Kalender · Termine & Deadlines aller Personen — neue Termine landen bei dir"
+          : <>Kalender von <span style={{ color: person.color }}>{person.name}</span> · oben „Team" für alle Personen</>}
       </p>
 
       <AnimatePresence>
@@ -573,6 +596,7 @@ function DayEventRow({
   e,
   active,
   expanded,
+  showPerson,
   onToggleDetail,
   onToggle,
   onRemove,
@@ -581,6 +605,7 @@ function DayEventRow({
   e: DayEvent
   active: boolean
   expanded: boolean
+  showPerson?: boolean
   onToggleDetail?: () => void
   onToggle: () => void
   onRemove?: () => void
@@ -665,6 +690,7 @@ function DayEventRow({
                 </span>
               )}
               <Badge color={color}><CheckSquare className="mr-1 -mt-px inline h-3 w-3" />{e.categoryLabel}</Badge>
+              {showPerson && <PersonBadge person={e.person} size="sm" />}
             </div>
           </Link>
         ) : (
@@ -682,6 +708,7 @@ function DayEventRow({
                 </span>
               )}
               <Badge color={color}>{e.categoryLabel}</Badge>
+              {showPerson && <PersonBadge person={e.person} size="sm" />}
               {e.notes && <AlignLeft className="h-3.5 w-3.5 text-muted-foreground" aria-label="Hat Notizen" />}
               {e.location && <MapPin className="h-3.5 w-3.5 text-muted-foreground" aria-label="Hat Ort" />}
             </div>
@@ -704,6 +731,12 @@ function DayEventRow({
         {expanded && !e.isTask && (
           <div className="mt-3 space-y-2.5 border-t border-white/[0.08] pt-3">
             <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-muted-foreground">
+              {showPerson && (
+                <span className="flex items-center gap-1.5">
+                  <PersonBadge person={e.person} size="sm" />
+                  {PEOPLE.find((p) => p.id === e.person)?.name}
+                </span>
+              )}
               <span className="flex items-center gap-1.5">
                 <Clock className="h-4 w-4" style={{ color }} />
                 {e.time ? `${e.time}${e.endTime ? ` – ${e.endTime}` : ""} Uhr` : "Keine Uhrzeit"}
@@ -857,6 +890,7 @@ function WeekGrid({
   today,
   selected,
   events,
+  showPerson,
   onSelectDay,
   onCreate,
 }: {
@@ -864,6 +898,7 @@ function WeekGrid({
   today: string
   selected: string
   events: Map<string, DayEvent[]>
+  showPerson?: boolean
   onSelectDay: (d: string) => void
   onCreate: (draft: Draft) => void
 }) {
@@ -1010,7 +1045,7 @@ function WeekGrid({
                         }}
                       >
                         <div className="truncate text-[11px] font-semibold" style={{ color: e.categoryColor }}>
-                          {e.title}
+                          {showPerson ? `${PEOPLE.find((p) => p.id === e.person)?.initials ?? ""} · ` : ""}{e.title}
                         </div>
                         <div className="text-[10px] text-muted-foreground">
                           {e.time}{e.endTime ? `–${e.endTime}` : ""}

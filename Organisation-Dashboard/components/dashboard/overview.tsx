@@ -14,6 +14,8 @@ import {
   Trophy,
   Sparkles,
   AlertCircle,
+  FileText,
+  Wallet,
 } from "lucide-react"
 import { useStore } from "@/lib/store"
 import {
@@ -111,11 +113,16 @@ export function Overview() {
     const overdueInvoices = db.invoices.filter((i) => i.person === activePerson && i.status === "ueberfaellig")
     const overdueSum = overdueInvoices.reduce((s, i) => s + computeTotals(i.items).gross, 0)
 
+    // Meine Rechnungen — was ich selbst geschrieben habe und was davon offen ist.
+    const myOpenInvoices = db.invoices.filter((i) => i.person === activePerson && (i.status === "gesendet" || i.status === "ueberfaellig"))
+    const myOpenInvoiceSum = myOpenInvoices.reduce((s, i) => s + computeTotals(i.items).gross, 0)
+
     // Pipeline — personenbezogen (nur die Deals der aktiven Ansicht).
     const myDeals = db.deals.filter((d) => d.person === activePerson)
     const openDeals = myDeals.filter((d) => d.stage !== "gewonnen")
     const openPipeline = openDeals.reduce((s, d) => s + d.value, 0)
-    const wonPipeline = myDeals.filter((d) => d.stage === "gewonnen").reduce((s, d) => s + d.value, 0)
+    // Abgeschlossen zählt firmenweit — gehört zur Firmen-Zone des Dashboards.
+    const wonPipeline = db.deals.filter((d) => d.stage === "gewonnen").reduce((s, d) => s + d.value, 0)
 
     // Aktueller Monat aus der Live-Reihe (letzter Bucket) — KPI & Chart konsistent.
     const last = chartData.at(-1) ?? { month: "", income: 0, expense: 0 }
@@ -136,6 +143,8 @@ export function Overview() {
       todayAppts,
       overdueInvoices,
       overdueSum,
+      myOpenInvoices,
+      myOpenInvoiceSum,
       income: last.income,
       expense: last.expense,
       profit: last.income - last.expense,
@@ -197,14 +206,35 @@ export function Overview() {
         </button>
       </div>
 
-      {/* KPIs — kompakte Tiles (inkl. personenbezogener Pipeline) */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+      {/* Zone 1: Mein Tag — persönliche Kennzahlen der aktiven Person */}
+      <div className="eyebrow flex items-center gap-2" style={{ color: person.color }}>
+        <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: person.color }} />
+        Mein Tag · {person.name}
+      </div>
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <KpiTile icon={CheckSquare} label={focusMode ? "Heute fällig" : "Offene Aufgaben"} value={String(taskList.length)} accent={ORANGE} href="/aufgaben" />
         <KpiTile icon={CalendarClock} label={focusMode ? "Termine heute" : "Termine (7 T.)"} value={String(apptList.length)} accent={BLUE} href="/kalender" />
-        <KpiTile icon={Target} label="Offene Pipeline" value={eur0(data.openPipeline)} hint={data.openDealCount > 0 ? `${data.openDealCount} Deals` : undefined} accent={PURPLE} href="/pipeline" />
-        <KpiTile icon={Trophy} label="Abgeschlossen" value={eur0(data.wonPipeline)} accent={INCOME} href="/pipeline" />
+        <KpiTile icon={Target} label="Meine Pipeline" value={eur0(data.openPipeline)} hint={data.openDealCount > 0 ? `${data.openDealCount} Deals` : undefined} accent={PURPLE} href="/pipeline" />
+        <KpiTile
+          icon={FileText}
+          label="Meine offenen Rechnungen"
+          value={eur0(data.myOpenInvoiceSum)}
+          hint={data.myOpenInvoices.length === 0 ? "alles bezahlt" : `${data.myOpenInvoices.length} offen${data.overdueInvoices.length > 0 ? ` · ${data.overdueInvoices.length} überfällig` : ""}`}
+          accent={data.overdueInvoices.length > 0 ? EXPENSE : INCOME}
+          href="/rechnungen"
+        />
+      </div>
+
+      {/* Zone 2: Firma — gemeinsame Zahlen, bei allen identisch */}
+      <div className="eyebrow flex items-center gap-2" style={{ color: ORANGE }}>
+        <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: ORANGE }} />
+        Vitamin B · Firma
+      </div>
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <KpiTile icon={TrendingUp} label="Einnahmen / Mt." value={eur0(data.income)} accent={INCOME} href="/finanzen" />
         <KpiTile icon={TrendingDown} label="Ausgaben / Mt." value={eur0(data.expense)} accent={EXPENSE} href="/finanzen" />
+        <KpiTile icon={Wallet} label="Gewinn / Mt." value={eur0(data.profit)} accent={data.profit >= 0 ? INCOME : EXPENSE} href="/finanzen" />
+        <KpiTile icon={Trophy} label="Abgeschlossen" value={eur0(data.wonPipeline)} accent={INCOME} href="/pipeline" />
       </div>
 
       {/* Reihe 1: Chart (oben) + Termine */}
