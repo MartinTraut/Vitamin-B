@@ -330,17 +330,16 @@ function CashflowColumn({
           return (
             <Link key={c.id} href={href} className="flex items-center gap-3 rounded-xl bg-white/[0.03] px-3 py-3 transition-colors hover:bg-white/[0.06]">
               <div className="h-10 w-1 shrink-0 rounded-full" style={{ backgroundColor: potential ? POTENTIAL : color }} />
-              <div className="min-w-0 max-w-[65%] shrink">
-                <div className="truncate text-base font-medium leading-tight">{c.title}</div>
-                <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[clamp(1rem,0.4vw+0.9rem,1.125rem)] font-semibold leading-tight">{c.title}</div>
+                <div className="mt-0.5 flex items-center gap-2 text-[clamp(0.85rem,0.25vw+0.78rem,0.95rem)] text-muted-foreground">
                   {relDayLabel(c.date)}
                   {potential && (
-                    <span className="rounded-full px-1.5 py-0.5 text-xs font-semibold" style={{ backgroundColor: `${POTENTIAL}24`, color: POTENTIAL }}>potenziell</span>
+                    <span className="rounded-full px-1.5 py-0.5 text-[clamp(0.72rem,0.2vw+0.66rem,0.8rem)] font-semibold" style={{ backgroundColor: `${POTENTIAL}24`, color: POTENTIAL }}>potenziell</span>
                   )}
                 </div>
               </div>
-              <div aria-hidden className="mb-[3px] h-px min-w-4 flex-1 self-end border-b border-dashed border-white/[0.08]" />
-              <div className="num shrink-0 font-heading text-base font-bold" style={{ color: potential ? POTENTIAL : color }}>{sign}{eur0(c.amount)}</div>
+              <div className="num shrink-0 font-heading text-[clamp(1.05rem,0.5vw+0.9rem,1.25rem)] font-bold tabular-nums" style={{ color: potential ? POTENTIAL : color }}>{sign}{eur0(c.amount)}</div>
             </Link>
           )
         })}

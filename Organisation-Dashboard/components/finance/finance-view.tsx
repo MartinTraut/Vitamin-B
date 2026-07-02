@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { Plus, TrendingUp, TrendingDown, Wallet, Receipt, Trash2, ArrowDownLeft, ArrowUpRight, Search, Building2, PiggyBank, ArrowRight } from "lucide-react"
+import { Plus, TrendingUp, TrendingDown, Wallet, Receipt, ArrowDownLeft, ArrowUpRight, Search, Building2, PiggyBank, ArrowRight, Download } from "lucide-react"
 import Link from "next/link"
 import { useStore } from "@/lib/store"
 import {
@@ -10,13 +10,15 @@ import {
   type TxType,
   type Transaction,
 } from "@/lib/types"
-import { eur, eur0, dateDE } from "@/lib/format"
+import { eur, eur0, dateShort } from "@/lib/format"
+import { downloadCsv, deNum } from "@/lib/csv"
 import { todayISO, toISO } from "@/lib/recurrence"
 import { buildSeries, GRAN_LABEL, type Gran } from "@/lib/finance-series"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { KpiTile } from "@/components/ui/kpi-tile"
 import { SegmentedControl } from "@/components/ui/segmented-control"
+import { LedgerTable } from "@/components/ui/ledger-table"
 import { FinanceChart, CategoryDonut, ChartLegend, type SeriesKey } from "@/components/dashboard/charts"
 import { cn } from "@/lib/utils"
 import { INCOME, EXPENSE, ORANGE } from "@/lib/theme-colors"
@@ -24,6 +26,16 @@ import { INCOME, EXPENSE, ORANGE } from "@/lib/theme-colors"
 function netOf(amount: number, rate: number) {
   return amount / (1 + rate / 100)
 }
+
+// KPI-Hint: aktueller Monat + prozentuale Veränderung zum Vormonat.
+function trendHint(cur: number, prev: number): string {
+  const base = `Diesen Monat ${eur0(cur)}`
+  if (prev <= 0) return base
+  const pct = Math.round(((cur - prev) / prev) * 100)
+  return `${base} · ${pct >= 0 ? "+" : ""}${pct} % vs. Vormonat`
+}
+
+const UST_PERIOD_LABEL = { month: "laufender Monat", quarter: "laufendes Quartal", all: "gesamt" } as const
 
 // DE-Betrag robust parsen: "1.234,56" -> 1234.56, "12,50" -> 12.5, "12.50" -> 12.5
 function parseAmount(s: string): number {
@@ -44,6 +56,8 @@ export function FinanceView() {
   const [search, setSearch] = useState("")
   const [txType, setTxType] = useState<"all" | "income" | "expense">("all")
   const [txPeriod, setTxPeriod] = useState<"all" | "week" | "month">("all")
+  // USt-Voranmeldung ist periodenbezogen — Monat/Quartal/Gesamt umschaltbar.
+  const [ustPeriod, setUstPeriod] = useState<"month" | "quarter" | "all">("quarter")
 
   // Nur geschäftliche Buchungen — private laufen getrennt unter /privat.
   const businessTx = useMemo(() => db.transactions.filter((t) => t.scope !== "private"), [db.transactions])
@@ -55,8 +69,6 @@ export function FinanceView() {
     const expense = tx.filter((t) => t.type === "expense")
     const sumIncome = income.reduce((s, t) => s + t.amount, 0)
     const sumExpense = expense.reduce((s, t) => s + t.amount, 0)
-    const ustOut = income.reduce((s, t) => s + (t.amount - netOf(t.amount, t.taxRate)), 0) // USt eingenommen
-    const vorsteuer = expense.reduce((s, t) => s + (t.amount - netOf(t.amount, t.taxRate)), 0) // Vorsteuer
     // Ausgaben je Kategorie
     const byCat = new Map<string, number>()
     for (const t of expense) byCat.set(t.category, (byCat.get(t.category) ?? 0) + t.amount)
@@ -64,9 +76,36 @@ export function FinanceView() {
     const maxCat = cats.reduce((mx, c) => Math.max(mx, c.value), 0)
     return {
       sumIncome, sumExpense, profit: sumIncome - sumExpense,
-      ustOut, vorsteuer, zahllast: ustOut - vorsteuer,
       cats, maxCat,
       sorted: [...tx].sort((a, b) => b.date.localeCompare(a.date)),
+    }
+  }, [businessTx])
+
+  // USt auf den Voranmeldungszeitraum skopiert (Monat/Quartal/Gesamt).
+  const ust = useMemo(() => {
+    let from = ""
+    const now = new Date()
+    if (ustPeriod === "month") from = toISO(new Date(now.getFullYear(), now.getMonth(), 1))
+    else if (ustPeriod === "quarter") from = toISO(new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1))
+    const tx = from ? businessTx.filter((t) => t.date >= from) : businessTx
+    const ustOut = tx.filter((t) => t.type === "income").reduce((s, t) => s + (t.amount - netOf(t.amount, t.taxRate)), 0)
+    const vorsteuer = tx.filter((t) => t.type === "expense").reduce((s, t) => s + (t.amount - netOf(t.amount, t.taxRate)), 0)
+    return { ustOut, vorsteuer, zahllast: ustOut - vorsteuer }
+  }, [businessTx, ustPeriod])
+
+  // Monats-Trend für die KPI-Hints („+12 % vs. Vormonat").
+  const delta = useMemo(() => {
+    const now = new Date()
+    const cur = toISO(new Date(now.getFullYear(), now.getMonth(), 1))
+    const prev = toISO(new Date(now.getFullYear(), now.getMonth() - 1, 1))
+    const sum = (type: TxType, from: string, to?: string) =>
+      businessTx.filter((t) => t.type === type && t.date >= from && (!to || t.date < to)).reduce((s, t) => s + t.amount, 0)
+    const curIn = sum("income", cur), prevIn = sum("income", prev, cur)
+    const curEx = sum("expense", cur), prevEx = sum("expense", prev, cur)
+    return {
+      income: trendHint(curIn, prevIn),
+      expense: trendHint(curEx, prevEx),
+      profit: trendHint(curIn - curEx, prevIn - prevEx),
     }
   }, [businessTx])
 
@@ -119,10 +158,10 @@ export function FinanceView() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <KpiTile icon={TrendingUp} label="Einnahmen" value={eur0(m.sumIncome)} accent={INCOME} />
-        <KpiTile icon={TrendingDown} label="Ausgaben" value={eur0(m.sumExpense)} accent={EXPENSE} />
-        <KpiTile icon={Wallet} label="Gewinn" value={eur0(m.profit)} accent={m.profit >= 0 ? INCOME : EXPENSE} />
-        <KpiTile icon={Receipt} label="USt-Zahllast" value={eur0(m.zahllast)} accent={ORANGE} />
+        <KpiTile icon={TrendingUp} label="Einnahmen" value={eur0(m.sumIncome)} accent={INCOME} hint={delta.income} />
+        <KpiTile icon={TrendingDown} label="Ausgaben" value={eur0(m.sumExpense)} accent={EXPENSE} hint={delta.expense} />
+        <KpiTile icon={Wallet} label="Gewinn" value={eur0(m.profit)} accent={m.profit >= 0 ? INCOME : EXPENSE} hint={delta.profit} />
+        <KpiTile icon={Receipt} label="USt-Zahllast" value={eur0(ust.zahllast)} accent={ORANGE} hint={UST_PERIOD_LABEL[ustPeriod]} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -155,12 +194,19 @@ export function FinanceView() {
         {/* USt + Kategorien */}
         <div className="space-y-4">
           <Card className="p-4">
-            <h3 className="mb-3 font-heading text-base font-bold">Umsatzsteuer</h3>
-            <UstRow label="USt eingenommen" value={m.ustOut} />
-            <UstRow label="Vorsteuer (abziehbar)" value={-m.vorsteuer} />
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h3 className="font-heading text-base font-bold">Umsatzsteuer</h3>
+              <SegmentedControl
+                value={ustPeriod}
+                onChange={(v) => setUstPeriod(v as typeof ustPeriod)}
+                options={[{ v: "month", l: "Monat" }, { v: "quarter", l: "Quartal" }, { v: "all", l: "Gesamt" }]}
+              />
+            </div>
+            <UstRow label="USt eingenommen" value={ust.ustOut} />
+            <UstRow label="Vorsteuer (abziehbar)" value={-ust.vorsteuer} />
             <div className="mt-2 flex items-center justify-between border-t border-border pt-2.5">
               <span className="text-sm font-semibold">Zahllast ans Finanzamt</span>
-              <span className="font-heading text-lg font-bold" style={{ color: ORANGE }}>{eur(m.zahllast)}</span>
+              <span className="font-heading text-lg font-bold" style={{ color: ORANGE }}>{eur(ust.zahllast)}</span>
             </div>
           </Card>
 
@@ -173,11 +219,30 @@ export function FinanceView() {
 
       {/* Ledger */}
       <Card className="overflow-hidden">
-        <div className="flex items-center justify-between border-b border-border p-4">
+        <div className="flex items-center justify-between gap-2 border-b border-border p-4">
           <h3 className="font-heading text-base font-bold">Buchungen</h3>
-          <Button size="sm" onClick={() => setAdding((v) => !v)}>
-            <Plus className="h-4 w-4" /> Buchung
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              title="Gefilterte Buchungen als CSV exportieren (Steuerberater)"
+              onClick={() =>
+                downloadCsv(
+                  `buchungen-${todayISO()}.csv`,
+                  ["Datum", "Typ", "Kategorie", "Notiz", "Betrag brutto", "USt-Satz", "Netto", "USt"],
+                  filtered.list.map((t) => {
+                    const net = netOf(t.amount, t.taxRate)
+                    return [dateShort(t.date), t.type === "income" ? "Einnahme" : "Ausgabe", t.category, t.note ?? "", deNum(t.amount), `${t.taxRate} %`, deNum(net), deNum(t.amount - net)]
+                  }),
+                )
+              }
+            >
+              <Download className="h-4 w-4" /> CSV
+            </Button>
+            <Button size="sm" onClick={() => setAdding((v) => !v)}>
+              <Plus className="h-4 w-4" /> Buchung
+            </Button>
+          </div>
         </div>
 
         {/* Filterleiste: Suche · Typ · Zeitraum */}
@@ -209,43 +274,30 @@ export function FinanceView() {
             onSave={(input) => { addTransaction(input); setAdding(false) }}
           />
         )}
-        {/* System-Regel 4+5: Hierarchie pro Zeile (Identität links, Geld-Anker
-           rechts) — Farbe nur auf Betrag & Icon. min-h stabilisiert die Höhe,
-           damit die Seite beim Filtern nicht mehr springt. */}
-        <div className="min-h-[220px] divide-y divide-border">
-          {filtered.list.length === 0 && <p className="p-10 text-center text-sm text-muted-foreground">{m.sorted.length === 0 ? "Noch keine Buchungen." : "Keine Treffer für diesen Filter."}</p>}
-          {filtered.list.map((t) => {
-            const inc = t.type === "income"
-            const color = inc ? INCOME : EXPENSE
-            return (
-              <div key={t.id} className="group relative flex items-center gap-3.5 px-4 py-3.5 transition-colors hover:bg-white/[0.025]">
-                {/* Farb-Kante links: taucht beim Hover auf und trägt den Blick über die Zeile */}
-                <span aria-hidden className="absolute inset-y-0 left-0 w-[3px] rounded-r bg-current opacity-0 transition-opacity group-hover:opacity-100" style={{ color }} />
-                {/* Typ-Anker */}
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${color}1a`, color }}>
-                  {inc ? <ArrowDownLeft className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
-                </span>
-                {/* Identität: Kategorie fett, darunter ruhige Meta-Zeile — nur so breit wie nötig,
-                    damit die Leader-Linie den Blick weiterträgt statt in leerer Fläche zu enden. */}
-                <div className="min-w-0 max-w-[65%] shrink">
-                  <div className="truncate text-[15px] font-semibold leading-tight">{t.category}</div>
-                  <div className="mt-0.5 truncate text-[13px] text-muted-foreground">{t.note ? `${t.note} · ` : ""}{dateDE(t.date)}</div>
-                </div>
-                {/* Leader-Linie (Beleg-Optik) — verbindet Bezeichnung und Betrag über die volle Zeilenbreite */}
-                <div aria-hidden className="mb-[3px] h-px min-w-4 flex-1 self-end border-b border-dashed border-white/[0.08]" />
-                {/* Geld-Anker: feste, rechtsbündige Zahlen-Achse — der Held der Zeile */}
-                <div className="flex shrink-0 flex-col items-end">
-                  <span className="num font-heading text-[15px] font-bold leading-tight sm:text-base" style={{ color }}>
-                    {inc ? "+" : "−"}{eur(t.amount)}
-                  </span>
-                  <span className="mt-0.5 text-[11px] text-muted-foreground">{t.taxRate}% USt</span>
-                </div>
-                <button type="button" onClick={() => removeTransaction(t.id)} aria-label="Buchung löschen" title="Buchung löschen" className="action-reveal -mr-1 shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60">
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            )
-          })}
+        {/* Echte Tabellen-Struktur: Spalten-Kopf, Monats-Gruppen mit Zwischensumme,
+           feste rechtsbündige Betrag-Spalte — kein toter Raum zwischen Label und Zahl. */}
+        <div className="min-h-[220px]">
+          <LedgerTable
+            withVat
+            emptyText={m.sorted.length === 0 ? "Noch keine Buchungen." : "Keine Treffer für diesen Filter."}
+            rows={filtered.list.map((t) => {
+              const inc = t.type === "income"
+              const color = inc ? INCOME : EXPENSE
+              return {
+                id: t.id,
+                label: t.category,
+                note: t.note,
+                date: t.date,
+                amount: t.amount,
+                sign: inc ? ("+" as const) : ("−" as const),
+                color,
+                vat: `${t.taxRate} %`,
+                icon: inc ? <ArrowDownLeft className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />,
+                onRemove: () => removeTransaction(t.id),
+                removeLabel: "Buchung löschen",
+              }
+            })}
+          />
         </div>
 
         {/* Auswahl-Summe */}

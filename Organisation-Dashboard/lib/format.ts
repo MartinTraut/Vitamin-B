@@ -43,6 +43,12 @@ export function dateDE(iso: string): string {
   return `${WEEKDAYS[d.getDay()]}, ${d.getDate()}. ${MONTHS[d.getMonth()]}`
 }
 
+// Kompaktes numerisches Datum mit Jahr — Buchhaltungs-Standard für Tabellen/Ledger.
+export function dateShort(iso: string): string {
+  const [y, m, d] = iso.split("-")
+  return `${d}.${m}.${y}`
+}
+
 // Vollständiges Datum mit Jahr — für rechtsverbindliche Belege (Rechnung/Angebot).
 export function dateLong(iso: string): string {
   const d = new Date(iso + "T00:00:00")

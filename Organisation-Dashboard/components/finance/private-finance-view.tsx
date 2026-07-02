@@ -17,11 +17,14 @@ import {
   type Transaction,
   type Debt,
 } from "@/lib/types"
-import { eur, eur0, dateDE } from "@/lib/format"
+import { eur, eur0 } from "@/lib/format"
 import { todayISO } from "@/lib/recurrence"
 import { buildSeries, GRAN_LABEL, type Gran } from "@/lib/finance-series"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { KpiTile } from "@/components/ui/kpi-tile"
+import { SegmentedControl } from "@/components/ui/segmented-control"
+import { LedgerTable } from "@/components/ui/ledger-table"
 import { FinanceChart, CategoryDonut, ChartLegend, type SeriesKey } from "@/components/dashboard/charts"
 import { cn } from "@/lib/utils"
 import { INCOME, EXPENSE, PURPLE as ACCENT, DEBT } from "@/lib/theme-colors" // privat = violett, klar getrennt von der Firma (grün)
@@ -96,10 +99,10 @@ export function PrivateFinanceView() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Kpi icon={TrendingUp} label="Einnahmen" value={eur0(m.income)} accent={INCOME} />
-        <Kpi icon={TrendingDown} label="Ausgaben" value={eur0(m.expense)} accent={EXPENSE} />
-        <Kpi icon={Wallet} label="Saldo" value={eur0(m.saldo)} accent={m.saldo >= 0 ? INCOME : EXPENSE} />
-        <Kpi icon={Landmark} label="Restschulden" value={eur0(m.debtRemaining)} accent={DEBT} />
+        <KpiTile icon={TrendingUp} label="Einnahmen" value={eur0(m.income)} accent={INCOME} />
+        <KpiTile icon={TrendingDown} label="Ausgaben" value={eur0(m.expense)} accent={EXPENSE} />
+        <KpiTile icon={Wallet} label="Saldo" value={eur0(m.saldo)} accent={m.saldo >= 0 ? INCOME : EXPENSE} />
+        <KpiTile icon={Landmark} label="Restschulden" value={eur0(m.debtRemaining)} accent={DEBT} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -117,13 +120,11 @@ export function PrivateFinanceView() {
                   ...(myDebts.length > 0 ? [{ key: "debt" as SeriesKey, color: DEBT }] : []),
                 ]}
               />
-              <div className="flex items-center rounded-lg border border-border bg-white/[0.03] p-0.5">
-                {(["day", "week", "month"] as Gran[]).map((g) => (
-                  <button key={g} onClick={() => setGran(g)} aria-pressed={gran === g} className={cn("rounded-md px-2.5 py-1 text-xs font-semibold transition-colors", gran === g ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>
-                    {GRAN_LABEL[g]}
-                  </button>
-                ))}
-              </div>
+              <SegmentedControl
+                value={gran}
+                onChange={(v) => setGran(v as Gran)}
+                options={(["day", "week", "month"] as Gran[]).map((g) => ({ v: g, l: GRAN_LABEL[g] }))}
+              />
             </div>
           </div>
           <div className="min-h-[240px] flex-1 p-3 pt-1">
@@ -155,30 +156,36 @@ export function PrivateFinanceView() {
             onSave={(input) => { addTransaction({ ...input, scope: "private", person: activePerson }); setAdding(false) }}
           />
         )}
-        <div className="divide-y divide-border">
-          {m.sorted.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">Noch keine privaten Buchungen.</p>}
-          {m.sorted.map((t) => {
+        {/* Echte Tabellen-Struktur mit Monats-Gruppen — Betrag auf fester rechtsbündiger Achse */}
+        <LedgerTable
+          emptyText="Noch keine privaten Buchungen."
+          rows={m.sorted.map((t) => {
             const inc = t.type === "income"
-            return (
-              <div key={t.id} className="group flex items-center gap-3 px-4 py-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${inc ? INCOME : EXPENSE}1f`, color: inc ? INCOME : EXPENSE }}>
-                  {inc ? <ArrowDownLeft className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
-                </span>
-                <div className="min-w-0 max-w-[65%] shrink truncate">
-                  <div className="truncate text-sm font-medium">{t.category}{t.note ? <span className="font-normal text-muted-foreground"> · {t.note}</span> : ""}</div>
-                  <div className="text-xs text-muted-foreground">{dateDE(t.date)}</div>
-                </div>
-                <div aria-hidden className="mb-[3px] h-px min-w-4 flex-1 self-end border-b border-dashed border-white/[0.08]" />
-                <span className="shrink-0 text-sm font-semibold tabular-nums" style={{ color: inc ? INCOME : EXPENSE }}>
-                  {inc ? "+" : "−"}{eur(t.amount)}
-                </span>
-                <button onClick={() => removeTransaction(t.id)} aria-label="Buchung löschen" title="Buchung löschen" className="action-reveal rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60">
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            )
+            const color = inc ? INCOME : EXPENSE
+            return {
+              id: t.id,
+              label: t.category,
+              note: t.note,
+              date: t.date,
+              amount: t.amount,
+              sign: inc ? ("+" as const) : ("−" as const),
+              color,
+              icon: inc ? <ArrowDownLeft className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />,
+              onRemove: () => removeTransaction(t.id),
+              removeLabel: "Buchung löschen",
+            }
           })}
-        </div>
+        />
+
+        {/* Summen-Fußzeile — konsistent zu Firmen-Finanzen & Belegen */}
+        {m.sorted.length > 0 && (
+          <div className="flex items-center justify-between border-t border-border bg-white/[0.015] px-4 py-2.5 text-xs">
+            <span className="text-muted-foreground">{m.sorted.length} {m.sorted.length === 1 ? "Buchung" : "Buchungen"}</span>
+            <span className="font-semibold text-muted-foreground">
+              Saldo <span className="num font-bold" style={{ color: m.saldo >= 0 ? INCOME : EXPENSE }}>{m.saldo >= 0 ? "+" : "−"}{eur(Math.abs(m.saldo))}</span>
+            </span>
+          </div>
+        )}
       </Card>
     </div>
   )
@@ -266,15 +273,15 @@ function DebtCard({ debt }: { debt: Debt }) {
         <button onClick={() => setOpen((v) => !v)} className="flex min-w-0 flex-1 items-start gap-2 text-left">
           <ChevronRight className={cn("mt-0.5 h-4 w-4 shrink-0 transition-transform", open && "rotate-90")} style={{ color: done ? INCOME : DEBT }} />
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-[15px] font-bold leading-tight">{debt.title}</span>
-            <span className="block text-[13px] text-muted-foreground">
+            <span className="block truncate text-[clamp(1rem,0.4vw+0.9rem,1.15rem)] font-bold leading-tight">{debt.title}</span>
+            <span className="block text-[clamp(0.85rem,0.25vw+0.78rem,0.95rem)] text-muted-foreground">
               {eur0(debt.paid)} / {eur0(debt.total)}{debt.monthlyRate ? ` · ${eur0(debt.monthlyRate)}/Mt.` : ""}
             </span>
           </span>
         </button>
         <div className="shrink-0 text-right">
           <div className="num font-heading text-[clamp(1.05rem,1vw+0.85rem,1.25rem)] font-bold leading-none" style={{ color: done ? INCOME : DEBT }}>{done ? "Getilgt" : eur0(remaining)}</div>
-          {!done && <div className="mt-0.5 text-[11px] font-medium text-muted-foreground">offen</div>}
+          {!done && <div className="mt-0.5 text-[clamp(0.78rem,0.2vw+0.72rem,0.85rem)] font-medium text-muted-foreground">offen</div>}
         </div>
       </div>
 
@@ -385,19 +392,3 @@ function AddPrivateTx({ onSave, onCancel }: { onSave: (input: Omit<Transaction, 
   )
 }
 
-function Kpi({ icon: Icon, label, value, accent }: { icon: typeof TrendingUp; label: string; value: string; accent: string }) {
-  return (
-    <div
-      className="relative flex items-center gap-3 overflow-hidden rounded-2xl p-4"
-      style={{ background: `linear-gradient(135deg, ${accent}2e, ${accent}0d 70%)`, border: `1px solid ${accent}55`, boxShadow: `inset 0 1px 0 0 ${accent}33, 0 10px 34px -14px ${accent}99` }}
-    >
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${accent}33`, color: accent, border: `1px solid ${accent}66` }}>
-        <Icon className="h-5 w-5" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="eyebrow truncate" style={{ color: `${accent}cc` }}>{label}</div>
-        <div className="num truncate font-heading text-[clamp(1rem,5vw,1.5rem)] font-bold leading-tight sm:text-2xl" style={{ color: accent }}>{value}</div>
-      </div>
-    </div>
-  )
-}
