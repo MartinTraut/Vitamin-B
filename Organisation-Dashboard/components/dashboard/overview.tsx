@@ -29,7 +29,7 @@ import { occurrencesInRange, todayISO, addDaysISO } from "@/lib/recurrence"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { KpiTile } from "@/components/ui/kpi-tile"
-import { FinanceChart } from "./charts"
+import { FinanceChart, ChartLegend, type SeriesKey } from "./charts"
 import { INCOME, EXPENSE, POTENTIAL, ORANGE, PURPLE, BLUE } from "@/lib/theme-colors"
 
 function daysUntil(iso: string): number {
@@ -90,6 +90,9 @@ export function Overview() {
   // Rechnungen und erfasste Belege schlagen so direkt aufs Dashboard durch.
   const businessTx = useMemo(() => db.transactions.filter((t) => t.scope !== "private"), [db.transactions])
   const chartData = useMemo(() => buildSeries(businessTx, "month"), [businessTx])
+  // Chart-Serien einzeln ein-/ausblendbar (klickbare Legende wie in den Finanz-Views).
+  const [visibleSeries, setVisibleSeries] = useState<Partial<Record<SeriesKey, boolean>>>({ income: true, expense: true, profit: true })
+  const toggleSeries = (k: SeriesKey) => setVisibleSeries((v) => ({ ...v, [k]: !(v[k] ?? true) }))
 
   const data = useMemo(() => {
     const today = todayISO()
@@ -199,7 +202,7 @@ export function Overview() {
         <KpiTile icon={CheckSquare} label={focusMode ? "Heute fällig" : "Offene Aufgaben"} value={String(taskList.length)} accent={ORANGE} href="/aufgaben" />
         <KpiTile icon={CalendarClock} label={focusMode ? "Termine heute" : "Termine (7 T.)"} value={String(apptList.length)} accent={BLUE} href="/kalender" />
         <KpiTile icon={Target} label="Offene Pipeline" value={eur0(data.openPipeline)} hint={data.openDealCount > 0 ? `${data.openDealCount} Deals` : undefined} accent={PURPLE} href="/pipeline" />
-        <KpiTile icon={Trophy} label="Gewonnen" value={eur0(data.wonPipeline)} accent={INCOME} href="/pipeline" />
+        <KpiTile icon={Trophy} label="Abgeschlossen" value={eur0(data.wonPipeline)} accent={INCOME} href="/pipeline" />
         <KpiTile icon={TrendingUp} label="Einnahmen / Mt." value={eur0(data.income)} accent={INCOME} href="/finanzen" />
         <KpiTile icon={TrendingDown} label="Ausgaben / Mt." value={eur0(data.expense)} accent={EXPENSE} href="/finanzen" />
       </div>
@@ -214,14 +217,21 @@ export function Overview() {
                 Gewinn akt. Monat: <span className="font-semibold" style={{ color: INCOME }}>{eur0(data.profit)}</span>
               </span>
             </div>
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: INCOME }} />Einnahmen</span>
-              <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: EXPENSE }} />Ausgaben</span>
+            <div className="flex flex-wrap items-center gap-3">
+              <ChartLegend
+                visible={visibleSeries}
+                onToggle={toggleSeries}
+                items={[
+                  { key: "income", color: INCOME },
+                  { key: "expense", color: EXPENSE },
+                  { key: "profit", color: ORANGE },
+                ]}
+              />
               <Link href="/finanzen" className="text-sm font-medium text-primary hover:underline">Finanzen</Link>
             </div>
           </CardHeader>
           <CardContent className="min-h-[260px] flex-1 p-3 lg:min-h-0">
-            <FinanceChart data={chartData} height="full" />
+            <FinanceChart data={chartData} height="full" visible={visibleSeries} />
           </CardContent>
         </Card>
 

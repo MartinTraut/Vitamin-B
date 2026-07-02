@@ -269,7 +269,7 @@ function CustomerDetail({
         {/* Zahlen */}
         <div className="grid grid-cols-2 gap-3">
           <KpiTile label="Offene Deals" value={eur0(dealsOpen)} accent={ORANGE} />
-          <KpiTile label="Gewonnen" value={eur0(dealsWon)} accent={INCOME} />
+          <KpiTile label="Abgeschlossen" value={eur0(dealsWon)} accent={INCOME} />
           <KpiTile label="Projekte" value={String(projects.length)} accent={BLUE} />
           <KpiTile label="Deals gesamt" value={String(deals.length)} accent={PURPLE} />
         </div>

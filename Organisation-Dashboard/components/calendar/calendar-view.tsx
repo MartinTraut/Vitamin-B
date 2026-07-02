@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { motion, AnimatePresence, type PanInfo } from "framer-motion"
-import { ChevronLeft, ChevronRight, Plus, Trash2, Check, CalendarDays, Clock, Sun, RotateCcw, Tags, X, Pencil, CheckSquare } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus, Trash2, Check, CalendarDays, Clock, Sun, RotateCcw, Tags, X, Pencil, CheckSquare, MapPin, AlignLeft } from "lucide-react"
 import { useStore } from "@/lib/store"
 import {
   PEOPLE,
@@ -38,6 +38,8 @@ interface DayEvent {
   categoryLabel: string
   time?: string
   endTime?: string
+  location?: string
+  notes?: string
   done: boolean
   isTask?: boolean
   taskId?: string
@@ -75,6 +77,8 @@ export function CalendarView() {
 
   const [view, setView] = useState<ViewMode>("month")
   const [editEvt, setEditEvt] = useState<DayEvent | null>(null)
+  // Klick auf einen Termin klappt die Detail-Ansicht (Zeit, Ort, Notizen) auf.
+  const [detailId, setDetailId] = useState<string | null>(null)
   const [cursor, setCursor] = useState(() => {
     const d = new Date()
     return { year: d.getFullYear(), month: d.getMonth() }
@@ -132,6 +136,8 @@ export function CalendarView() {
           categoryLabel: cat.label,
           time: a.time,
           endTime: a.endTime,
+          location: a.location,
+          notes: a.notes,
           done: a.completedDates.includes(date),
         })
         map.set(date, arr)
@@ -201,7 +207,7 @@ export function CalendarView() {
         ? `${parseISO(weekDays[0]).getDate()}. – ${parseISO(weekDays[6]).getDate()}. ${monthName(parseISO(weekDays[6]).getMonth())} ${parseISO(weekDays[6]).getFullYear()}`
         : `${monthName(cursor.month)} ${cursor.year}`
 
-  function save(input: { title: string; category: AppointmentCategory; time?: string; endTime?: string }) {
+  function save(input: { title: string; category: AppointmentCategory; time?: string; endTime?: string; location?: string; notes?: string }) {
     if (!draft) return
     addAppointment({
       person: activePerson,
@@ -293,6 +299,8 @@ export function CalendarView() {
               submitLabel="Aktualisieren"
               initialTitle={editEvt.title}
               initialCategory={editEvt.category}
+              initialLocation={editEvt.location}
+              initialNotes={editEvt.notes}
               defaultTime={editEvt.time}
               defaultEnd={editEvt.endTime}
               onCancel={() => setEditEvt(null)}
@@ -319,6 +327,8 @@ export function CalendarView() {
                         key={e.id}
                         e={e}
                         active={editEvt?.id === e.id}
+                        expanded={detailId === e.id}
+                        onToggleDetail={e.isTask ? undefined : () => setDetailId(detailId === e.id ? null : e.id)}
                         onToggle={() => (e.isTask && e.taskId ? toggleTask(e.taskId) : toggleAppointmentDone(e.id, selected))}
                         onRemove={e.isTask ? undefined : () => removeAppointment(e.id)}
                         onEdit={e.isTask ? undefined : () => { setDraft(null); setEditEvt(editEvt?.id === e.id ? null : e) }}
@@ -337,6 +347,8 @@ export function CalendarView() {
                         key={e.id}
                         e={e}
                         active={editEvt?.id === e.id}
+                        expanded={detailId === e.id}
+                        onToggleDetail={e.isTask ? undefined : () => setDetailId(detailId === e.id ? null : e.id)}
                         onToggle={() => (e.isTask && e.taskId ? toggleTask(e.taskId) : toggleAppointmentDone(e.id, selected))}
                         onRemove={e.isTask ? undefined : () => removeAppointment(e.id)}
                         onEdit={e.isTask ? undefined : () => { setDraft(null); setEditEvt(editEvt?.id === e.id ? null : e) }}
@@ -560,12 +572,16 @@ function ColorPicker({ value, onChange }: { value: string; onChange: (c: string)
 function DayEventRow({
   e,
   active,
+  expanded,
+  onToggleDetail,
   onToggle,
   onRemove,
   onEdit,
 }: {
   e: DayEvent
   active: boolean
+  expanded: boolean
+  onToggleDetail?: () => void
   onToggle: () => void
   onRemove?: () => void
   onEdit?: () => void
@@ -610,11 +626,12 @@ function DayEventRow({
         onDragEnd={handleDragEnd}
         whileDrag={{ cursor: "grabbing" }}
         className={cn(
-          "relative flex touch-pan-y items-center gap-3 rounded-xl border p-3",
+          "relative touch-pan-y rounded-xl border p-3",
           active ? "border-primary/50" : "border-border",
         )}
         style={{ backgroundColor: bg, boxShadow: `inset 3px 0 0 0 ${done ? "#34d399" : color}` }}
       >
+        <div className="flex items-center gap-3">
         {/* Abhaken — große, klare Checkbox mit Hover-Vorschau */}
         <button
           onClick={onToggle}
@@ -651,7 +668,7 @@ function DayEventRow({
             </div>
           </Link>
         ) : (
-          <button onClick={onEdit} className="min-w-0 flex-1 text-left" title="Termin bearbeiten">
+          <button onClick={onToggleDetail ?? onEdit} className="min-w-0 flex-1 text-left" title="Details anzeigen">
             <div className={cn("text-base font-medium transition-colors", done && "text-muted-foreground line-through")}>{e.title}</div>
             <div className="mt-1 flex flex-wrap items-center gap-2">
               {done && (
@@ -665,6 +682,8 @@ function DayEventRow({
                 </span>
               )}
               <Badge color={color}>{e.categoryLabel}</Badge>
+              {e.notes && <AlignLeft className="h-3.5 w-3.5 text-muted-foreground" aria-label="Hat Notizen" />}
+              {e.location && <MapPin className="h-3.5 w-3.5 text-muted-foreground" aria-label="Hat Ort" />}
             </div>
           </button>
         )}
@@ -679,6 +698,42 @@ function DayEventRow({
             <Trash2 className="h-4 w-4" />
           </button>
         ) : null}
+        </div>
+
+        {/* Detail-Ansicht: alle Infos & Daten des Termins auf einen Klick */}
+        {expanded && !e.isTask && (
+          <div className="mt-3 space-y-2.5 border-t border-white/[0.08] pt-3">
+            <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <Clock className="h-4 w-4" style={{ color }} />
+                {e.time ? `${e.time}${e.endTime ? ` – ${e.endTime}` : ""} Uhr` : "Keine Uhrzeit"}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Tags className="h-4 w-4" style={{ color }} />
+                {e.categoryLabel}
+              </span>
+              {e.location && (
+                <span className="flex items-center gap-1.5">
+                  <MapPin className="h-4 w-4" style={{ color }} />
+                  {e.location}
+                </span>
+              )}
+            </div>
+            {e.notes ? (
+              <div className="flex items-start gap-2 rounded-lg bg-white/[0.03] p-2.5 text-sm">
+                <AlignLeft className="mt-0.5 h-4 w-4 shrink-0" style={{ color }} />
+                <p className="min-w-0 whitespace-pre-wrap leading-relaxed">{e.notes}</p>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground/70">Keine Notizen — über „Bearbeiten" hinzufügen.</p>
+            )}
+            {onEdit && (
+              <Button size="sm" variant="secondary" onClick={onEdit}>
+                <Pencil className="h-3.5 w-3.5" /> Bearbeiten
+              </Button>
+            )}
+          </div>
+        )}
       </motion.div>
     </motion.div>
   )
@@ -983,17 +1038,21 @@ function AddForm({
   defaultEnd,
   initialTitle,
   initialCategory,
+  initialLocation,
+  initialNotes,
   title: heading,
   submitLabel = "Speichern",
 }: {
   categories: AppointmentCategoryDef[]
-  onSave: (input: { title: string; category: AppointmentCategory; time?: string; endTime?: string }) => void
+  onSave: (input: { title: string; category: AppointmentCategory; time?: string; endTime?: string; location?: string; notes?: string }) => void
   onCancel: () => void
   onManageCategories: () => void
   defaultTime?: string
   defaultEnd?: string
   initialTitle?: string
   initialCategory?: AppointmentCategory
+  initialLocation?: string
+  initialNotes?: string
   title?: string
   submitLabel?: string
 }) {
@@ -1001,6 +1060,8 @@ function AddForm({
   const [category, setCategory] = useState<AppointmentCategory>(initialCategory ?? categories[0]?.id ?? "termin")
   const [time, setTime] = useState(defaultTime ?? "")
   const [endTime, setEndTime] = useState(defaultEnd ?? "")
+  const [location, setLocation] = useState(initialLocation ?? "")
+  const [notes, setNotes] = useState(initialNotes ?? "")
 
   return (
     <div className="space-y-3 border-b border-border bg-white/[0.02] p-4">
@@ -1058,13 +1119,37 @@ function AddForm({
           />
         </label>
       </div>
+      {/* Ort & Notizen — alle Infos direkt am Termin */}
+      <div className="relative">
+        <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <input
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+          placeholder="Ort (optional)"
+          className="h-10 w-full rounded-lg border border-border bg-white/[0.03] pl-9 pr-3 text-sm outline-none focus:border-primary/50"
+        />
+      </div>
+      <textarea
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        placeholder="Notizen & Infos (optional) — z. B. Agenda, Ansprechpartner, Vorbereitung…"
+        rows={3}
+        className="w-full resize-y rounded-lg border border-border bg-white/[0.03] px-3 py-2 text-sm outline-none focus:border-primary/50"
+      />
       <div className="flex gap-2">
         <Button
           size="sm"
           className="flex-1"
           onClick={() => {
             if (!title.trim()) return
-            onSave({ title: title.trim(), category, time: time || undefined, endTime: endTime || undefined })
+            onSave({
+              title: title.trim(),
+              category,
+              time: time || undefined,
+              endTime: endTime || undefined,
+              location: location.trim() || undefined,
+              notes: notes.trim() || undefined,
+            })
           }}
         >
           {submitLabel}

@@ -165,7 +165,7 @@ export function PipelineView() {
         <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-4">
           <KpiTile icon={TrendingUp} label="Offene Pipeline" value={eur0(totalOpen)} accent={ORANGE} />
           <KpiTile icon={Scale} label="Gewichtet" value={eur0(weightedOpen)} hint="nach Abschluss-Wahrsch." accent="#3b82f6" />
-          <KpiTile icon={Trophy} label="Gewonnen" value={eur0(totalWon)} accent={INCOME} />
+          <KpiTile icon={Trophy} label="Abgeschlossen" value={eur0(totalWon)} accent={INCOME} />
           <KpiTile icon={Layers} label="Deals" value={String(myDeals.length)} accent={PURPLE} />
         </div>
         <Button onClick={() => setAdding((v) => !v)} className="h-auto lg:px-6">

@@ -147,6 +147,7 @@ interface StoreValue {
   addTask: (input: Omit<Task, "id" | "createdAt">) => void
   toggleTask: (id: string) => void
   updateTaskStatus: (id: string, status: TaskStatus) => void
+  updateTask: (id: string, patch: Partial<Omit<Task, "id" | "createdAt">>) => void
   reorderTasks: (next: Task[]) => void
   removeTask: (id: string) => void
   addAppointment: (input: Omit<Appointment, "id" | "createdAt">) => void
@@ -283,6 +284,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setDb((prev) => ({
           ...prev,
           tasks: prev.tasks.map((t) => (t.id === id ? { ...t, status } : t)),
+        })),
+      updateTask: (id, patch) =>
+        setDb((prev) => ({
+          ...prev,
+          tasks: prev.tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)),
         })),
       reorderTasks: (next) => setDb((prev) => ({ ...prev, tasks: next })),
       removeTask: (id) =>

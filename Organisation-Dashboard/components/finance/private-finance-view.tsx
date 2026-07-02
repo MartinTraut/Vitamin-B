@@ -27,7 +27,7 @@ import { SegmentedControl } from "@/components/ui/segmented-control"
 import { LedgerTable } from "@/components/ui/ledger-table"
 import { FinanceChart, CategoryDonut, ChartLegend, type SeriesKey } from "@/components/dashboard/charts"
 import { cn } from "@/lib/utils"
-import { INCOME, EXPENSE, PURPLE as ACCENT, DEBT } from "@/lib/theme-colors" // privat = violett, klar getrennt von der Firma (grün)
+import { INCOME, EXPENSE, ORANGE, DEBT } from "@/lib/theme-colors"
 
 function parseAmount(s: string): number {
   let t = s.trim()
@@ -42,7 +42,7 @@ export function PrivateFinanceView() {
   const [adding, setAdding] = useState(false)
   const [gran, setGran] = useState<Gran>("month")
   // Welche Verlauf-Linien sichtbar sind (über die Legende umschaltbar).
-  const [visible, setVisible] = useState<Record<SeriesKey, boolean>>({ income: true, expense: true, debt: true })
+  const [visible, setVisible] = useState<Record<SeriesKey, boolean>>({ income: true, expense: true, profit: true, debt: true })
   const toggleSeries = (k: SeriesKey) => setVisible((v) => ({ ...v, [k]: !v[k] }))
 
   // Nur private Buchungen der aktiven Person.
@@ -117,6 +117,7 @@ export function PrivateFinanceView() {
                 items={[
                   { key: "income", color: INCOME },
                   { key: "expense", color: EXPENSE },
+                  { key: "profit", color: ORANGE, label: "Saldo" },
                   ...(myDebts.length > 0 ? [{ key: "debt" as SeriesKey, color: DEBT }] : []),
                 ]}
               />
@@ -128,7 +129,7 @@ export function PrivateFinanceView() {
             </div>
           </div>
           <div className="min-h-[240px] flex-1 p-3 pt-1">
-            <FinanceChart data={chartData} height="full" visible={visible} />
+            <FinanceChart data={chartData} height="full" visible={visible} labels={{ profit: "Saldo" }} />
           </div>
         </Card>
 
@@ -239,6 +240,7 @@ function DebtCard({ debt }: { debt: Debt }) {
   const [name, setName] = useState(debt.title)
   const [total, setTotal] = useState(String(debt.total))
   const [rate, setRate] = useState(debt.monthlyRate ? String(debt.monthlyRate) : "")
+  const [note, setNote] = useState(debt.note ?? "")
 
   const remaining = Math.max(0, debt.total - debt.paid)
   const pct = debt.total > 0 ? Math.min(100, Math.round((debt.paid / debt.total) * 100)) : 0
@@ -264,6 +266,7 @@ function DebtCard({ debt }: { debt: Debt }) {
       title: name.trim() || debt.title,
       total: Number.isFinite(t) && t > 0 ? t : debt.total,
       monthlyRate: r && Number.isFinite(r) && r > 0 ? r : undefined,
+      note: note.trim() || undefined,
     })
   }
 
@@ -277,6 +280,9 @@ function DebtCard({ debt }: { debt: Debt }) {
             <span className="block text-[clamp(0.85rem,0.25vw+0.78rem,0.95rem)] text-muted-foreground">
               {eur0(debt.paid)} / {eur0(debt.total)}{debt.monthlyRate ? ` · ${eur0(debt.monthlyRate)}/Mt.` : ""}
             </span>
+            {debt.note && !open && (
+              <span className="mt-0.5 block truncate text-[clamp(0.8rem,0.2vw+0.74rem,0.9rem)] text-muted-foreground/70">{debt.note}</span>
+            )}
           </span>
         </button>
         <div className="shrink-0 text-right">
@@ -317,6 +323,10 @@ function DebtCard({ debt }: { debt: Debt }) {
               <input value={rate} onChange={(e) => setRate(e.target.value.replace(/[^0-9.,]/g, ""))} onBlur={commitEdit} inputMode="decimal" className="h-9 w-full rounded-lg border border-border bg-white/[0.04] px-2.5 text-sm outline-none focus:border-primary/50" />
             </label>
           </div>
+          <label className="block">
+            <span className="mb-1 block text-[11px] text-muted-foreground">Notiz (z. B. Konditionen, Laufzeit, Vereinbarungen)</span>
+            <textarea value={note} onChange={(e) => setNote(e.target.value)} onBlur={commitEdit} rows={2} className="w-full resize-y rounded-lg border border-border bg-white/[0.04] px-2.5 py-2 text-sm outline-none focus:border-primary/50" />
+          </label>
           <button onClick={remove} className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-destructive">
             <Trash2 className="h-3.5 w-3.5" /> Schuld löschen
           </button>
@@ -331,6 +341,7 @@ function AddDebtForm({ onSave, onCancel }: { onSave: (input: Omit<Debt, "id" | "
   const [total, setTotal] = useState("")
   const [paid, setPaid] = useState("")
   const [rate, setRate] = useState("")
+  const [note, setNote] = useState("")
   const [error, setError] = useState(false)
 
   return (
@@ -341,6 +352,7 @@ function AddDebtForm({ onSave, onCancel }: { onSave: (input: Omit<Debt, "id" | "
         <input value={paid} onChange={(e) => setPaid(e.target.value.replace(/[^0-9.,]/g, ""))} inputMode="decimal" placeholder="Bereits getilgt € (optional)" className="h-10 rounded-lg border border-border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50" />
         <input value={rate} onChange={(e) => setRate(e.target.value.replace(/[^0-9.,]/g, ""))} inputMode="decimal" placeholder="Rate/Monat € (optional)" className="h-10 rounded-lg border border-border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50" />
       </div>
+      <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Notiz (optional) — z. B. Konditionen, Laufzeit" className="h-10 w-full rounded-lg border border-border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50" />
       <div className="flex justify-end gap-2">
         <Button size="sm" variant="ghost" onClick={onCancel}>Abbrechen</Button>
         <Button size="sm" onClick={() => {
@@ -348,7 +360,7 @@ function AddDebtForm({ onSave, onCancel }: { onSave: (input: Omit<Debt, "id" | "
           if (!title.trim() || !Number.isFinite(t) || t <= 0) { setError(true); return }
           const p = parseAmount(paid)
           const r = parseAmount(rate)
-          onSave({ title: title.trim(), total: t, paid: Number.isFinite(p) && p > 0 ? Math.min(p, t) : 0, monthlyRate: Number.isFinite(r) && r > 0 ? r : undefined })
+          onSave({ title: title.trim(), total: t, paid: Number.isFinite(p) && p > 0 ? Math.min(p, t) : 0, monthlyRate: Number.isFinite(r) && r > 0 ? r : undefined, note: note.trim() || undefined })
         }}>Speichern</Button>
       </div>
     </div>

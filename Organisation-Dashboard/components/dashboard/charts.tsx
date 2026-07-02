@@ -65,11 +65,12 @@ export function CategoryDonut({ data }: { data: { name: string; value: number }[
   )
 }
 
-export type SeriesKey = "income" | "expense" | "debt"
+export type SeriesKey = "income" | "expense" | "profit" | "debt"
 
 const SERIES_LABEL: Record<SeriesKey, string> = {
   income: "Einnahmen",
   expense: "Ausgaben",
+  profit: "Gewinn",
   debt: "Schulden",
 }
 
@@ -128,18 +129,23 @@ export function FinanceChart({
   data,
   height = 260,
   visible,
+  labels,
 }: {
   data: SeriesPoint[]
   height?: number | "full"
   visible?: Partial<Record<SeriesKey, boolean>>
+  labels?: Partial<Record<SeriesKey, string>> // z. B. privat: profit → „Saldo"
 }) {
   const fill = height === "full"
   const show = {
     income: visible?.income ?? true,
     expense: visible?.expense ?? true,
+    profit: visible?.profit ?? false, // opt-in — nur wenn die View den Gewinn anbietet
     debt: visible?.debt ?? true,
   }
   const hasDebt = data.some((d) => typeof d.debt === "number") && show.debt
+  // Negative Werte (Restschuld oder Verlust-Monate) brauchen eine 0-Linie + erweiterte Domain.
+  const hasNeg = hasDebt || (show.profit && data.some((d) => d.profit < 0))
   return (
     <div className={cn("w-full", fill && "h-full")} style={fill ? undefined : { height }}>
       <ResponsiveContainer width="100%" height="100%">
@@ -166,20 +172,23 @@ export function FinanceChart({
             axisLine={false}
             width={42}
             tickFormatter={(v) => `${Math.round(Number(v) / 1000)}k`}
-            domain={hasDebt ? [(min: number) => Math.floor(Math.min(0, min) / 1000) * 1000, (max: number) => Math.ceil(Math.max(0, max) / 1000) * 1000] : undefined}
+            domain={hasNeg ? [(min: number) => Math.floor(Math.min(0, min) / 1000) * 1000, (max: number) => Math.ceil(Math.max(0, max) / 1000) * 1000] : undefined}
           />
-          {hasDebt && <ReferenceLine y={0} stroke="rgba(255,255,255,0.22)" />}
+          {hasNeg && <ReferenceLine y={0} stroke="rgba(255,255,255,0.22)" />}
           <Tooltip
             contentStyle={CHART_TOOLTIP_STYLE}
             labelStyle={{ color: "#f5f5f5", fontWeight: 600 }}
-            formatter={(value, name) => [
-              eur0(Math.abs(Number(value))),
-              name === "income" ? "Einnahmen" : name === "debt" ? "Restschuld" : "Ausgaben",
-            ]}
+            formatter={(value, name) => {
+              const key = name as SeriesKey
+              const label = labels?.[key] ?? (key === "debt" ? "Restschuld" : SERIES_LABEL[key] ?? String(name))
+              return [key === "profit" ? eur0(Number(value)) : eur0(Math.abs(Number(value))), label]
+            }}
           />
           {hasDebt && <Area type="monotone" dataKey="debt" stroke={DEBT} strokeWidth={2.5} fill="url(#debtFillInline)" />}
           {show.income && <Area type="monotone" dataKey="income" stroke={INCOME} strokeWidth={2.5} fill="url(#incomeFill)" />}
           {show.expense && <Area type="monotone" dataKey="expense" stroke={EXPENSE} strokeWidth={2} fill="url(#expenseFill)" />}
+          {/* Gewinn als gestrichelte Akzent-Linie ohne Fläche — abgeleitete Kennzahl, klar unterscheidbar */}
+          {show.profit && <Area type="monotone" dataKey="profit" stroke={ORANGE} strokeWidth={2.5} strokeDasharray="6 4" fill="transparent" />}
         </AreaChart>
       </ResponsiveContainer>
     </div>

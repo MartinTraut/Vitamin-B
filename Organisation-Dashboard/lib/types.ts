@@ -217,7 +217,7 @@ export const DEAL_STAGE_LABEL: Record<DealStage, string> = {
   lead: "Potenzieller Lead",
   kontakt: "Kontaktiert",
   angebot: "Angebot",
-  gewonnen: "Gewonnen",
+  gewonnen: "Abgeschlossen",
 }
 export const DEAL_STAGE_COLOR: Record<DealStage, string> = {
   lead: "#9ca3af",

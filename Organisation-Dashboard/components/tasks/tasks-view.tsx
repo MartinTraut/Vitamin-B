@@ -20,7 +20,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { Plus, Check, Trash2, ArrowRight, GripVertical, CalendarDays, Clock } from "lucide-react"
+import { Plus, Check, Trash2, ArrowRight, GripVertical, CalendarDays, Clock, AlignLeft } from "lucide-react"
 import { useStore } from "@/lib/store"
 import {
   PEOPLE,
@@ -48,7 +48,7 @@ const PRIORITY_DOT: Record<Priority, string> = {
 }
 
 export function TasksView() {
-  const { db, activePerson, addTask, updateTaskStatus, toggleTask, removeTask, reorderTasks, addTimeEntry } =
+  const { db, activePerson, addTask, updateTaskStatus, updateTask, toggleTask, removeTask, reorderTasks, addTimeEntry } =
     useStore()
   const [title, setTitle] = useState("")
   const [priority, setPriority] = useState<Priority>("normal")
@@ -213,6 +213,7 @@ export function TasksView() {
                       onAdvance={() => updateTaskStatus(t.id, nextStatus(t.status))}
                       onRemove={() => removeTask(t.id)}
                       onLogTime={(minutes) => addTimeEntry({ person: t.person, taskId: t.id, projectId: t.projectId, minutes, date: todayISO() })}
+                      onSaveNotes={(notes) => updateTask(t.id, { notes: notes.trim() || undefined })}
                       projectName={db.projects.find((p) => p.id === t.projectId)?.name}
                     />
                   ))}
@@ -287,6 +288,7 @@ function SortableTaskCard({
   onAdvance,
   onRemove,
   onLogTime,
+  onSaveNotes,
   projectName,
 }: {
   task: Task
@@ -294,6 +296,7 @@ function SortableTaskCard({
   onAdvance: () => void
   onRemove: () => void
   onLogTime: (minutes: number) => void
+  onSaveNotes?: (notes: string) => void
   projectName?: string
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -312,6 +315,7 @@ function SortableTaskCard({
         onAdvance={onAdvance}
         onRemove={onRemove}
         onLogTime={onLogTime}
+        onSaveNotes={onSaveNotes}
         projectName={projectName}
         handleProps={{ ...attributes, ...listeners }}
       />
@@ -327,6 +331,7 @@ function TaskCardInner({
   onAdvance,
   onRemove,
   onLogTime,
+  onSaveNotes,
   projectName,
   handleProps,
   dragging,
@@ -336,6 +341,7 @@ function TaskCardInner({
   onAdvance?: () => void
   onRemove?: () => void
   onLogTime?: (minutes: number) => void
+  onSaveNotes?: (notes: string) => void
   projectName?: string
   handleProps?: Record<string, unknown>
   dragging?: boolean
@@ -343,6 +349,8 @@ function TaskCardInner({
   const done = task.status === "done"
   const [logging, setLogging] = useState(false)
   const [minutesInput, setMinutesInput] = useState("15")
+  const [notesOpen, setNotesOpen] = useState(false)
+  const [notesInput, setNotesInput] = useState(task.notes ?? "")
   return (
     <div
       className={cn(
@@ -387,6 +395,10 @@ function TaskCardInner({
           >
             {task.title}
           </p>
+          {/* Notiz — sichtbar direkt auf der Karte */}
+          {task.notes && !notesOpen && (
+            <p className="mt-1.5 whitespace-pre-wrap text-[13px] leading-relaxed text-muted-foreground">{task.notes}</p>
+          )}
           <div className="mt-2.5 flex flex-wrap items-center gap-2">
             <span
               className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium"
@@ -420,6 +432,33 @@ function TaskCardInner({
             )}
           </div>
 
+          {notesOpen && onSaveNotes && (
+            <div className="mt-2.5 space-y-1.5" onClick={(e) => e.stopPropagation()}>
+              <textarea
+                value={notesInput}
+                onChange={(e) => setNotesInput(e.target.value)}
+                placeholder="Notiz zur Aufgabe — Details, Links, Absprachen…"
+                rows={3}
+                autoFocus
+                className="w-full resize-y rounded-md border border-border bg-white/[0.03] px-2.5 py-2 text-sm outline-none focus:border-primary/50"
+              />
+              <div className="flex justify-end gap-1.5">
+                <button
+                  onClick={() => { setNotesInput(task.notes ?? ""); setNotesOpen(false) }}
+                  className="rounded-md px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                >
+                  Abbrechen
+                </button>
+                <button
+                  onClick={() => { onSaveNotes(notesInput); setNotesOpen(false) }}
+                  className="rounded-md bg-primary/15 px-2.5 py-1.5 text-xs font-semibold text-primary hover:bg-primary/25"
+                >
+                  Speichern
+                </button>
+              </div>
+            </div>
+          )}
+
           {logging && onLogTime && (
             <div className="mt-2.5 flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
               <input
@@ -452,6 +491,18 @@ function TaskCardInner({
         {/* Aktionen */}
         {!dragging && (
           <div className="action-reveal flex shrink-0 items-center gap-1">
+            {onSaveNotes && (
+              <button
+                onClick={() => { setNotesInput(task.notes ?? ""); setNotesOpen((v) => !v) }}
+                title={task.notes ? "Notiz bearbeiten" : "Notiz hinzufügen"}
+                className={cn(
+                  "rounded-md p-1.5 hover:bg-primary/15 hover:text-primary",
+                  notesOpen || task.notes ? "text-primary" : "text-muted-foreground",
+                )}
+              >
+                <AlignLeft className="h-4 w-4" />
+              </button>
+            )}
             {onLogTime && (
               <button
                 onClick={() => setLogging((v) => !v)}

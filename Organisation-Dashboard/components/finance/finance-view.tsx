@@ -50,7 +50,7 @@ export function FinanceView() {
   const [adding, setAdding] = useState(false)
   const [gran, setGran] = useState<Gran>("month")
   // Welche Verlauf-Linien sichtbar sind (über die Legende umschaltbar).
-  const [visible, setVisible] = useState<Record<SeriesKey, boolean>>({ income: true, expense: true, debt: true })
+  const [visible, setVisible] = useState<Record<SeriesKey, boolean>>({ income: true, expense: true, profit: true, debt: true })
   const toggleSeries = (k: SeriesKey) => setVisible((v) => ({ ...v, [k]: !v[k] }))
   // Ledger-Filter
   const [search, setSearch] = useState("")
@@ -176,6 +176,7 @@ export function FinanceView() {
                 items={[
                   { key: "income", color: INCOME },
                   { key: "expense", color: EXPENSE },
+                  { key: "profit", color: ORANGE },
                 ]}
               />
               {/* Tag / Woche / Monat */}
