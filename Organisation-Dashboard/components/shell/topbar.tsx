@@ -46,7 +46,7 @@ export function Topbar() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo-vitaminb-orange.png" alt="Vitamin B" className="h-6 w-auto shrink-0 lg:hidden" />
         <div className="min-w-0">
-          <h1 className="truncate font-heading text-[clamp(1.1rem,3.5vw+0.3rem,1.25rem)] font-bold tracking-[-0.02em] lg:text-2xl">
+          <h1 className="truncate font-heading text-[clamp(1.15rem,0.9vw+0.95rem,1.5rem)] font-bold tracking-[-0.02em]">
             {item.label}
           </h1>
           <p className="truncate text-xs text-muted-foreground lg:text-sm">{item.subtitle}</p>

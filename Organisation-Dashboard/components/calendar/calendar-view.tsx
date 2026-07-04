@@ -1,10 +1,12 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { motion, AnimatePresence, type PanInfo } from "framer-motion"
 import { ChevronLeft, ChevronRight, Plus, Trash2, Check, CalendarDays, Clock, Sun, RotateCcw, Tags, X, Pencil, CheckSquare, MapPin, AlignLeft } from "lucide-react"
 import { useStore } from "@/lib/store"
+import { useDialog } from "@/lib/dialog"
 import {
   PEOPLE,
   CATEGORY_COLOR_PALETTE,
@@ -30,6 +32,8 @@ const START_HOUR = 6
 const END_HOUR = 22 // exklusiv → letzte Zeile 21:00
 const HOURS = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => START_HOUR + i)
 const ROW_H = 52 // px pro Stunde
+const GRID_H = HOURS.length * ROW_H // Gesamthöhe des Zeitrasters in px
+const MIN_BLOCK_H = 22 // Mindesthöhe eines Termin-Blocks in px
 
 type ViewMode = "month" | "week" | "day"
 
@@ -77,6 +81,7 @@ export function CalendarView() {
     toggleTask,
   } = useStore()
   const person = PEOPLE.find((p) => p.id === activePerson)!
+  const dialog = useDialog()
   const today = todayISO()
 
   const [view, setView] = useState<ViewMode>("month")
@@ -93,6 +98,25 @@ export function CalendarView() {
   // "Team" zeigt automatisch die Termine ALLER Personen — kein Doppel-Eintragen nötig.
   const [scope, setScope] = useState<"mine" | "team">("mine")
   const team = scope === "team"
+
+  // Aus der ⌘K-Suche vorselektieren (?sel=<Termin-id>): Ansicht auf das Datum
+  // des Termins stellen und die Detail-Ansicht direkt aufklappen. useSearchParams
+  // statt window.location — greift auch bei Client-Navigation auf derselben Route
+  // und nach asynchronem Daten-Load; jede sel-ID nur einmal.
+  const selParam = useSearchParams().get("sel")
+  const handledSelRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!selParam || handledSelRef.current === selParam) return
+    const appt = db.appointments.find((a) => a.id === selParam)
+    if (!appt) return
+    handledSelRef.current = selParam
+    const d = parseISO(appt.date)
+    setCursor({ year: d.getFullYear(), month: d.getMonth() })
+    setSelected(appt.date)
+    setDetailId(appt.id)
+    // Termin einer anderen Person? Dann auf Team-Sicht wechseln, damit er sichtbar ist.
+    if (appt.person !== activePerson) setScope("team")
+  }, [selParam, db.appointments, activePerson])
 
   const myAppts = useMemo(
     () => (team ? db.appointments : db.appointments.filter((a) => a.person === activePerson)),
@@ -216,6 +240,23 @@ export function CalendarView() {
       : view === "week"
         ? `${parseISO(weekDays[0]).getDate()}. – ${parseISO(weekDays[6]).getDate()}. ${monthName(parseISO(weekDays[6]).getMonth())} ${parseISO(weekDays[6]).getFullYear()}`
         : `${monthName(cursor.month)} ${cursor.year}`
+
+  // Löschen nur nach Bestätigung — schützt vor versehentlichem Swipe/Klick,
+  // bei Serien-Terminen wird auf das Entfernen der ganzen Serie hingewiesen.
+  async function confirmRemove(e: DayEvent) {
+    const appt = db.appointments.find((a) => a.id === e.id)
+    const isSeries = appt ? appt.recurrence.freq !== "none" : false
+    const ok = await dialog.confirm({
+      title: "Termin löschen?",
+      message: isSeries
+        ? `„${e.title}" ist ein Serien-Termin — die gesamte Serie wird unwiderruflich gelöscht.`
+        : `„${e.title}" wird unwiderruflich gelöscht.`,
+      confirmLabel: "Löschen",
+      danger: true,
+    })
+    if (!ok) return // Abbruch: Swipe-Karte springt automatisch zurück (dragConstraints 0/0)
+    removeAppointment(e.id)
+  }
 
   function save(input: { title: string; category: AppointmentCategory; time?: string; endTime?: string; location?: string; notes?: string }) {
     if (!draft) return
@@ -350,7 +391,7 @@ export function CalendarView() {
                         showPerson={team}
                         onToggleDetail={e.isTask ? undefined : () => setDetailId(detailId === e.id ? null : e.id)}
                         onToggle={() => (e.isTask && e.taskId ? toggleTask(e.taskId) : toggleAppointmentDone(e.id, selected))}
-                        onRemove={e.isTask ? undefined : () => removeAppointment(e.id)}
+                        onRemove={e.isTask ? undefined : () => void confirmRemove(e)}
                         onEdit={e.isTask ? undefined : () => { setDraft(null); setEditEvt(editEvt?.id === e.id ? null : e) }}
                       />
                     ))}
@@ -371,7 +412,7 @@ export function CalendarView() {
                         showPerson={team}
                         onToggleDetail={e.isTask ? undefined : () => setDetailId(detailId === e.id ? null : e.id)}
                         onToggle={() => (e.isTask && e.taskId ? toggleTask(e.taskId) : toggleAppointmentDone(e.id, selected))}
-                        onRemove={e.isTask ? undefined : () => removeAppointment(e.id)}
+                        onRemove={e.isTask ? undefined : () => void confirmRemove(e)}
                         onEdit={e.isTask ? undefined : () => { setDraft(null); setEditEvt(editEvt?.id === e.id ? null : e) }}
                       />
                     ))}
@@ -551,13 +592,14 @@ function CategoryRow({
           />
         ))}
         {!editing && (
-          <button onClick={() => setEditing(true)} title="Umbenennen" className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground">
+          <button onClick={() => setEditing(true)} aria-label="Umbenennen" title="Umbenennen" className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground">
             <Pencil className="h-3.5 w-3.5" />
           </button>
         )}
         <button
           onClick={onRemove}
           disabled={!canDelete}
+          aria-label="Kategorie löschen"
           title={canDelete ? "Löschen" : "Mindestens eine Kategorie behalten"}
           className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive disabled:cursor-not-allowed disabled:opacity-30"
         >
@@ -717,11 +759,11 @@ function DayEventRow({
 
         {/* Aktion rechts */}
         {done ? (
-          <button onClick={onToggle} title="Rückgängig" className="shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground">
+          <button onClick={onToggle} aria-label="Rückgängig" title="Rückgängig" className="shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground">
             <RotateCcw className="h-4 w-4" />
           </button>
         ) : onRemove ? (
-          <button onClick={onRemove} title="Löschen" className="shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive">
+          <button onClick={onRemove} aria-label="Löschen" title="Löschen" className="shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive">
             <Trash2 className="h-4 w-4" />
           </button>
         ) : null}
@@ -1030,9 +1072,15 @@ function WeekGrid({
                       eh = h2
                       em = m2
                     }
-                    const top = (sh - START_HOUR + sm / 60) * ROW_H
-                    const height = Math.max(((eh - sh) + (em - sm) / 60) * ROW_H - 3, 22)
-                    if (top < 0) return null
+                    // Termine außerhalb des 06–22-Rasters nicht verschlucken:
+                    // Position auf den Rasterrand klemmen, damit z. B. ein Termin um
+                    // 05:00 oder 23:00 am oberen/unteren Rand sichtbar bleibt statt
+                    // gar nicht gerendert (top < 0) oder weggeclippt zu werden.
+                    const rawTop = (sh - START_HOUR + sm / 60) * ROW_H
+                    const rawHeight = Math.max(((eh - sh) + (em - sm) / 60) * ROW_H - 3, MIN_BLOCK_H)
+                    const top = Math.min(Math.max(rawTop, 0), GRID_H - MIN_BLOCK_H)
+                    // Höhe so begrenzen, dass der Block im Raster endet (Mindesthöhe bleibt)
+                    const height = Math.max(Math.min(rawHeight - (top - rawTop), GRID_H - top), MIN_BLOCK_H)
                     return (
                       <div
                         key={e.id + i}

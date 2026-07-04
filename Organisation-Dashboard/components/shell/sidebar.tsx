@@ -47,10 +47,7 @@ export function Sidebar() {
                 className="h-2 w-2 rounded-full"
                 style={{ backgroundColor: group.accent, boxShadow: `0 0 8px ${group.accent}99` }}
               />
-              <span
-                className="text-[10px] font-bold uppercase tracking-[0.14em]"
-                style={{ color: `${group.accent}cc` }}
-              >
+              <span className="eyebrow" style={{ color: `${group.accent}cc` }}>
                 {group.label}
               </span>
             </div>
@@ -87,7 +84,7 @@ export function Sidebar() {
                       <span className="relative z-10 flex-1 transition-colors group-hover:text-foreground">{item.label}</span>
                       {item.soon && (
                         <span
-                          className="relative z-10 rounded-full px-1.5 py-0.5 text-[9px] font-semibold"
+                          className="relative z-10 rounded-full px-1.5 py-0.5 text-[11px] font-semibold"
                           style={{ backgroundColor: `${group.accent}1a`, color: `${group.accent}cc` }}
                         >
                           bald

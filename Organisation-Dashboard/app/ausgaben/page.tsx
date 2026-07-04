@@ -1,5 +1,9 @@
 import { ExpensesView } from "@/components/expenses/expenses-view"
 
 export default function AusgabenPage() {
-  return <ExpensesView />
+  return (
+    <div className="mx-auto w-full max-w-[1440px]">
+      <ExpensesView />
+    </div>
+  )
 }

@@ -13,14 +13,14 @@ import {
   type TxType,
 } from "@/lib/types"
 import { todayISO } from "@/lib/recurrence"
+import { parseAmountDE } from "@/lib/format"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { INCOME, EXPENSE, ORANGE, BLUE, NEUTRAL } from "@/lib/theme-colors"
 
 type Tab = "task" | "appt" | "tx"
 
-const PRIORITY_DOT: Record<Priority, string> = { high: "#ef4444", normal: "#E39832", low: "#9ca3af" }
-const INCOME = "#34d399"
-const EXPENSE = "#ef4444"
+const PRIORITY_DOT: Record<Priority, string> = { high: EXPENSE, normal: ORANGE, low: NEUTRAL }
 
 // Schwebender Schnell-Erfassen-Button (nur Mobile/Tablet). Erfasst Aufgabe,
 // Termin oder Buchung direkt von jeder Ansicht aus, ohne Navigation.
@@ -100,9 +100,9 @@ export function QuickAdd() {
 
               {/* Tabs */}
               <div className="mb-4 grid grid-cols-3 gap-2">
-                <TabBtn active={tab === "task"} onClick={() => setTab("task")} icon={<CheckSquare className="h-4 w-4" />} label="Aufgabe" accent="#E39832" />
-                <TabBtn active={tab === "appt"} onClick={() => setTab("appt")} icon={<CalendarClock className="h-4 w-4" />} label="Termin" accent="#3b82f6" />
-                <TabBtn active={tab === "tx"} onClick={() => setTab("tx")} icon={<Receipt className="h-4 w-4" />} label="Buchung" accent="#34d399" />
+                <TabBtn active={tab === "task"} onClick={() => setTab("task")} icon={<CheckSquare className="h-4 w-4" />} label="Aufgabe" accent={ORANGE} />
+                <TabBtn active={tab === "appt"} onClick={() => setTab("appt")} icon={<CalendarClock className="h-4 w-4" />} label="Termin" accent={BLUE} />
+                <TabBtn active={tab === "tx"} onClick={() => setTab("tx")} icon={<Receipt className="h-4 w-4" />} label="Buchung" accent={INCOME} />
               </div>
 
               {tab === "task" && <TaskForm onDone={() => setOpen(false)} />}
@@ -138,11 +138,13 @@ function TaskForm({ onDone }: { onDone: () => void }) {
   const toast = useToast()
   const [title, setTitle] = useState("")
   const [priority, setPriority] = useState<Priority>("normal")
+  // Optionales Fälligkeitsdatum — steuert Dashboard-Nudges, Fokus-Modus und Kalender.
+  const [due, setDue] = useState("")
 
   function save() {
     const v = title.trim()
     if (!v) return
-    addTask({ person: activePerson, listId: db.lists[0]?.id ?? "l-orga", title: v, status: "todo", priority })
+    addTask({ person: activePerson, listId: db.lists[0]?.id ?? "l-orga", title: v, status: "todo", priority, due: due || undefined })
     toast.success("Aufgabe erfasst")
     onDone()
   }
@@ -169,6 +171,10 @@ function TaskForm({ onDone }: { onDone: () => void }) {
           </button>
         ))}
       </div>
+      <label className="block">
+        <span className="mb-1 block text-[11px] text-muted-foreground">Fällig am (optional)</span>
+        <input type="date" value={due} onChange={(e) => setDue(e.target.value)} className="h-11 w-full rounded-xl border border-border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50 [color-scheme:dark]" />
+      </label>
       <Button onClick={save} className="h-12 w-full">Aufgabe speichern</Button>
     </div>
   )
@@ -240,13 +246,6 @@ function ApptForm({ onDone }: { onDone: () => void }) {
 }
 
 /* ---------- Buchung ---------- */
-function parseAmount(s: string): number {
-  let t = s.trim()
-  if (t.includes(",")) t = t.replace(/\./g, "").replace(",", ".")
-  const n = Number(t)
-  return Number.isFinite(n) ? n : NaN
-}
-
 function TxForm({ onDone }: { onDone: () => void }) {
   const { addTransaction } = useStore()
   const toast = useToast()
@@ -259,7 +258,7 @@ function TxForm({ onDone }: { onDone: () => void }) {
   const cats = type === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
 
   function save() {
-    const val = parseAmount(amount)
+    const val = parseAmountDE(amount)
     if (!Number.isFinite(val) || val <= 0) { setError(true); return }
     addTransaction({ type, category, amount: val, taxRate, date })
     toast.success(type === "income" ? "Einnahme erfasst" : "Ausgabe erfasst")

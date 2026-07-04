@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import {
   Plus, TrendingUp, TrendingDown, Wallet, Landmark, Trash2, ArrowDownLeft, ArrowUpRight,
@@ -17,7 +17,7 @@ import {
   type Transaction,
   type Debt,
 } from "@/lib/types"
-import { eur, eur0 } from "@/lib/format"
+import { eur, eur0, parseAmountDE } from "@/lib/format"
 import { todayISO } from "@/lib/recurrence"
 import { buildSeries, GRAN_LABEL, type Gran } from "@/lib/finance-series"
 import { Card } from "@/components/ui/card"
@@ -28,13 +28,6 @@ import { LedgerTable } from "@/components/ui/ledger-table"
 import { FinanceChart, CategoryDonut, ChartLegend, type SeriesKey } from "@/components/dashboard/charts"
 import { cn } from "@/lib/utils"
 import { INCOME, EXPENSE, ORANGE, DEBT } from "@/lib/theme-colors"
-
-function parseAmount(s: string): number {
-  let t = s.trim()
-  if (t.includes(",")) t = t.replace(/\./g, "").replace(",", ".")
-  const n = Number(t)
-  return Number.isFinite(n) ? n : NaN
-}
 
 export function PrivateFinanceView() {
   const { db, activePerson, addTransaction, updateTransaction, removeTransaction } = useStore()
@@ -261,7 +254,7 @@ function DebtCard({ debt }: { debt: Debt }) {
     const def = debt.monthlyRate ? String(debt.monthlyRate) : ""
     const v = await dialog.prompt({ title: "Tilgung verbuchen", message: `Wie viel wurde auf „${debt.title}" getilgt?`, defaultValue: def, placeholder: "Betrag €", confirmLabel: "Verbuchen" })
     if (!v) return
-    const amount = parseAmount(v)
+    const amount = parseAmountDE(v)
     if (!Number.isFinite(amount) || amount <= 0) return
     payDebt(debt.id, amount)
     toast.success("Tilgung verbucht")
@@ -271,8 +264,8 @@ function DebtCard({ debt }: { debt: Debt }) {
     if (ok) removeDebt(debt.id)
   }
   function commitEdit() {
-    const t = parseAmount(total)
-    const r = rate.trim() ? parseAmount(rate) : undefined
+    const t = parseAmountDE(total)
+    const r = rate.trim() ? parseAmountDE(rate) : undefined
     updateDebt(debt.id, {
       title: name.trim() || debt.title,
       total: Number.isFinite(t) && t > 0 ? t : debt.total,
@@ -367,10 +360,10 @@ function AddDebtForm({ onSave, onCancel }: { onSave: (input: Omit<Debt, "id" | "
       <div className="flex justify-end gap-2">
         <Button size="sm" variant="ghost" onClick={onCancel}>Abbrechen</Button>
         <Button size="sm" onClick={() => {
-          const t = parseAmount(total)
+          const t = parseAmountDE(total)
           if (!title.trim() || !Number.isFinite(t) || t <= 0) { setError(true); return }
-          const p = parseAmount(paid)
-          const r = parseAmount(rate)
+          const p = parseAmountDE(paid)
+          const r = parseAmountDE(rate)
           onSave({ title: title.trim(), total: t, paid: Number.isFinite(p) && p > 0 ? Math.min(p, t) : 0, monthlyRate: Number.isFinite(r) && r > 0 ? r : undefined, note: note.trim() || undefined })
         }}>Speichern</Button>
       </div>
@@ -389,8 +382,15 @@ function PrivateTxForm({ initial, onSave, onCancel }: { initial?: Transaction; o
   const [error, setError] = useState(false)
   const cats = type === "income" ? PRIVATE_INCOME_CATEGORIES : PRIVATE_EXPENSE_CATEGORIES
 
+  // Formular beim Öffnen in den Blick holen — bei langen Listen sitzt es sonst
+  // unsichtbar über der Tabelle ("es passiert nichts").
+  const formRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+  }, [])
+
   return (
-    <div className="space-y-3 border-b border-border bg-white/[0.02] p-4">
+    <div ref={formRef} className="space-y-3 border-b border-border bg-white/[0.02] p-4">
       {initial && <div className="eyebrow">Buchung bearbeiten</div>}
       <div className="flex gap-2">
         <button onClick={() => { setType("expense"); setCategory(PRIVATE_EXPENSE_CATEGORIES[0]) }} className={cn("flex-1 rounded-lg border py-2 text-sm font-medium transition-colors", type === "expense" ? "border-transparent" : "border-border text-muted-foreground")} style={type === "expense" ? { backgroundColor: `${EXPENSE}26`, color: EXPENSE } : undefined}>Ausgabe</button>
@@ -400,14 +400,14 @@ function PrivateTxForm({ initial, onSave, onCancel }: { initial?: Transaction; o
         <select value={category} onChange={(e) => setCategory(e.target.value)} className="h-10 rounded-lg border border-border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50 [color-scheme:dark]">
           {cats.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
-        <input value={amount} onChange={(e) => { setAmount(e.target.value.replace(/[^0-9.,]/g, "")); setError(false) }} inputMode="decimal" placeholder="Betrag €" className={cn("h-10 rounded-lg border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50", error ? "border-destructive" : "border-border")} />
+        <input autoFocus value={amount} onChange={(e) => { setAmount(e.target.value.replace(/[^0-9.,]/g, "")); setError(false) }} inputMode="decimal" placeholder="Betrag €" className={cn("h-10 rounded-lg border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50", error ? "border-destructive" : "border-border")} />
         <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-10 rounded-lg border border-border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50 [color-scheme:dark]" />
       </div>
       <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Notiz (optional)" className="h-10 w-full rounded-lg border border-border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50" />
       <div className="flex justify-end gap-2">
         <Button size="sm" variant="ghost" onClick={onCancel}>Abbrechen</Button>
         <Button size="sm" onClick={() => {
-          const val = parseAmount(amount)
+          const val = parseAmountDE(amount)
           if (!Number.isFinite(val) || val <= 0) { setError(true); return }
           onSave({ type, category, amount: val, taxRate: 0, date, note: note.trim() || undefined })
         }}>Speichern</Button>

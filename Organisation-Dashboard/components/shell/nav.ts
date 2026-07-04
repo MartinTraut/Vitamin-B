@@ -51,15 +51,15 @@ export const NAV: NavGroup[] = [
     items: [
       { href: "/crm", label: "CRM", subtitle: "Kunden & Projekte", icon: Users },
       { href: "/pipeline", label: "Pipeline", subtitle: "Anfragen & Deals", icon: GitBranch },
+      { href: "/angebote", label: "Angebote", subtitle: "Angebote & Templates", icon: FileText },
     ],
   },
   {
     label: "Finanzen",
     accent: "#34d399",
     items: [
-      { href: "/angebote", label: "Angebote", subtitle: "Angebote & Templates", icon: FileText },
       { href: "/rechnungen", label: "Rechnungen", subtitle: "Rechnungsstellung", icon: Receipt },
-      { href: "/ausgaben", label: "Ausgaben", subtitle: "Belege & Eingangsrechnungen", icon: ReceiptText },
+      { href: "/ausgaben", label: "Belege", subtitle: "Belege & Eingangsrechnungen", icon: ReceiptText },
       { href: "/finanzen", label: "Finanzen", subtitle: "Einnahmen & Ausgaben", icon: Wallet },
       { href: "/privat", label: "Privat", subtitle: "Private Finanzen & Schulden", icon: PiggyBank },
     ],

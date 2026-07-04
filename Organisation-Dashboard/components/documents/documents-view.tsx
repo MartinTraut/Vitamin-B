@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useState, type CSSProperties } from "react"
+import { useEffect, useRef, useState, type CSSProperties } from "react"
+import { useSearchParams } from "next/navigation"
 import {
   Plus,
   Trash2,
@@ -17,6 +18,7 @@ import {
 } from "lucide-react"
 import { useStore } from "@/lib/store"
 import { useToast } from "@/lib/toast"
+import { useDialog } from "@/lib/dialog"
 import { PersonBadge } from "@/components/ui/person-badge"
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import {
@@ -64,7 +66,11 @@ export function DocumentsView({ kind }: { kind: Kind }) {
   const isQuote = kind === "quote"
 
   const toast = useToast()
+  const dialog = useDialog()
   const [selectedId, setSelectedId] = useState<string | null>(docs[0]?.id ?? null)
+  // Editor bei User-Auswahl in Sicht scrollen — aber nicht beim initialen Mount.
+  const editorRef = useRef<HTMLDivElement>(null)
+  const userClickedRef = useRef(false)
   const [pendingNew, setPendingNew] = useState(false)
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
@@ -81,12 +87,23 @@ export function DocumentsView({ kind }: { kind: Kind }) {
     }
   }, [docs, pendingNew])
 
-  // Aus der ⌘K-Suche vorselektieren (?sel=<id>).
+  // Aus der ⌘K-Suche vorselektieren (?sel=<id>). useSearchParams statt
+  // window.location — greift auch bei Client-Navigation auf derselben Route
+  // und nach asynchronem Daten-Load; jede sel-ID nur einmal.
+  const selParam = useSearchParams().get("sel")
+  const handledSelRef = useRef<string | null>(null)
   useEffect(() => {
-    const sel = new URLSearchParams(window.location.search).get("sel")
-    if (sel && docs.some((d) => d.id === sel)) setSelectedId(sel)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    if (!selParam || handledSelRef.current === selParam) return
+    if (!docs.some((d) => d.id === selParam)) return
+    handledSelRef.current = selParam
+    setSelectedId(selParam)
+  }, [selParam, docs])
+
+  useEffect(() => {
+    if (!userClickedRef.current) return
+    userClickedRef.current = false
+    editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }, [selectedId])
 
   const selected = docs.find((d) => d.id === selectedId) ?? null
   const customerName = (id: string) => db.customers.find((c) => c.id === id)?.company ?? "—"
@@ -111,7 +128,15 @@ export function DocumentsView({ kind }: { kind: Kind }) {
     if (isQuote) store.updateQuote(selected.id, patch as Partial<Quote>)
     else store.updateInvoice(selected.id, patch as Partial<Invoice>)
   }
-  function removeDoc(id: string) {
+  async function removeDoc(id: string) {
+    const doc = docs.find((d) => d.id === id)
+    const ok = await dialog.confirm({
+      title: `${isQuote ? "Angebot" : "Rechnung"} ${doc?.number ?? ""} löschen?`,
+      message: "Der Entwurf wird unwiderruflich entfernt.",
+      confirmLabel: "Löschen",
+      danger: true,
+    })
+    if (!ok) return
     if (isQuote) store.removeQuote(id)
     else store.removeInvoice(id)
     setSelectedId(docs.find((d) => d.id !== id)?.id ?? null)
@@ -121,7 +146,8 @@ export function DocumentsView({ kind }: { kind: Kind }) {
     toast.success("Rechnung storniert — Stornorechnung wurde angelegt")
   }
   function createNew() {
-    const cid = db.customers[0]?.id ?? ""
+    // Bewusst KEIN Kunde vorbelegt — die Checkliste mahnt die Auswahl an, statt still den erstbesten Empfänger zu setzen.
+    const cid = ""
     const term = db.company.paymentTermDays
     if (isQuote) {
       store.addQuote({ customerId: cid, status: "entwurf", items: [], validUntil: addDaysISO(todayISO(), term), person: activePerson })
@@ -220,22 +246,26 @@ export function DocumentsView({ kind }: { kind: Kind }) {
             const active = d.id === selectedId
             const color = isQuote ? QUOTE_STATUS_COLOR[(d as Quote).status] : INVOICE_STATUS_COLOR[(d as Invoice).status]
             const label = isQuote ? QUOTE_STATUS_LABEL[(d as Quote).status] : INVOICE_STATUS_LABEL[(d as Invoice).status]
+            // Angebots-Ablauf: gesendet + Gültigkeit überschritten → sichtbar machen (nur Anzeige).
+            const expired = isQuote && (d as Quote).status === "gesendet" && (d as Quote).validUntil < today
             return (
               <button
                 key={d.id}
-                onClick={() => setSelectedId(d.id)}
-                className="flex w-full items-center gap-3 rounded-2xl border py-4 pl-4 pr-4 text-left transition-all hover:brightness-110 sm:gap-4 sm:pl-6 sm:pr-5"
+                onClick={() => {
+                  userClickedRef.current = true
+                  setSelectedId(d.id)
+                }}
+                className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card/80 py-4 pl-4 pr-4 text-left transition-all hover:brightness-110 sm:gap-4 sm:pl-6 sm:pr-5"
                 style={{
-                  background: active ? `linear-gradient(90deg, ${color}38, ${color}12 70%)` : `linear-gradient(90deg, ${color}1c, ${color}08 70%)`,
-                  borderColor: active ? color : `${color}3a`,
+                  borderColor: active ? color : undefined,
                   boxShadow: active
-                    ? `inset 7px 0 0 0 ${color}, 0 0 0 1px ${color}, 0 0 28px -6px ${color}`
-                    : `inset 5px 0 0 0 ${color}`,
+                    ? `inset 4px 0 0 0 ${color}, 0 0 0 1px ${color}55`
+                    : `inset 4px 0 0 0 ${color}`,
                 }}
               >
                 <span
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-shadow"
-                  style={{ backgroundColor: `${color}33`, color, boxShadow: active ? `0 0 16px -2px ${color}` : "none" }}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
+                  style={{ backgroundColor: `${color}33`, color }}
                 >
                   <FileText className="h-4 w-4" />
                 </span>
@@ -243,11 +273,15 @@ export function DocumentsView({ kind }: { kind: Kind }) {
                   <div className="font-heading text-lg font-bold leading-tight">{isQuote ? "AN" : "RE"} {d.number}</div>
                   <div className="mt-1 truncate text-sm text-muted-foreground">
                     {customerName(d.customerId)} · {d.items.length} Position{d.items.length === 1 ? "" : "en"}
+                    {expired && <span className="text-muted-foreground/70"> · gültig bis {dateDE((d as Quote).validUntil)}</span>}
                   </div>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-5">
                   <PersonBadge person={d.person} className="hidden sm:flex" />
-                  <Badge color={color}>{label}</Badge>
+                  <span className="flex items-center gap-1.5">
+                    {expired && <Badge color={EXPENSE}>Abgelaufen</Badge>}
+                    <Badge color={color}>{label}</Badge>
+                  </span>
                   <span className="num text-right font-heading text-[clamp(1rem,1vw+0.75rem,1.25rem)] font-bold sm:w-32" style={{ color }}>{eur(t.gross)}</span>
                 </div>
               </button>
@@ -256,7 +290,7 @@ export function DocumentsView({ kind }: { kind: Kind }) {
         </div>
 
         {/* Editor — volle Breite darunter */}
-        <div>
+        <div ref={editorRef} className="scroll-mt-4">
           {selected ? (
             <Editor
               kind={kind}
@@ -275,7 +309,16 @@ export function DocumentsView({ kind }: { kind: Kind }) {
                 store.addTemplate({ kind, name, items: selected.items.map(({ id: _id, ...rest }) => rest) })
                 toast.success("Als Vorlage gespeichert")
               }}
-              onDeleteTemplate={(id) => store.removeTemplate(id)}
+              onDeleteTemplate={async (id) => {
+                const tpl = templates.find((t) => t.id === id)
+                const ok = await dialog.confirm({
+                  title: `Vorlage „${tpl?.name ?? ""}" löschen?`,
+                  message: "Die Vorlage wird unwiderruflich entfernt. Bestehende Belege bleiben unverändert.",
+                  confirmLabel: "Löschen",
+                  danger: true,
+                })
+                if (ok) store.removeTemplate(id)
+              }}
             />
           ) : (
             <Card className="flex h-full flex-col items-center justify-center gap-4 p-12 text-sm text-muted-foreground">
@@ -349,6 +392,8 @@ function Editor({
   }
   const status = isQuote ? (doc as Quote).status : (doc as Invoice).status
   const color = isQuote ? QUOTE_STATUS_COLOR[status as QuoteStatus] : INVOICE_STATUS_COLOR[status as InvoiceStatus]
+  // Angebots-Ablauf sichtbar machen (nur Anzeige, keine Statusänderung).
+  const quoteExpired = isQuote && (doc as Quote).status === "gesendet" && (doc as Quote).validUntil < todayISO()
 
   function setItems(items: LineItem[]) {
     onPatch({ items } as Partial<Doc>)
@@ -378,7 +423,10 @@ function Editor({
             <FileText className="h-5 w-5" />
           </span>
           <div>
-            <div className="font-heading text-lg font-bold">{isQuote ? "Angebot" : "Rechnung"} {doc.number}</div>
+            <div className="flex items-center gap-2 font-heading text-lg font-bold">
+              {isQuote ? "Angebot" : "Rechnung"} {doc.number}
+              {quoteExpired && <Badge color={EXPENSE}>Abgelaufen</Badge>}
+            </div>
             <div className="text-xs text-muted-foreground">{doc.items.length} Positionen · {eur(totals.gross)} brutto</div>
           </div>
         </div>
@@ -419,7 +467,7 @@ function Editor({
             onChange={(e) => onPatch({ customerId: e.target.value } as Partial<Doc>)}
             className="h-10 w-full rounded-lg border border-border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50 [color-scheme:dark]"
           >
-            {customers.length === 0 && <option value="">— kein Kunde —</option>}
+            <option value="" disabled>{customers.length === 0 ? "— kein Kunde angelegt —" : "Kunde wählen…"}</option>
             {customers.map((c) => <option key={c.id} value={c.id}>{c.company}</option>)}
           </select>
         </label>
@@ -537,6 +585,7 @@ function Editor({
                   <button
                     onClick={() => onDeleteTemplate(t.id)}
                     title="Vorlage löschen"
+                    aria-label={`Vorlage „${t.name}" löschen`}
                     className="pr-2 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
                   >
                     <X className="h-3 w-3" />
@@ -621,7 +670,7 @@ function SaveAsTemplateButton({ onSave }: { onSave: (name: string) => void }) {
       <button onClick={commit} className="rounded-lg bg-primary/15 px-2.5 py-1.5 text-xs font-semibold text-primary hover:bg-primary/25">
         Speichern
       </button>
-      <button onClick={() => setOpen(false)} className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground">
+      <button onClick={() => setOpen(false)} aria-label="Vorlage speichern abbrechen" title="Abbrechen" className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground">
         <X className="h-3.5 w-3.5" />
       </button>
     </div>
@@ -704,6 +753,7 @@ function RecurrencePanel({
 
 function StatusSelect({ kind, doc, onPatch }: { kind: Kind; doc: Doc; onPatch: (p: Partial<Doc>) => void }) {
   const isQuote = kind === "quote"
+  const toast = useToast()
   const opts = isQuote
     ? (Object.keys(QUOTE_STATUS_LABEL) as QuoteStatus[]).map((s) => ({ v: s, l: QUOTE_STATUS_LABEL[s] }))
     : (Object.keys(INVOICE_STATUS_LABEL) as InvoiceStatus[]).map((s) => ({ v: s, l: INVOICE_STATUS_LABEL[s] }))
@@ -714,7 +764,17 @@ function StatusSelect({ kind, doc, onPatch }: { kind: Kind; doc: Doc; onPatch: (
       <span className="mb-1.5 block text-xs text-muted-foreground">Status</span>
       <select
         value={cur}
-        onChange={(e) => onPatch({ status: e.target.value } as Partial<Doc>)}
+        onChange={(e) => {
+          // Ohne Empfänger darf ein Beleg den Entwurfs-Status nicht verlassen:
+          // eine versendete Rechnung ohne Kunde wäre §14-ungültig, ihre Nummer
+          // unwiderruflich verbraucht (removeInvoice erlaubt nur Entwürfe).
+          if (e.target.value !== "entwurf" && !doc.customerId) {
+            toast.error("Bitte zuerst einen Kunden auswählen.")
+            e.target.value = cur
+            return
+          }
+          onPatch({ status: e.target.value } as Partial<Doc>)
+        }}
         className="h-10 w-full rounded-lg border bg-white/[0.03] px-3 text-sm font-medium outline-none [color-scheme:dark]"
         style={{ borderColor: `${color}66`, color }}
       >
@@ -815,6 +875,8 @@ function PrintDoc({
   const soft = "#6b7280"
   const line = "#e5e7eb"
   const accent = "#E39832"
+  // Markentypografie: Heading-Font (Sora, via Layout-Variable) für Dokumenttitel & Firmenname — Body bleibt Helvetica.
+  const headingFont = "var(--font-heading-family), Helvetica, sans-serif"
   const label: CSSProperties = { fontSize: 8.5, letterSpacing: "0.09em", textTransform: "uppercase", color: soft, fontWeight: 600 }
   const numCell: CSSProperties = { textAlign: "right", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }
 
@@ -830,11 +892,11 @@ function PrintDoc({
   return (
     <div style={{ color: ink, fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif", fontSize: 11.5, lineHeight: 1.55 }}>
       {/* Kopf */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: `2px solid ${accent}`, paddingBottom: 14, marginBottom: 26 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: `2px solid ${accent}`, paddingBottom: 14, marginBottom: 36 }}>
         <div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-vitaminb-orange.png" alt="Vitamin B" style={{ height: 36, width: "auto", marginBottom: 6 }} />
-          <div style={{ fontSize: 10.5, color: soft }}>{company.name}</div>
+          <div style={{ fontSize: 10.5, color: soft, fontFamily: headingFont }}>{company.name}</div>
         </div>
         <div style={{ textAlign: "right", fontSize: 10.5, color: ink }}>
           <div style={{ whiteSpace: "pre-line" }}>{company.address}</div>
@@ -852,7 +914,7 @@ function PrintDoc({
           {customer?.address && <div style={{ whiteSpace: "pre-line" }}>{customer.address}</div>}
         </div>
         <div style={{ minWidth: 220 }}>
-          <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.01em", marginBottom: 10 }}>{title}</div>
+          <div style={{ fontFamily: headingFont, fontSize: 30, fontWeight: 800, letterSpacing: "-0.02em", marginBottom: 10 }}>{title}</div>
           <table style={{ borderCollapse: "collapse", fontSize: 10.5, width: "100%" }}>
             <tbody>
               {metaRows.map((r) => (

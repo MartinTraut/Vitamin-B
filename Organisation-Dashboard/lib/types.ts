@@ -240,6 +240,8 @@ export interface Deal {
   probability?: number // 0–100, für gewichtete Pipeline (fehlt → Default aus Stage)
   expectedCloseDate?: string // YYYY-MM-DD
   stageChangedAt?: string // ISO, für Follow-up-Nudges ("seit X Tagen keine Bewegung")
+  lostAt?: string // ISO, gesetzt wenn der Deal als verloren markiert wurde
+  lostReason?: string // Verlustgrund (Win/Loss-Analyse)
 }
 
 // Default-Abschlusswahrscheinlichkeit je Pipeline-Stufe, falls Deal.probability nicht gesetzt ist.

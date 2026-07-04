@@ -30,7 +30,7 @@ export function MobileNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-colors",
+                "flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors",
                 active ? "text-primary" : "text-muted-foreground",
               )}
             >
@@ -44,7 +44,7 @@ export function MobileNav() {
           aria-label="Mehr anzeigen"
           aria-expanded={menuOpen}
           className={cn(
-            "flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-colors",
+            "flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors",
             !onPrimary || menuOpen ? "text-primary" : "text-muted-foreground",
           )}
         >

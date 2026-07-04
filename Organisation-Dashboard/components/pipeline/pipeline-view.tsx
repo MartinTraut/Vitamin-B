@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import {
   DndContext,
   DragOverlay,
@@ -20,10 +20,11 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { useRouter } from "next/navigation"
-import { Plus, GripVertical, Trash2, X, TrendingUp, Trophy, Layers, Scale, ChevronLeft, ChevronRight, FileText, Receipt, Phone, Mail } from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Plus, GripVertical, Trash2, X, TrendingUp, Trophy, Layers, Scale, ChevronLeft, ChevronRight, ChevronDown, FileText, Receipt, Phone, Mail, Pencil, ThumbsDown, RotateCcw } from "lucide-react"
 import { useStore } from "@/lib/store"
 import { useToast } from "@/lib/toast"
+import { useDialog } from "@/lib/dialog"
 import { todayISO, addDaysISO, diffDays } from "@/lib/recurrence"
 import {
   PEOPLE,
@@ -34,19 +35,22 @@ import {
   type Deal,
   type DealStage,
 } from "@/lib/types"
-import { eur0 } from "@/lib/format"
+import { eur0, dateDE, parseAmountDE } from "@/lib/format"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { KpiTile } from "@/components/ui/kpi-tile"
-import { ORANGE, INCOME, PURPLE } from "@/lib/theme-colors"
+import { ORANGE, INCOME, PURPLE, BLUE, EXPENSE } from "@/lib/theme-colors"
 import { cn } from "@/lib/utils"
 
 export function PipelineView() {
-  const { db, activePerson, addDeal, addCustomer, addQuote, addInvoice, convertQuoteToInvoice, moveDeal, reorderDeals, removeDeal } = useStore()
+  const { db, activePerson, addDeal, addCustomer, addQuote, addInvoice, convertQuoteToInvoice, moveDeal, reorderDeals, removeDeal, updateDeal } = useStore()
   const router = useRouter()
   const toast = useToast()
+  const dialog = useDialog()
   const [activeId, setActiveId] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
+  // ⌘K-Deep-Link (?sel=<dealId>): passende Karte hervorheben und hinscrollen.
+  const [highlightId, setHighlightId] = useState<string | null>(null)
 
   function createQuoteFromDeal(deal: Deal) {
     // Existiert bereits ein verknüpftes Angebot (z. B. automatisch bei Stufe
@@ -101,6 +105,34 @@ export function PipelineView() {
     })
   }
 
+  // Deal verlieren: Grund abfragen, vom Board nehmen — bleibt für die
+  // Win/Loss-Analyse in der Sektion „Verloren" erhalten (reaktivierbar).
+  async function loseDeal(deal: Deal) {
+    const reason = await dialog.prompt({
+      title: `„${deal.title}" als verloren markieren?`,
+      message: `Der Deal verschwindet vom Board und wandert in die Sektion „Verloren". Er kann jederzeit reaktiviert werden.`,
+      placeholder: "Verlustgrund (z. B. Preis, Konkurrenz, kein Bedarf)",
+      confirmLabel: "Als verloren markieren",
+      danger: true,
+    })
+    if (reason === null) return
+    updateDeal(deal.id, { lostAt: new Date().toISOString(), lostReason: reason })
+    toast.success("Deal als verloren markiert")
+  }
+
+  // Löschen nur mit Bestätigung — Deals sind Datenbasis für Forecast & Historie.
+  async function confirmRemoveDeal(deal: Deal) {
+    const ok = await dialog.confirm({
+      title: `„${deal.title}" löschen?`,
+      message: `Der Deal wird unwiderruflich entfernt. Tipp: „Als verloren markieren" behält ihn für die Win/Loss-Quote.`,
+      confirmLabel: "Löschen",
+      danger: true,
+    })
+    if (!ok) return
+    removeDeal(deal.id)
+    toast.success("Deal gelöscht")
+  }
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -112,7 +144,13 @@ export function PipelineView() {
   }, [db.customers])
 
   // Pipeline ist personenbezogen: nur die Deals der aktiven Ansicht zeigen.
-  const myDeals = useMemo(() => db.deals.filter((d) => d.person === activePerson), [db.deals, activePerson])
+  // Verlorene Deals verschwinden vom Board, bleiben aber für die Win/Loss-Quote erhalten.
+  const personDeals = useMemo(() => db.deals.filter((d) => d.person === activePerson), [db.deals, activePerson])
+  const myDeals = useMemo(() => personDeals.filter((d) => !d.lostAt), [personDeals])
+  const lostDeals = useMemo(
+    () => personDeals.filter((d) => !!d.lostAt).sort((a, b) => (b.lostAt ?? "").localeCompare(a.lostAt ?? "")),
+    [personDeals],
+  )
 
   const totalOpen = myDeals.filter((d) => d.stage !== "gewonnen").reduce((s, d) => s + d.value, 0)
   const totalWon = myDeals.filter((d) => d.stage === "gewonnen").reduce((s, d) => s + d.value, 0)
@@ -120,8 +158,26 @@ export function PipelineView() {
   const weightedOpen = myDeals
     .filter((d) => d.stage !== "gewonnen")
     .reduce((s, d) => s + (d.value * (d.probability ?? DEAL_STAGE_DEFAULT_PROBABILITY[d.stage])) / 100, 0)
+  // Lost-Quote: Anteil verlorener an allen entschiedenen Deals (gewonnen + verloren).
+  const wonCount = myDeals.filter((d) => d.stage === "gewonnen").length
+  const decidedCount = wonCount + lostDeals.length
+  const lostQuote = decidedCount > 0 ? Math.round((lostDeals.length / decidedCount) * 100) : null
 
   const activeDeal = activeId ? db.deals.find((d) => d.id === activeId) ?? null : null
+
+  // Aus der ⌘K-Suche vorselektieren (?sel=<dealId>): Karte hervorheben + hinscrollen.
+  // useSearchParams statt window.location — greift auch bei Client-Navigation auf
+  // derselben Route und nach asynchronem Daten-Load; jede sel-ID nur einmal.
+  const selParam = useSearchParams().get("sel")
+  const handledSelRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!selParam || handledSelRef.current === selParam) return
+    if (!db.deals.some((d) => d.id === selParam)) return
+    handledSelRef.current = selParam
+    setHighlightId(selParam)
+    requestAnimationFrame(() => document.getElementById(`deal-${selParam}`)?.scrollIntoView({ behavior: "smooth", block: "center" }))
+    setTimeout(() => setHighlightId(null), 2500)
+  }, [selParam, db.deals])
 
   function handleDragStart(e: DragStartEvent) {
     setActiveId(String(e.active.id))
@@ -162,11 +218,12 @@ export function PipelineView() {
     <div className="space-y-4">
       {/* Kopf — prominente KPI-Kacheln */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch">
-        <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
           <KpiTile icon={TrendingUp} label="Offene Pipeline" value={eur0(totalOpen)} accent={ORANGE} />
-          <KpiTile icon={Scale} label="Gewichtet" value={eur0(weightedOpen)} hint="nach Abschluss-Wahrsch." accent="#3b82f6" />
+          <KpiTile icon={Scale} label="Gewichtet" value={eur0(weightedOpen)} hint="nach Abschluss-Wahrsch." accent={BLUE} />
           <KpiTile icon={Trophy} label="Abgeschlossen" value={eur0(totalWon)} accent={INCOME} />
           <KpiTile icon={Layers} label="Deals" value={String(myDeals.length)} accent={PURPLE} />
+          <KpiTile icon={ThumbsDown} label="Lost-Quote" value={lostQuote === null ? "—" : `${lostQuote} %`} hint="verloren / entschieden" accent={EXPENSE} />
         </div>
         <Button onClick={() => setAdding((v) => !v)} className="h-auto lg:px-6">
           <Plus className="h-4 w-4" /> Neuer Deal
@@ -207,11 +264,14 @@ export function PipelineView() {
                       key={d.id}
                       deal={d}
                       customer={customerName(d.customerId)}
-                      onRemove={() => removeDeal(d.id)}
+                      highlighted={d.id === highlightId}
+                      onRemove={() => confirmRemoveDeal(d)}
                       onWin={stage !== "gewonnen" ? () => winDeal(d) : undefined}
+                      onLost={stage !== "gewonnen" ? () => loseDeal(d) : undefined}
                       onMoveStage={(s) => moveDeal(d.id, s)}
                       onQuote={stage !== "gewonnen" ? () => createQuoteFromDeal(d) : undefined}
                       onInvoice={stage === "gewonnen" ? () => createInvoiceFromDeal(d) : undefined}
+                      onUpdate={(patch) => { updateDeal(d.id, patch); toast.success("Deal aktualisiert") }}
                     />
                   ))}
                 </SortableContext>
@@ -231,7 +291,79 @@ export function PipelineView() {
           {activeDeal ? <DealCardInner deal={activeDeal} customer={customerName(activeDeal.customerId)} dragging /> : null}
         </DragOverlay>
       </DndContext>
+
+      {/* Verlorene Deals: unterhalb des Boards, einklappbar — Basis der Win/Loss-Analyse */}
+      {lostDeals.length > 0 && (
+        <LostSection
+          deals={lostDeals}
+          customerName={customerName}
+          onReactivate={(d) => {
+            updateDeal(d.id, { lostAt: undefined, lostReason: undefined })
+            toast.success(`„${d.title}" reaktiviert`)
+          }}
+        />
+      )}
     </div>
+  )
+}
+
+// Einklappbare Sektion für verlorene Deals: Titel, Wert, Grund, Datum, Reaktivieren.
+function LostSection({
+  deals,
+  customerName,
+  onReactivate,
+}: {
+  deals: Deal[]
+  customerName: (id: string) => string
+  onReactivate: (deal: Deal) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const lostSum = deals.reduce((s, d) => s + d.value, 0)
+  return (
+    <Card className="overflow-hidden p-0">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-white/[0.03]"
+      >
+        <div className="flex items-center gap-2.5">
+          <ThumbsDown className="h-4 w-4" style={{ color: EXPENSE }} />
+          <span className="text-sm font-bold tracking-tight" style={{ color: EXPENSE }}>Verloren</span>
+          <span className="rounded-full px-2 py-0.5 text-xs font-bold" style={{ backgroundColor: `${EXPENSE}24`, color: EXPENSE }}>{deals.length}</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="num font-heading text-[clamp(1rem,0.4vw+0.9rem,1.15rem)] font-bold tabular-nums text-muted-foreground">{eur0(lostSum)}</span>
+          <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", open && "rotate-180")} />
+        </div>
+      </button>
+      {open && (
+        <div className="divide-y divide-border/60 border-t border-border/60">
+          {deals.map((d) => (
+            <div key={d.id} className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-4 py-3">
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium">{d.title}</div>
+                <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                  {customerName(d.customerId) !== "—" && <span className="truncate">{customerName(d.customerId)}</span>}
+                  {d.lostAt && <span>verloren am {dateDE(d.lostAt.slice(0, 10))}</span>}
+                  {d.lostReason && <span className="italic">„{d.lostReason}"</span>}
+                </div>
+              </div>
+              <span className="num font-heading text-[clamp(1rem,0.4vw+0.9rem,1.15rem)] font-bold tabular-nums text-muted-foreground">{eur0(d.value)}</span>
+              <button
+                type="button"
+                onClick={() => onReactivate(d)}
+                title="Deal reaktivieren"
+                aria-label={`Deal „${d.title}" reaktivieren`}
+                className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
+              >
+                <RotateCcw className="h-3.5 w-3.5" /> Reaktivieren
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
   )
 }
 
@@ -256,7 +388,7 @@ function Column({ stage, count, sum, children }: { stage: DealStage; count: numb
           </div>
           <span className="rounded-full px-2 py-0.5 text-xs font-bold" style={{ backgroundColor: `${accent}24`, color: accent }}>{count}</span>
         </div>
-        <div className="mt-1 text-[13px] font-semibold tabular-nums" style={{ color: accent }}>{eur0(sum)}</div>
+        <div className="num mt-1 font-heading text-[clamp(1rem,0.5vw+0.9rem,1.2rem)] font-bold tabular-nums" style={{ color: accent }}>{eur0(sum)}</div>
       </div>
       <div className="flex-1 space-y-2.5 p-3">{children}</div>
     </div>
@@ -281,8 +413,8 @@ function LeadQuickAdd({
   function save() {
     const t = title.trim()
     if (!t) return
-    const raw = price.trim().replace(/\./g, "").replace(",", ".")
-    const value = Number(raw)
+    // Deutsche Beträge robust parsen ("1.000" → 1000, "12,50"/"12.50" → 12.5)
+    const value = parseAmountDE(price)
     onAdd({
       title: t,
       value: Number.isFinite(value) && value > 0 ? value : 0,
@@ -333,12 +465,12 @@ function LeadQuickAdd({
   )
 }
 
-function SortableDeal({ deal, customer, onRemove, onWin, onMoveStage, onQuote, onInvoice }: { deal: Deal; customer: string; onRemove: () => void; onWin?: () => void; onMoveStage?: (stage: DealStage) => void; onQuote?: () => void; onInvoice?: () => void }) {
+function SortableDeal({ deal, customer, highlighted, onRemove, onWin, onLost, onMoveStage, onQuote, onInvoice, onUpdate }: { deal: Deal; customer: string; highlighted?: boolean; onRemove: () => void; onWin?: () => void; onLost?: () => void; onMoveStage?: (stage: DealStage) => void; onQuote?: () => void; onInvoice?: () => void; onUpdate?: (patch: Partial<Omit<Deal, "id" | "createdAt">>) => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: deal.id })
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.35 : 1 }
   return (
-    <div ref={setNodeRef} style={style}>
-      <DealCardInner deal={deal} customer={customer} onRemove={onRemove} onWin={onWin} onMoveStage={onMoveStage} onQuote={onQuote} onInvoice={onInvoice} handleProps={{ ...attributes, ...listeners }} />
+    <div ref={setNodeRef} style={style} id={`deal-${deal.id}`}>
+      <DealCardInner deal={deal} customer={customer} highlighted={highlighted} onRemove={onRemove} onWin={onWin} onLost={onLost} onMoveStage={onMoveStage} onQuote={onQuote} onInvoice={onInvoice} onUpdate={onUpdate} handleProps={{ ...attributes, ...listeners }} />
     </div>
   )
 }
@@ -346,24 +478,31 @@ function SortableDeal({ deal, customer, onRemove, onWin, onMoveStage, onQuote, o
 function DealCardInner({
   deal,
   customer,
+  highlighted,
   onRemove,
   onWin,
+  onLost,
   onMoveStage,
   onQuote,
   onInvoice,
+  onUpdate,
   handleProps,
   dragging,
 }: {
   deal: Deal
   customer: string
+  highlighted?: boolean
   onRemove?: () => void
   onWin?: () => void
+  onLost?: () => void
   onMoveStage?: (stage: DealStage) => void
   onQuote?: () => void
   onInvoice?: () => void
+  onUpdate?: (patch: Partial<Omit<Deal, "id" | "createdAt">>) => void
   handleProps?: Record<string, unknown>
   dragging?: boolean
 }) {
+  const [editing, setEditing] = useState(false)
   const person = PEOPLE.find((p) => p.id === deal.person)
   const stageIdx = DEAL_STAGES.indexOf(deal.stage)
   const prevStage = stageIdx > 0 ? DEAL_STAGES[stageIdx - 1] : null
@@ -371,8 +510,28 @@ function DealCardInner({
   // Nachfass-Nudge: seit über 7 Tagen keine Stufenbewegung mehr (nur offene Deals).
   const daysSinceStageChange = deal.stageChangedAt ? diffDays(todayISO(), deal.stageChangedAt.slice(0, 10)) : 0
   const stale = deal.stage !== "gewonnen" && !!deal.stageChangedAt && daysSinceStageChange > 7
+  // Kompaktes Inline-Edit-Panel statt Karteninhalt
+  if (editing && onUpdate) {
+    return (
+      <DealEdit
+        deal={deal}
+        onCancel={() => setEditing(false)}
+        onSave={(patch) => {
+          onUpdate(patch)
+          setEditing(false)
+        }}
+      />
+    )
+  }
+
   return (
-    <div className={cn("group relative rounded-xl border border-border bg-[#101010] p-3.5 transition-all", dragging ? "rotate-[1.5deg] border-primary/40 shadow-2xl shadow-black/60" : "hover:border-white/15 hover:bg-[#141414]")}>
+    <div
+      className={cn(
+        "group relative rounded-xl border border-border bg-[#101010] p-3.5 transition-all",
+        dragging ? "rotate-[1.5deg] border-primary/40 shadow-2xl shadow-black/60" : "hover:border-white/15 hover:bg-[#141414]",
+        highlighted && "ring-2 ring-primary",
+      )}
+    >
       <div className="flex items-start gap-2.5">
         <button {...handleProps} className="mt-0.5 shrink-0 cursor-grab touch-none text-muted-foreground/40 hover:text-muted-foreground active:cursor-grabbing" aria-label="Ziehen">
           <GripVertical className="h-[18px] w-[18px]" />
@@ -400,8 +559,14 @@ function DealCardInner({
               Nachfassen? · seit {daysSinceStageChange} T. ohne Bewegung
             </div>
           )}
+          {(deal.probability != null || deal.expectedCloseDate) && (
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[11px] text-muted-foreground">
+              {deal.probability != null && <span className="tabular-nums">{deal.probability} % Abschluss-Wahrsch.</span>}
+              {deal.expectedCloseDate && <span>bis {dateDE(deal.expectedCloseDate)}</span>}
+            </div>
+          )}
           <div className="mt-2 flex items-center justify-between gap-2">
-            <span className="font-heading text-base font-bold">{eur0(deal.value)}</span>
+            <span className="num font-heading text-[clamp(1rem,0.4vw+0.9rem,1.15rem)] font-bold tabular-nums">{eur0(deal.value)}</span>
             {person && (
               <span className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold" style={{ backgroundColor: `${person.color}26`, color: person.color }} title={person.name}>
                 {person.initials}
@@ -409,25 +574,35 @@ function DealCardInner({
             )}
           </div>
         </div>
-        {!dragging && (onRemove || onWin || onQuote || onInvoice) && (
+        {!dragging && (onRemove || onWin || onLost || onQuote || onInvoice || onUpdate) && (
           <div className="action-reveal absolute right-2 top-2 flex items-center gap-1">
+            {onUpdate && (
+              <button onClick={() => setEditing(true)} title="Deal bearbeiten" aria-label="Deal bearbeiten" className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-primary/15 hover:text-primary">
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            )}
             {onQuote && (
-              <button onClick={onQuote} title="Angebot aus Deal erstellen" className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-primary/15 hover:text-primary">
+              <button onClick={onQuote} title="Angebot aus Deal erstellen" aria-label="Angebot aus Deal erstellen" className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-primary/15 hover:text-primary">
                 <FileText className="h-3.5 w-3.5" />
               </button>
             )}
             {onInvoice && (
-              <button onClick={onInvoice} title="Rechnung aus Deal erstellen" className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-success/15 hover:text-success">
+              <button onClick={onInvoice} title="Rechnung aus Deal erstellen" aria-label="Rechnung aus Deal erstellen" className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-success/15 hover:text-success">
                 <Receipt className="h-3.5 w-3.5" />
               </button>
             )}
             {onWin && (
-              <button onClick={onWin} title="Als gewonnen markieren" className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-success/15 hover:text-success">
+              <button onClick={onWin} title="Als gewonnen markieren" aria-label="Als gewonnen markieren" className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-success/15 hover:text-success">
                 <Trophy className="h-3.5 w-3.5" />
               </button>
             )}
+            {onLost && (
+              <button onClick={onLost} title="Als verloren markieren" aria-label="Als verloren markieren" className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive">
+                <ThumbsDown className="h-3.5 w-3.5" />
+              </button>
+            )}
             {onRemove && (
-              <button onClick={onRemove} title="Löschen" className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive">
+              <button onClick={onRemove} title="Löschen" aria-label="Deal löschen" className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive">
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
             )}
@@ -461,6 +636,87 @@ function DealCardInner({
           </button>
         </div>
       )}
+    </div>
+  )
+}
+
+// Kompaktes Inline-Edit-Panel direkt auf der Karte: Titel, Wert, Wahrscheinlichkeit,
+// erwartetes Abschlussdatum, Kontakt und Notiz — speichert via updateDeal-Patch.
+function DealEdit({
+  deal,
+  onSave,
+  onCancel,
+}: {
+  deal: Deal
+  onSave: (patch: Partial<Omit<Deal, "id" | "createdAt">>) => void
+  onCancel: () => void
+}) {
+  const [title, setTitle] = useState(deal.title)
+  const [value, setValue] = useState(String(deal.value).replace(".", ","))
+  // "" = automatisch aus der Stufe (Default-Wahrscheinlichkeit)
+  const [probability, setProbability] = useState(deal.probability != null ? String(deal.probability) : "")
+  const [closeDate, setCloseDate] = useState(deal.expectedCloseDate ?? "")
+  const [phone, setPhone] = useState(deal.phone ?? "")
+  const [email, setEmail] = useState(deal.email ?? "")
+  const [note, setNote] = useState(deal.note ?? "")
+
+  function save() {
+    const t = title.trim()
+    if (!t) return
+    const parsed = parseAmountDE(value)
+    onSave({
+      title: t,
+      value: Number.isFinite(parsed) && parsed >= 0 ? parsed : deal.value,
+      probability: probability === "" ? undefined : Number(probability),
+      expectedCloseDate: closeDate || undefined,
+      phone: phone.trim() || undefined,
+      email: email.trim() || undefined,
+      note: note.trim() || undefined,
+    })
+  }
+
+  const onKey = (e: React.KeyboardEvent) => { if (e.key === "Enter") save(); if (e.key === "Escape") onCancel() }
+  const field = "h-9 w-full rounded-lg border border-border bg-white/[0.04] px-2.5 text-sm outline-none focus:border-primary/50"
+  const label = "mb-1 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
+
+  return (
+    <div className="space-y-2 rounded-xl border border-primary/40 bg-[#141414] p-3">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-bold uppercase tracking-wider text-primary">Deal bearbeiten</span>
+        <button onClick={onCancel} aria-label="Bearbeiten abbrechen" className="rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground">
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      <input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={onKey} placeholder="Titel des Deals" aria-label="Titel" className={field} />
+      <input value={value} onChange={(e) => setValue(e.target.value.replace(/[^0-9.,]/g, ""))} onKeyDown={onKey} inputMode="decimal" placeholder="Wert €" aria-label="Wert in Euro" className={field} />
+      <div>
+        <label className={label}>Abschluss-Wahrscheinlichkeit</label>
+        <select value={probability} onChange={(e) => setProbability(e.target.value)} aria-label="Abschluss-Wahrscheinlichkeit" className={cn(field, "[color-scheme:dark]")}>
+          <option value="">Automatisch ({DEAL_STAGE_DEFAULT_PROBABILITY[deal.stage]} % aus Stufe)</option>
+          {[10, 20, 30, 40, 50, 60, 70, 80, 90].map((p) => (
+            <option key={p} value={p}>{p} %</option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label className={label}>Erwarteter Abschluss</label>
+        <input value={closeDate} onChange={(e) => setCloseDate(e.target.value)} type="date" aria-label="Erwartetes Abschlussdatum" className={cn(field, "[color-scheme:dark]")} />
+      </div>
+      <input value={phone} onChange={(e) => setPhone(e.target.value)} onKeyDown={onKey} type="tel" placeholder="Telefon" aria-label="Telefon" className={field} />
+      <input value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={onKey} type="email" placeholder="E-Mail" aria-label="E-Mail" className={field} />
+      <input value={note} onChange={(e) => setNote(e.target.value)} onKeyDown={onKey} placeholder="Notiz" aria-label="Notiz" className={field} />
+      <div className="flex justify-end gap-1.5 pt-0.5">
+        <button onClick={onCancel} className="rounded-lg px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
+          Abbrechen
+        </button>
+        <button
+          onClick={save}
+          disabled={!title.trim()}
+          className="rounded-lg bg-primary px-3 py-1 text-xs font-bold text-primary-foreground transition-colors disabled:opacity-40"
+        >
+          Speichern
+        </button>
+      </div>
     </div>
   )
 }

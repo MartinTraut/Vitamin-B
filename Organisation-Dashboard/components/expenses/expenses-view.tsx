@@ -1,11 +1,11 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Plus, TrendingDown, Receipt, ReceiptText, Layers, ArrowUpRight, Search, Building2, Download } from "lucide-react"
 import Link from "next/link"
 import { useStore } from "@/lib/store"
 import { EXPENSE_CATEGORIES, type Transaction } from "@/lib/types"
-import { eur, eur0, dateShort } from "@/lib/format"
+import { eur, eur0, dateShort, parseAmountDE } from "@/lib/format"
 import { downloadCsv, deNum } from "@/lib/csv"
 import { todayISO, toISO } from "@/lib/recurrence"
 import { Card } from "@/components/ui/card"
@@ -19,14 +19,6 @@ import { EXPENSE, ORANGE, BLUE, PURPLE } from "@/lib/theme-colors"
 
 function netOf(amount: number, rate: number) {
   return amount / (1 + rate / 100)
-}
-
-// DE-Betrag robust parsen: "1.234,56" -> 1234.56, "12,50" -> 12.5, "12.50" -> 12.5
-function parseAmount(s: string): number {
-  let t = s.trim()
-  if (t.includes(",")) t = t.replace(/\./g, "").replace(",", ".")
-  const n = Number(t)
-  return Number.isFinite(n) ? n : NaN
 }
 
 export function ExpensesView() {
@@ -242,14 +234,21 @@ function ExpenseForm({
   const [note, setNote] = useState(initial?.note ?? "")
   const [error, setError] = useState(false)
 
+  // Formular beim Öffnen in den Blick holen — bei langen Listen sitzt es sonst
+  // unsichtbar über der Tabelle ("es passiert nichts").
+  const formRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+  }, [])
+
   return (
-    <div className="space-y-3 border-b border-border bg-white/[0.02] p-4">
+    <div ref={formRef} className="space-y-3 border-b border-border bg-white/[0.02] p-4">
       {initial && <div className="eyebrow">Beleg bearbeiten</div>}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <select value={category} onChange={(e) => setCategory(e.target.value)} className="h-10 rounded-lg border border-border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50 [color-scheme:dark]">
           {EXPENSE_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
-        <input value={amount} onChange={(e) => { setAmount(e.target.value.replace(/[^0-9.,]/g, "")); setError(false) }} inputMode="decimal" placeholder="Betrag € (brutto)" className={cn("h-10 rounded-lg border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50", error ? "border-destructive" : "border-border")} />
+        <input autoFocus value={amount} onChange={(e) => { setAmount(e.target.value.replace(/[^0-9.,]/g, "")); setError(false) }} inputMode="decimal" placeholder="Betrag € (brutto)" className={cn("h-10 rounded-lg border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50", error ? "border-destructive" : "border-border")} />
         <select value={taxRate} onChange={(e) => setTaxRate(Number(e.target.value))} className="h-10 rounded-lg border border-border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50 [color-scheme:dark]">
           <option value={19}>19% USt</option>
           <option value={7}>7% USt</option>
@@ -261,7 +260,7 @@ function ExpenseForm({
       <div className="flex justify-end gap-2">
         <Button size="sm" variant="ghost" onClick={onCancel}>Abbrechen</Button>
         <Button size="sm" onClick={() => {
-          const val = parseAmount(amount)
+          const val = parseAmountDE(amount)
           if (!Number.isFinite(val) || val <= 0) { setError(true); return }
           onSave({ type: "expense", category, amount: val, taxRate, date, note: note.trim() || undefined })
         }}>Speichern</Button>

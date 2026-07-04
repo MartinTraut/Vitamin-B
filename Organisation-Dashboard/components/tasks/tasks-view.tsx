@@ -1,6 +1,7 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import {
   DndContext,
   DragOverlay,
@@ -32,6 +33,8 @@ import {
 } from "@/lib/types"
 import { dateDE, formatMinutes } from "@/lib/format"
 import { todayISO } from "@/lib/recurrence"
+import { useDialog } from "@/lib/dialog"
+import { EXPENSE } from "@/lib/theme-colors"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -50,10 +53,13 @@ const PRIORITY_DOT: Record<Priority, string> = {
 export function TasksView() {
   const { db, activePerson, addTask, updateTaskStatus, updateTask, toggleTask, removeTask, reorderTasks, addTimeEntry } =
     useStore()
+  const dialog = useDialog()
   const [title, setTitle] = useState("")
   const [priority, setPriority] = useState<Priority>("normal")
   const [projectId, setProjectId] = useState("")
+  const [due, setDue] = useState("")
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [highlightId, setHighlightId] = useState<string | null>(null)
 
   const person = PEOPLE.find((p) => p.id === activePerson)!
   const myTasks = useMemo(
@@ -68,6 +74,25 @@ export function TasksView() {
 
   const activeTask = activeId ? db.tasks.find((t) => t.id === activeId) ?? null : null
 
+  // Aus der ⌘K-Suche vorselektieren (?sel=<id>): Karte anscrollen & kurz hervorheben.
+  // useSearchParams statt window.location, damit der Effekt auch bei Client-Navigation
+  // auf derselben Route (router.push ohne Remount) und nach asynchronem Daten-Load
+  // greift; jede sel-ID wird nur einmal behandelt.
+  const selParam = useSearchParams().get("sel")
+  const handledSelRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!selParam || handledSelRef.current === selParam) return
+    if (!db.tasks.some((t) => t.id === selParam)) return
+    handledSelRef.current = selParam
+    setHighlightId(selParam)
+    requestAnimationFrame(() => {
+      document
+        .querySelector(`[data-task-id="${selParam}"]`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" })
+    })
+    setTimeout(() => setHighlightId(null), 2500)
+  }, [selParam, db.tasks])
+
   function submit() {
     const value = title.trim()
     if (!value) return
@@ -78,12 +103,14 @@ export function TasksView() {
       title: value,
       status: "todo",
       priority,
+      due: due || undefined,
       projectId: projectId || undefined,
       customerId: project?.customerId,
     })
     setTitle("")
     setPriority("normal")
     setProjectId("")
+    setDue("")
   }
 
   function handleDragStart(e: DragStartEvent) {
@@ -131,9 +158,9 @@ export function TasksView() {
   }
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-4">
       {/* Schnell-Erfassung */}
-      <div className="glow-border rounded-2xl bg-card p-5">
+      <div className="rounded-2xl border border-primary/25 bg-card p-5 transition-colors focus-within:border-primary/50">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <input
             value={title}
@@ -155,6 +182,19 @@ export function TasksView() {
               ))}
             </select>
           )}
+          <label
+            className="flex h-12 cursor-pointer items-center gap-2 rounded-xl border border-border bg-white/[0.03] px-3 text-sm text-muted-foreground focus-within:border-primary/50"
+            title="Fällig am (optional)"
+          >
+            <CalendarDays className="h-4 w-4 shrink-0" />
+            <input
+              type="date"
+              value={due}
+              onChange={(e) => setDue(e.target.value)}
+              aria-label="Fällig am (optional)"
+              className="bg-transparent text-sm outline-none [color-scheme:dark]"
+            />
+          </label>
           <div className="flex flex-wrap items-center gap-2">
             {(["low", "normal", "high"] as Priority[]).map((p) => (
               <button
@@ -209,11 +249,21 @@ export function TasksView() {
                     <SortableTaskCard
                       key={t.id}
                       task={t}
+                      highlighted={t.id === highlightId}
                       onToggle={() => toggleTask(t.id)}
                       onAdvance={() => updateTaskStatus(t.id, nextStatus(t.status))}
-                      onRemove={() => removeTask(t.id)}
+                      onRemove={async () => {
+                        const ok = await dialog.confirm({
+                          title: "Aufgabe löschen?",
+                          message: `„${t.title}“ wird dauerhaft entfernt.`,
+                          confirmLabel: "Löschen",
+                          danger: true,
+                        })
+                        if (ok) removeTask(t.id)
+                      }}
                       onLogTime={(minutes) => addTimeEntry({ person: t.person, taskId: t.id, projectId: t.projectId, minutes, date: todayISO() })}
                       onSaveNotes={(notes) => updateTask(t.id, { notes: notes.trim() || undefined })}
+                      onSetDue={(d) => updateTask(t.id, { due: d })}
                       projectName={db.projects.find((p) => p.id === t.projectId)?.name}
                     />
                   ))}
@@ -284,19 +334,23 @@ function Column({
 
 function SortableTaskCard({
   task,
+  highlighted,
   onToggle,
   onAdvance,
   onRemove,
   onLogTime,
   onSaveNotes,
+  onSetDue,
   projectName,
 }: {
   task: Task
+  highlighted?: boolean
   onToggle: () => void
   onAdvance: () => void
   onRemove: () => void
   onLogTime: (minutes: number) => void
   onSaveNotes?: (notes: string) => void
+  onSetDue?: (due: string | undefined) => void
   projectName?: string
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -308,14 +362,16 @@ function SortableTaskCard({
     opacity: isDragging ? 0.35 : 1,
   }
   return (
-    <div ref={setNodeRef} style={style}>
+    <div ref={setNodeRef} style={style} data-task-id={task.id}>
       <TaskCardInner
         task={task}
+        highlighted={highlighted}
         onToggle={onToggle}
         onAdvance={onAdvance}
         onRemove={onRemove}
         onLogTime={onLogTime}
         onSaveNotes={onSaveNotes}
+        onSetDue={onSetDue}
         projectName={projectName}
         handleProps={{ ...attributes, ...listeners }}
       />
@@ -327,21 +383,25 @@ function SortableTaskCard({
 
 function TaskCardInner({
   task,
+  highlighted,
   onToggle,
   onAdvance,
   onRemove,
   onLogTime,
   onSaveNotes,
+  onSetDue,
   projectName,
   handleProps,
   dragging,
 }: {
   task: Task
+  highlighted?: boolean
   onToggle?: () => void
   onAdvance?: () => void
   onRemove?: () => void
   onLogTime?: (minutes: number) => void
   onSaveNotes?: (notes: string) => void
+  onSetDue?: (due: string | undefined) => void
   projectName?: string
   handleProps?: Record<string, unknown>
   dragging?: boolean
@@ -351,6 +411,8 @@ function TaskCardInner({
   const [minutesInput, setMinutesInput] = useState("15")
   const [notesOpen, setNotesOpen] = useState(false)
   const [notesInput, setNotesInput] = useState(task.notes ?? "")
+  const [dueOpen, setDueOpen] = useState(false)
+  const overdue = !done && !!task.due && task.due < todayISO()
   return (
     <div
       className={cn(
@@ -358,6 +420,7 @@ function TaskCardInner({
         dragging
           ? "rotate-[1.5deg] border-primary/40 shadow-2xl shadow-black/60"
           : "hover:border-white/15 hover:bg-[#141414]",
+        highlighted && "ring-2 ring-primary",
       )}
     >
       <div className="flex items-start gap-3">
@@ -413,11 +476,69 @@ function TaskCardInner({
               />
               {PRIORITY_LABEL[task.priority]}
             </span>
-            {task.due && (
-              <span className="inline-flex items-center gap-1.5 rounded-md bg-white/[0.05] px-2 py-1 text-xs text-muted-foreground">
-                <CalendarDays className="h-3.5 w-3.5" />
-                {dateDE(task.due)}
-              </span>
+            {onSetDue && !dragging ? (
+              dueOpen ? (
+                <span
+                  className="inline-flex items-center gap-1.5"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <input
+                    type="date"
+                    defaultValue={task.due ?? ""}
+                    autoFocus
+                    aria-label="Fällig am"
+                    onChange={(e) => {
+                      onSetDue(e.target.value || undefined)
+                      setDueOpen(false)
+                    }}
+                    onKeyDown={(e) => e.key === "Escape" && setDueOpen(false)}
+                    className="h-7 rounded-md border border-border bg-white/[0.03] px-2 text-xs outline-none focus:border-primary/50 [color-scheme:dark]"
+                  />
+                  {task.due && (
+                    <button
+                      onClick={() => {
+                        onSetDue(undefined)
+                        setDueOpen(false)
+                      }}
+                      className="rounded-md px-1.5 py-1 text-xs font-semibold text-muted-foreground hover:text-destructive"
+                    >
+                      Entfernen
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setDueOpen(false)}
+                    className="rounded-md px-1.5 py-1 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                  >
+                    Abbrechen
+                  </button>
+                </span>
+              ) : (
+                <button
+                  onClick={() => setDueOpen(true)}
+                  title={task.due ? "Fälligkeit ändern" : "Fälligkeit setzen"}
+                  aria-label={task.due ? "Fälligkeit ändern" : "Fälligkeit setzen"}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors",
+                    task.due
+                      ? "bg-white/[0.05] text-muted-foreground hover:bg-white/[0.1] hover:text-foreground"
+                      : "border border-dashed border-border text-muted-foreground/70 hover:border-primary/40 hover:text-foreground",
+                  )}
+                  style={overdue ? { backgroundColor: `${EXPENSE}1f`, color: EXPENSE } : undefined}
+                >
+                  <CalendarDays className="h-3.5 w-3.5" />
+                  {task.due ? dateDE(task.due) : "Fällig am"}
+                </button>
+              )
+            ) : (
+              task.due && (
+                <span
+                  className="inline-flex items-center gap-1.5 rounded-md bg-white/[0.05] px-2 py-1 text-xs text-muted-foreground"
+                  style={overdue ? { backgroundColor: `${EXPENSE}1f`, color: EXPENSE } : undefined}
+                >
+                  <CalendarDays className="h-3.5 w-3.5" />
+                  {dateDE(task.due)}
+                </span>
+              )
             )}
             {projectName && (
               <span className="inline-flex items-center gap-1.5 truncate rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
@@ -495,6 +616,7 @@ function TaskCardInner({
               <button
                 onClick={() => { setNotesInput(task.notes ?? ""); setNotesOpen((v) => !v) }}
                 title={task.notes ? "Notiz bearbeiten" : "Notiz hinzufügen"}
+                aria-label={task.notes ? "Notiz bearbeiten" : "Notiz hinzufügen"}
                 className={cn(
                   "rounded-md p-1.5 hover:bg-primary/15 hover:text-primary",
                   notesOpen || task.notes ? "text-primary" : "text-muted-foreground",
@@ -507,6 +629,7 @@ function TaskCardInner({
               <button
                 onClick={() => setLogging((v) => !v)}
                 title="Zeit erfassen"
+                aria-label="Zeit erfassen"
                 className={cn(
                   "rounded-md p-1.5 hover:bg-primary/15 hover:text-primary",
                   logging ? "text-primary" : "text-muted-foreground",
@@ -519,6 +642,7 @@ function TaskCardInner({
               <button
                 onClick={onAdvance}
                 title="Status weiter"
+                aria-label="Status weiter"
                 className="rounded-md p-1.5 text-muted-foreground hover:bg-primary/15 hover:text-primary"
               >
                 <ArrowRight className="h-4 w-4" />
@@ -528,6 +652,7 @@ function TaskCardInner({
               <button
                 onClick={onRemove}
                 title="Löschen"
+                aria-label="Löschen"
                 className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive/15 hover:text-destructive"
               >
                 <Trash2 className="h-4 w-4" />

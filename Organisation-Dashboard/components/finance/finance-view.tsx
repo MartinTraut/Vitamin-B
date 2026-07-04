@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Plus, TrendingUp, TrendingDown, Wallet, Receipt, ArrowDownLeft, ArrowUpRight, Search, Building2, PiggyBank, ArrowRight, Download } from "lucide-react"
 import Link from "next/link"
 import { useStore } from "@/lib/store"
@@ -12,7 +12,7 @@ import {
   type Transaction,
 } from "@/lib/types"
 import { computeTotals } from "@/lib/totals"
-import { eur, eur0, dateShort } from "@/lib/format"
+import { eur, eur0, dateShort, parseAmountDE } from "@/lib/format"
 import { downloadCsv, deNum } from "@/lib/csv"
 import { todayISO, toISO } from "@/lib/recurrence"
 import { buildSeries, GRAN_LABEL, type Gran } from "@/lib/finance-series"
@@ -39,21 +39,14 @@ function trendHint(cur: number, prev: number): string {
 
 const UST_PERIOD_LABEL = { month: "laufender Monat", quarter: "laufendes Quartal", all: "gesamt" } as const
 
-// DE-Betrag robust parsen: "1.234,56" -> 1234.56, "12,50" -> 12.5, "12.50" -> 12.5
-function parseAmount(s: string): number {
-  let t = s.trim()
-  if (t.includes(",")) t = t.replace(/\./g, "").replace(",", ".")
-  const n = Number(t)
-  return Number.isFinite(n) ? n : NaN
-}
-
 export function FinanceView() {
   const { db, addTransaction, updateTransaction, removeTransaction } = useStore()
   // Umsatzbeitrag je Person aus bezahlten Rechnungen — die Buchhaltung selbst bleibt ungeteilt.
   const revenueByPerson = useMemo(() => {
     const map = new Map<string, number>()
     for (const i of db.invoices) {
-      if (i.status !== "bezahlt" || i.voided) continue
+      // Stornorechnungen (negative Gegenbuchung) würden die Person doppelt reduzieren.
+      if (i.status !== "bezahlt" || i.voided || i.creditNoteFor) continue
       map.set(i.person, (map.get(i.person) ?? 0) + computeTotals(i.items).gross)
     }
     const rows = PEOPLE.map((p) => ({ p, sum: map.get(p.id) ?? 0 })).filter((r) => r.sum > 0).sort((a, b) => b.sum - a.sum)
@@ -407,8 +400,15 @@ function TransactionForm({
   const [note, setNote] = useState(initial?.note ?? "")
   const cats = type === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
 
+  // Formular beim Öffnen in den Blick holen — bei langen Listen sitzt es sonst
+  // unsichtbar über der Tabelle ("es passiert nichts").
+  const formRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+  }, [])
+
   return (
-    <div className="space-y-3 border-b border-border bg-white/[0.02] p-4">
+    <div ref={formRef} className="space-y-3 border-b border-border bg-white/[0.02] p-4">
       {initial && <div className="eyebrow">Buchung bearbeiten</div>}
       <div className="flex gap-2">
         <button type="button" onClick={() => { setType("expense"); setCategory(EXPENSE_CATEGORIES[0]) }} className={cn("flex-1 rounded-lg border py-2 text-sm font-medium transition-colors", type === "expense" ? "border-transparent" : "border-border text-muted-foreground")} style={type === "expense" ? { backgroundColor: `${EXPENSE}26`, color: EXPENSE } : undefined}>Ausgabe</button>
@@ -418,7 +418,7 @@ function TransactionForm({
         <select value={category} onChange={(e) => setCategory(e.target.value)} className="h-10 rounded-lg border border-border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50 [color-scheme:dark]">
           {cats.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
-        <input value={amount} onChange={(e) => { setAmount(e.target.value.replace(/[^0-9.,]/g, "")); setError(false) }} inputMode="decimal" placeholder="Betrag € (brutto)" className={cn("h-10 rounded-lg border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50", error ? "border-destructive" : "border-border")} />
+        <input autoFocus value={amount} onChange={(e) => { setAmount(e.target.value.replace(/[^0-9.,]/g, "")); setError(false) }} inputMode="decimal" placeholder="Betrag € (brutto)" className={cn("h-10 rounded-lg border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50", error ? "border-destructive" : "border-border")} />
         <select value={taxRate} onChange={(e) => setTaxRate(Number(e.target.value))} className="h-10 rounded-lg border border-border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50 [color-scheme:dark]">
           <option value={19}>19% USt</option>
           <option value={7}>7% USt</option>
@@ -430,7 +430,7 @@ function TransactionForm({
       <div className="flex justify-end gap-2">
         <Button size="sm" variant="ghost" onClick={onCancel}>Abbrechen</Button>
         <Button size="sm" onClick={() => {
-          const val = parseAmount(amount)
+          const val = parseAmountDE(amount)
           if (!Number.isFinite(val) || val <= 0) { setError(true); return }
           onSave({ type, category, amount: val, taxRate, date, note: note.trim() || undefined })
         }}>Speichern</Button>
