@@ -37,9 +37,11 @@ function parseAmount(s: string): number {
 }
 
 export function PrivateFinanceView() {
-  const { db, activePerson, addTransaction, removeTransaction } = useStore()
+  const { db, activePerson, addTransaction, updateTransaction, removeTransaction } = useStore()
   const person = PEOPLE.find((p) => p.id === activePerson)!
   const [adding, setAdding] = useState(false)
+  // Buchung im Bearbeiten-Modus — nutzt dasselbe Formular wie das Anlegen.
+  const [editing, setEditing] = useState<Transaction | null>(null)
   const [gran, setGran] = useState<Gran>("month")
   // Welche Verlauf-Linien sichtbar sind (über die Legende umschaltbar).
   const [visible, setVisible] = useState<Record<SeriesKey, boolean>>({ income: true, expense: true, profit: true, debt: true })
@@ -151,10 +153,17 @@ export function PrivateFinanceView() {
             <Plus className="h-4 w-4" /> Buchung
           </Button>
         </div>
-        {adding && (
-          <AddPrivateTx
-            onCancel={() => setAdding(false)}
-            onSave={(input) => { addTransaction({ ...input, scope: "private", person: activePerson }); setAdding(false) }}
+        {(adding || editing) && (
+          <PrivateTxForm
+            key={editing?.id ?? "new"}
+            initial={editing ?? undefined}
+            onCancel={() => { setAdding(false); setEditing(null) }}
+            onSave={(input) => {
+              if (editing) updateTransaction(editing.id, input)
+              else addTransaction({ ...input, scope: "private", person: activePerson })
+              setAdding(false)
+              setEditing(null)
+            }}
           />
         )}
         {/* Echte Tabellen-Struktur mit Monats-Gruppen — Betrag auf fester rechtsbündiger Achse */}
@@ -172,6 +181,8 @@ export function PrivateFinanceView() {
               sign: inc ? ("+" as const) : ("−" as const),
               color,
               icon: inc ? <ArrowDownLeft className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />,
+              onEdit: () => { setEditing(t); setAdding(false) },
+              editLabel: "Buchung bearbeiten",
               onRemove: () => removeTransaction(t.id),
               removeLabel: "Buchung löschen",
             }
@@ -369,17 +380,18 @@ function AddDebtForm({ onSave, onCancel }: { onSave: (input: Omit<Debt, "id" | "
 
 /* ---------- private Buchung erfassen ---------- */
 
-function AddPrivateTx({ onSave, onCancel }: { onSave: (input: Omit<Transaction, "id" | "scope" | "person">) => void; onCancel: () => void }) {
-  const [type, setType] = useState<TxType>("expense")
-  const [category, setCategory] = useState(PRIVATE_EXPENSE_CATEGORIES[0])
-  const [amount, setAmount] = useState("")
-  const [date, setDate] = useState(todayISO())
-  const [note, setNote] = useState("")
+function PrivateTxForm({ initial, onSave, onCancel }: { initial?: Transaction; onSave: (input: Omit<Transaction, "id" | "scope" | "person">) => void; onCancel: () => void }) {
+  const [type, setType] = useState<TxType>(initial?.type ?? "expense")
+  const [category, setCategory] = useState(initial?.category ?? PRIVATE_EXPENSE_CATEGORIES[0])
+  const [amount, setAmount] = useState(initial ? String(initial.amount).replace(".", ",") : "")
+  const [date, setDate] = useState(initial?.date ?? todayISO())
+  const [note, setNote] = useState(initial?.note ?? "")
   const [error, setError] = useState(false)
   const cats = type === "income" ? PRIVATE_INCOME_CATEGORIES : PRIVATE_EXPENSE_CATEGORIES
 
   return (
     <div className="space-y-3 border-b border-border bg-white/[0.02] p-4">
+      {initial && <div className="eyebrow">Buchung bearbeiten</div>}
       <div className="flex gap-2">
         <button onClick={() => { setType("expense"); setCategory(PRIVATE_EXPENSE_CATEGORIES[0]) }} className={cn("flex-1 rounded-lg border py-2 text-sm font-medium transition-colors", type === "expense" ? "border-transparent" : "border-border text-muted-foreground")} style={type === "expense" ? { backgroundColor: `${EXPENSE}26`, color: EXPENSE } : undefined}>Ausgabe</button>
         <button onClick={() => { setType("income"); setCategory(PRIVATE_INCOME_CATEGORIES[0]) }} className={cn("flex-1 rounded-lg border py-2 text-sm font-medium transition-colors", type === "income" ? "border-transparent" : "border-border text-muted-foreground")} style={type === "income" ? { backgroundColor: `${INCOME}26`, color: INCOME } : undefined}>Einnahme</button>

@@ -183,6 +183,7 @@ interface StoreValue {
   sendDunning: (id: string) => void
   // Finanzen
   addTransaction: (input: Omit<Transaction, "id">) => void
+  updateTransaction: (id: string, patch: Partial<Omit<Transaction, "id">>) => void
   removeTransaction: (id: string) => void
   // Private Schulden
   addDebt: (input: Omit<Debt, "id" | "createdAt">) => void
@@ -561,6 +562,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setDb((prev) => ({
           ...prev,
           transactions: [{ ...input, id: nanoid(8) }, ...prev.transactions],
+        })),
+      updateTransaction: (id, patch) =>
+        setDb((prev) => ({
+          ...prev,
+          transactions: prev.transactions.map((t) => (t.id === id ? { ...t, ...patch } : t)),
         })),
       removeTransaction: (id) =>
         setDb((prev) => ({ ...prev, transactions: prev.transactions.filter((t) => t.id !== id) })),

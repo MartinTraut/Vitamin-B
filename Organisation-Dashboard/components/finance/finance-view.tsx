@@ -48,7 +48,7 @@ function parseAmount(s: string): number {
 }
 
 export function FinanceView() {
-  const { db, addTransaction, removeTransaction } = useStore()
+  const { db, addTransaction, updateTransaction, removeTransaction } = useStore()
   // Umsatzbeitrag je Person aus bezahlten Rechnungen — die Buchhaltung selbst bleibt ungeteilt.
   const revenueByPerson = useMemo(() => {
     const map = new Map<string, number>()
@@ -61,6 +61,8 @@ export function FinanceView() {
     return { rows, max }
   }, [db.invoices])
   const [adding, setAdding] = useState(false)
+  // Buchung im Bearbeiten-Modus — nutzt dasselbe Formular wie das Anlegen.
+  const [editing, setEditing] = useState<Transaction | null>(null)
   const [gran, setGran] = useState<Gran>("month")
   // Welche Verlauf-Linien sichtbar sind (über die Legende umschaltbar).
   const [visible, setVisible] = useState<Record<SeriesKey, boolean>>({ income: true, expense: true, profit: true, debt: true })
@@ -69,6 +71,7 @@ export function FinanceView() {
   const [search, setSearch] = useState("")
   const [txType, setTxType] = useState<"all" | "income" | "expense">("all")
   const [txPeriod, setTxPeriod] = useState<"all" | "week" | "month">("all")
+  const [txSort, setTxSort] = useState<"date" | "amount">("date")
   // USt-Voranmeldung ist periodenbezogen — Monat/Quartal/Gesamt umschaltbar.
   const [ustPeriod, setUstPeriod] = useState<"month" | "quarter" | "all">("quarter")
 
@@ -122,6 +125,21 @@ export function FinanceView() {
     }
   }, [businessTx])
 
+  // Laufender Saldo je Buchung — über ALLE Firmen-Buchungen chronologisch,
+  // damit der Wert einer Zeile stabil bleibt, egal welcher Filter aktiv ist.
+  const balances = useMemo(() => {
+    const map = new Map<string, number>()
+    // reverse(): älteste Einträge zuerst (Store prependet Neues); stabile Sortierung hält
+    // die Erfassungs-Reihenfolge innerhalb desselben Datums.
+    const chrono = [...businessTx].reverse().sort((a, b) => a.date.localeCompare(b.date))
+    let run = 0
+    for (const t of chrono) {
+      run += t.type === "income" ? t.amount : -t.amount
+      map.set(t.id, run)
+    }
+    return map
+  }, [businessTx])
+
   // Gefilterte Buchungsliste (Suche + Typ + Zeitraum)
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -141,9 +159,10 @@ export function FinanceView() {
       if (q && !(t.category.toLowerCase().includes(q) || (t.note ?? "").toLowerCase().includes(q))) return false
       return true
     })
+    if (txSort === "amount") list.sort((a, b) => b.amount - a.amount)
     const net = list.reduce((s, t) => s + (t.type === "income" ? t.amount : -t.amount), 0)
     return { list, net }
-  }, [m.sorted, search, txType, txPeriod])
+  }, [m.sorted, search, txType, txPeriod, txSort])
 
   return (
     // System-Regel 1: Breiten-Deckel — nur auf Content-Seiten (nicht Whiteboard/Canvas).
@@ -305,12 +324,24 @@ export function FinanceView() {
             onChange={(v) => setTxPeriod(v as typeof txPeriod)}
             options={[{ v: "all", l: "Gesamt" }, { v: "week", l: "Woche" }, { v: "month", l: "Monat" }]}
           />
+          <SegmentedControl
+            value={txSort}
+            onChange={(v) => setTxSort(v as typeof txSort)}
+            options={[{ v: "date", l: "Datum" }, { v: "amount", l: "Betrag" }]}
+          />
         </div>
 
-        {adding && (
-          <AddTransaction
-            onCancel={() => setAdding(false)}
-            onSave={(input) => { addTransaction(input); setAdding(false) }}
+        {(adding || editing) && (
+          <TransactionForm
+            key={editing?.id ?? "new"}
+            initial={editing ?? undefined}
+            onCancel={() => { setAdding(false); setEditing(null) }}
+            onSave={(input) => {
+              if (editing) updateTransaction(editing.id, input)
+              else addTransaction(input)
+              setAdding(false)
+              setEditing(null)
+            }}
           />
         )}
         {/* Echte Tabellen-Struktur: Spalten-Kopf, Monats-Gruppen mit Zwischensumme,
@@ -318,6 +349,8 @@ export function FinanceView() {
         <div className="min-h-[220px]">
           <LedgerTable
             withVat
+            withBalance={txSort === "date"}
+            groupMonths={txSort === "date"}
             emptyText={m.sorted.length === 0 ? "Noch keine Buchungen." : "Keine Treffer für diesen Filter."}
             rows={filtered.list.map((t) => {
               const inc = t.type === "income"
@@ -331,7 +364,10 @@ export function FinanceView() {
                 sign: inc ? ("+" as const) : ("−" as const),
                 color,
                 vat: `${t.taxRate} %`,
+                balance: balances.get(t.id),
                 icon: inc ? <ArrowDownLeft className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />,
+                onEdit: () => { setEditing(t); setAdding(false) },
+                editLabel: "Buchung bearbeiten",
                 onRemove: () => removeTransaction(t.id),
                 removeLabel: "Buchung löschen",
               }
@@ -353,24 +389,27 @@ export function FinanceView() {
   )
 }
 
-function AddTransaction({
+function TransactionForm({
+  initial,
   onSave,
   onCancel,
 }: {
+  initial?: Transaction
   onSave: (input: Omit<Transaction, "id">) => void
   onCancel: () => void
 }) {
-  const [type, setType] = useState<TxType>("expense")
-  const [category, setCategory] = useState(EXPENSE_CATEGORIES[0])
-  const [amount, setAmount] = useState("")
-  const [taxRate, setTaxRate] = useState(19)
-  const [date, setDate] = useState(todayISO())
+  const [type, setType] = useState<TxType>(initial?.type ?? "expense")
+  const [category, setCategory] = useState(initial?.category ?? EXPENSE_CATEGORIES[0])
+  const [amount, setAmount] = useState(initial ? String(initial.amount).replace(".", ",") : "")
+  const [taxRate, setTaxRate] = useState(initial?.taxRate ?? 19)
+  const [date, setDate] = useState(initial?.date ?? todayISO())
   const [error, setError] = useState(false)
-  const [note, setNote] = useState("")
+  const [note, setNote] = useState(initial?.note ?? "")
   const cats = type === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
 
   return (
     <div className="space-y-3 border-b border-border bg-white/[0.02] p-4">
+      {initial && <div className="eyebrow">Buchung bearbeiten</div>}
       <div className="flex gap-2">
         <button type="button" onClick={() => { setType("expense"); setCategory(EXPENSE_CATEGORIES[0]) }} className={cn("flex-1 rounded-lg border py-2 text-sm font-medium transition-colors", type === "expense" ? "border-transparent" : "border-border text-muted-foreground")} style={type === "expense" ? { backgroundColor: `${EXPENSE}26`, color: EXPENSE } : undefined}>Ausgabe</button>
         <button type="button" onClick={() => { setType("income"); setCategory(INCOME_CATEGORIES[0]) }} className={cn("flex-1 rounded-lg border py-2 text-sm font-medium transition-colors", type === "income" ? "border-transparent" : "border-border text-muted-foreground")} style={type === "income" ? { backgroundColor: `${INCOME}26`, color: INCOME } : undefined}>Einnahme</button>

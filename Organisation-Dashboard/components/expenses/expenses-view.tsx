@@ -30,11 +30,14 @@ function parseAmount(s: string): number {
 }
 
 export function ExpensesView() {
-  const { db, addTransaction, removeTransaction } = useStore()
+  const { db, addTransaction, updateTransaction, removeTransaction } = useStore()
   const [adding, setAdding] = useState(false)
+  // Beleg im Bearbeiten-Modus — nutzt dasselbe Formular wie das Erfassen.
+  const [editing, setEditing] = useState<Transaction | null>(null)
   const [search, setSearch] = useState("")
   const [period, setPeriod] = useState<"all" | "week" | "month">("all")
   const [cat, setCat] = useState<string>("all")
+  const [sortBy, setSortBy] = useState<"date" | "amount">("date")
 
   // Nur geschäftliche Ausgaben (Belege/Eingangsrechnungen). Private laufen unter /privat.
   const expenses = useMemo(
@@ -76,10 +79,10 @@ export function ExpensesView() {
         if (q && !(t.category.toLowerCase().includes(q) || (t.note ?? "").toLowerCase().includes(q))) return false
         return true
       })
-      .sort((a, b) => b.date.localeCompare(a.date))
+      .sort((a, b) => (sortBy === "amount" ? b.amount - a.amount : b.date.localeCompare(a.date)))
     const sum = list.reduce((s, t) => s + t.amount, 0)
     return { list, sum }
-  }, [expenses, search, period, cat, monthStartISO])
+  }, [expenses, search, period, cat, monthStartISO, sortBy])
 
   return (
     <div className="space-y-4">
@@ -156,18 +159,31 @@ export function ExpensesView() {
               <option value="all">Alle Kategorien</option>
               {EXPENSE_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
+            <SegmentedControl
+              value={sortBy}
+              onChange={(v) => setSortBy(v as typeof sortBy)}
+              options={[{ v: "date", l: "Datum" }, { v: "amount", l: "Betrag" }]}
+            />
           </div>
 
-          {adding && (
-            <AddExpense
-              onCancel={() => setAdding(false)}
-              onSave={(input) => { addTransaction(input); setAdding(false) }}
+          {(adding || editing) && (
+            <ExpenseForm
+              key={editing?.id ?? "new"}
+              initial={editing ?? undefined}
+              onCancel={() => { setAdding(false); setEditing(null) }}
+              onSave={(input) => {
+                if (editing) updateTransaction(editing.id, input)
+                else addTransaction(input)
+                setAdding(false)
+                setEditing(null)
+              }}
             />
           )}
 
           {/* Echte Tabellen-Struktur mit Monats-Gruppen — Betrag auf fester rechtsbündiger Achse */}
           <LedgerTable
             withVat
+            groupMonths={sortBy === "date"}
             emptyText={expenses.length === 0 ? "Noch keine Belege erfasst." : "Keine Treffer für diesen Filter."}
             rows={filtered.list.map((t) => ({
               id: t.id,
@@ -179,6 +195,8 @@ export function ExpensesView() {
               color: EXPENSE,
               vat: `${t.taxRate} %`,
               icon: <ArrowUpRight className="h-4 w-4" />,
+              onEdit: () => { setEditing(t); setAdding(false) },
+              editLabel: "Beleg bearbeiten",
               onRemove: () => removeTransaction(t.id),
               removeLabel: "Beleg löschen",
             }))}
@@ -208,22 +226,25 @@ export function ExpensesView() {
   )
 }
 
-function AddExpense({
+function ExpenseForm({
+  initial,
   onSave,
   onCancel,
 }: {
+  initial?: Transaction
   onSave: (input: Omit<Transaction, "id">) => void
   onCancel: () => void
 }) {
-  const [category, setCategory] = useState(EXPENSE_CATEGORIES[0])
-  const [amount, setAmount] = useState("")
-  const [taxRate, setTaxRate] = useState(19)
-  const [date, setDate] = useState(todayISO())
-  const [note, setNote] = useState("")
+  const [category, setCategory] = useState(initial?.category ?? EXPENSE_CATEGORIES[0])
+  const [amount, setAmount] = useState(initial ? String(initial.amount).replace(".", ",") : "")
+  const [taxRate, setTaxRate] = useState(initial?.taxRate ?? 19)
+  const [date, setDate] = useState(initial?.date ?? todayISO())
+  const [note, setNote] = useState(initial?.note ?? "")
   const [error, setError] = useState(false)
 
   return (
     <div className="space-y-3 border-b border-border bg-white/[0.02] p-4">
+      {initial && <div className="eyebrow">Beleg bearbeiten</div>}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <select value={category} onChange={(e) => setCategory(e.target.value)} className="h-10 rounded-lg border border-border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50 [color-scheme:dark]">
           {EXPENSE_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}

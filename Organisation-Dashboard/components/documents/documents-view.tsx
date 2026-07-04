@@ -11,6 +11,7 @@ import {
   Search,
   CheckCircle2,
   AlertTriangle,
+  Clock,
   X,
   Save,
 } from "lucide-react"
@@ -33,12 +34,14 @@ import {
   type RecurrenceFreq,
 } from "@/lib/types"
 import { computeTotals, lineNet } from "@/lib/totals"
-import { eur, dateDE, dateLong } from "@/lib/format"
+import { eur, eur0, dateDE, dateLong } from "@/lib/format"
+import { INCOME, EXPENSE, BLUE, PURPLE } from "@/lib/theme-colors"
 import type { Customer, CompanySettings } from "@/lib/types"
 import { todayISO, addDaysISO, nthOccurrenceOf } from "@/lib/recurrence"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { KpiTile } from "@/components/ui/kpi-tile"
 import { cn } from "@/lib/utils"
 import { nanoid } from "nanoid"
 
@@ -130,8 +133,44 @@ export function DocumentsView({ kind }: { kind: Kind }) {
 
   const templates = db.templates.filter((t) => t.kind === kind)
 
+  // KPI-Kopf (nur Rechnungen): Offen / Überfällig / Bezahlt (Jahr) / Entwürfe.
+  // Teamweit über ALLE Rechnungen — eine Buchhaltung, unabhängig vom „Alle/Meine“-Filter.
+  // Stornierte Originale und Stornorechnungen bleiben außen vor.
+  const today = todayISO()
+  const kpis = isQuote
+    ? null
+    : (() => {
+        const year = today.slice(0, 4)
+        let open = 0, openCount = 0, overdue = 0, overdueCount = 0, paidYear = 0, drafts = 0
+        for (const d of db.invoices) {
+          if (d.voided || d.creditNoteFor) continue
+          const gross = computeTotals(d.items).gross
+          if (d.status === "entwurf") { drafts++; continue }
+          if (d.status === "bezahlt") {
+            if (d.issueDate.slice(0, 4) === year) paidYear += gross
+            continue
+          }
+          // gesendet oder ueberfaellig → offener Posten
+          open += gross
+          openCount++
+          if (d.status === "ueberfaellig" || d.dueDate < today) {
+            overdue += gross
+            overdueCount++
+          }
+        }
+        return { year, open, openCount, overdue, overdueCount, paidYear, drafts }
+      })()
+
   return (
     <div className="space-y-4">
+      {kpis && (
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <KpiTile icon={Clock} label="Offen" value={eur0(kpis.open)} accent={BLUE} hint={`${kpis.openCount} ${kpis.openCount === 1 ? "Rechnung" : "Rechnungen"}`} />
+          <KpiTile icon={AlertTriangle} label="Überfällig" value={eur0(kpis.overdue)} accent={EXPENSE} hint={kpis.overdueCount > 0 ? `${kpis.overdueCount} ${kpis.overdueCount === 1 ? "Rechnung — mahnen!" : "Rechnungen — mahnen!"}` : "alles im grünen Bereich"} />
+          <KpiTile icon={CheckCircle2} label={`Bezahlt ${kpis.year}`} value={eur0(kpis.paidYear)} accent={INCOME} />
+          <KpiTile icon={FileText} label="Entwürfe" value={String(kpis.drafts)} accent={PURPLE} />
+        </div>
+      )}
       <Card className="flex flex-wrap items-center gap-2 p-4">
         <div className="relative w-full min-w-[160px] sm:w-auto sm:flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
