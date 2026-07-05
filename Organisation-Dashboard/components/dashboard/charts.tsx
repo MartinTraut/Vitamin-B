@@ -17,9 +17,13 @@ import { Check } from "lucide-react"
 import type { SeriesPoint } from "@/lib/finance-series"
 import { eur, eur0 } from "@/lib/format"
 import { cn } from "@/lib/utils"
+import { INCOME, EXPENSE, ORANGE, PURPLE, BLUE, DEBT } from "@/lib/theme-colors"
 
 // Kräftige, gut unterscheidbare Palette für Kategorie-Segmente.
-export const DONUT_COLORS = ["#ef4444", "#f59e0b", "#E39832", "#a855f7", "#3b82f6", "#34d399", "#ec4899", "#14b8a6"]
+export const DONUT_COLORS = [EXPENSE, "#f59e0b", ORANGE, PURPLE, BLUE, INCOME, "#ec4899", "#14b8a6"]
+
+// Einheitlicher Recharts-Tooltip-Stil (Donut + Flächen-Chart teilen sich diesen).
+const CHART_TOOLTIP_STYLE = { background: "#0d0d0d", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, fontSize: 13 }
 
 export function CategoryDonut({ data }: { data: { name: string; value: number }[] }) {
   const total = data.reduce((s, d) => s + d.value, 0)
@@ -37,14 +41,14 @@ export function CategoryDonut({ data }: { data: { name: string; value: number }[
               ))}
             </Pie>
             <Tooltip
-              contentStyle={{ background: "#0d0d0d", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, fontSize: 13 }}
+              contentStyle={CHART_TOOLTIP_STYLE}
               formatter={(value, name) => [eur(Number(value)), String(name)]}
             />
           </PieChart>
         </ResponsiveContainer>
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
           <span className="text-xs text-muted-foreground">Gesamt</span>
-          <span className="num font-heading text-xl font-bold">{eur0(total)}</span>
+          <span className="num font-heading text-[clamp(1.05rem,1vw+0.85rem,1.25rem)] font-bold">{eur0(total)}</span>
         </div>
       </div>
       <div className="mt-4 space-y-2">
@@ -61,11 +65,12 @@ export function CategoryDonut({ data }: { data: { name: string; value: number }[
   )
 }
 
-export type SeriesKey = "income" | "expense" | "debt"
+export type SeriesKey = "income" | "expense" | "profit" | "debt"
 
 const SERIES_LABEL: Record<SeriesKey, string> = {
   income: "Einnahmen",
   expense: "Ausgaben",
+  profit: "Gewinn",
   debt: "Schulden",
 }
 
@@ -124,34 +129,39 @@ export function FinanceChart({
   data,
   height = 260,
   visible,
+  labels,
 }: {
   data: SeriesPoint[]
   height?: number | "full"
   visible?: Partial<Record<SeriesKey, boolean>>
+  labels?: Partial<Record<SeriesKey, string>> // z. B. privat: profit → „Saldo"
 }) {
   const fill = height === "full"
   const show = {
     income: visible?.income ?? true,
     expense: visible?.expense ?? true,
+    profit: visible?.profit ?? false, // opt-in — nur wenn die View den Gewinn anbietet
     debt: visible?.debt ?? true,
   }
   const hasDebt = data.some((d) => typeof d.debt === "number") && show.debt
+  // Negative Werte (Restschuld oder Verlust-Monate) brauchen eine 0-Linie + erweiterte Domain.
+  const hasNeg = hasDebt || (show.profit && data.some((d) => d.profit < 0))
   return (
     <div className={cn("w-full", fill && "h-full")} style={fill ? undefined : { height }}>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 8, right: 8, left: -4, bottom: 0 }}>
           <defs>
             <linearGradient id="incomeFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#34d399" stopOpacity={0.4} />
-              <stop offset="100%" stopColor="#34d399" stopOpacity={0} />
+              <stop offset="0%" stopColor={INCOME} stopOpacity={0.4} />
+              <stop offset="100%" stopColor={INCOME} stopOpacity={0} />
             </linearGradient>
             <linearGradient id="expenseFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#ef4444" stopOpacity={0.28} />
-              <stop offset="100%" stopColor="#ef4444" stopOpacity={0} />
+              <stop offset="0%" stopColor={EXPENSE} stopOpacity={0.28} />
+              <stop offset="100%" stopColor={EXPENSE} stopOpacity={0} />
             </linearGradient>
             <linearGradient id="debtFillInline" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#f59e0b" stopOpacity={0} />
-              <stop offset="100%" stopColor="#f59e0b" stopOpacity={0.38} />
+              <stop offset="0%" stopColor={DEBT} stopOpacity={0} />
+              <stop offset="100%" stopColor={DEBT} stopOpacity={0.38} />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" vertical={false} />
@@ -162,25 +172,23 @@ export function FinanceChart({
             axisLine={false}
             width={42}
             tickFormatter={(v) => `${Math.round(Number(v) / 1000)}k`}
-            domain={hasDebt ? [(min: number) => Math.floor(Math.min(0, min) / 1000) * 1000, (max: number) => Math.ceil(Math.max(0, max) / 1000) * 1000] : undefined}
+            domain={hasNeg ? [(min: number) => Math.floor(Math.min(0, min) / 1000) * 1000, (max: number) => Math.ceil(Math.max(0, max) / 1000) * 1000] : undefined}
           />
-          {hasDebt && <ReferenceLine y={0} stroke="rgba(255,255,255,0.22)" />}
+          {hasNeg && <ReferenceLine y={0} stroke="rgba(255,255,255,0.22)" />}
           <Tooltip
-            contentStyle={{
-              background: "#0d0d0d",
-              border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: 12,
-              fontSize: 13,
-            }}
+            contentStyle={CHART_TOOLTIP_STYLE}
             labelStyle={{ color: "#f5f5f5", fontWeight: 600 }}
-            formatter={(value, name) => [
-              eur0(Math.abs(Number(value))),
-              name === "income" ? "Einnahmen" : name === "debt" ? "Restschuld" : "Ausgaben",
-            ]}
+            formatter={(value, name) => {
+              const key = name as SeriesKey
+              const label = labels?.[key] ?? (key === "debt" ? "Restschuld" : SERIES_LABEL[key] ?? String(name))
+              return [key === "profit" ? eur0(Number(value)) : eur0(Math.abs(Number(value))), label]
+            }}
           />
-          {hasDebt && <Area type="monotone" dataKey="debt" stroke="#f59e0b" strokeWidth={2.5} fill="url(#debtFillInline)" />}
-          {show.income && <Area type="monotone" dataKey="income" stroke="#34d399" strokeWidth={2.5} fill="url(#incomeFill)" />}
-          {show.expense && <Area type="monotone" dataKey="expense" stroke="#ef4444" strokeWidth={2} fill="url(#expenseFill)" />}
+          {hasDebt && <Area type="monotone" dataKey="debt" stroke={DEBT} strokeWidth={2.5} fill="url(#debtFillInline)" />}
+          {show.income && <Area type="monotone" dataKey="income" stroke={INCOME} strokeWidth={2.5} fill="url(#incomeFill)" />}
+          {show.expense && <Area type="monotone" dataKey="expense" stroke={EXPENSE} strokeWidth={2} fill="url(#expenseFill)" />}
+          {/* Gewinn als gestrichelte Akzent-Linie ohne Fläche — abgeleitete Kennzahl, klar unterscheidbar */}
+          {show.profit && <Area type="monotone" dataKey="profit" stroke={ORANGE} strokeWidth={2.5} strokeDasharray="6 4" fill="transparent" />}
         </AreaChart>
       </ResponsiveContainer>
     </div>

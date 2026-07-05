@@ -1,37 +1,35 @@
 "use client"
 
-import { useMemo, useState } from "react"
-import { Plus, TrendingDown, Receipt, ReceiptText, Layers, Trash2, ArrowUpRight, Search, Building2 } from "lucide-react"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { Plus, TrendingDown, Receipt, ReceiptText, Layers, ArrowUpRight, Search, Building2, Download } from "lucide-react"
 import Link from "next/link"
 import { useStore } from "@/lib/store"
 import { EXPENSE_CATEGORIES, type Transaction } from "@/lib/types"
-import { eur, eur0, dateDE } from "@/lib/format"
+import { eur, eur0, dateShort, parseAmountDE } from "@/lib/format"
+import { downloadCsv, deNum } from "@/lib/csv"
 import { todayISO, toISO } from "@/lib/recurrence"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { KpiTile } from "@/components/ui/kpi-tile"
+import { SegmentedControl } from "@/components/ui/segmented-control"
+import { LedgerTable } from "@/components/ui/ledger-table"
 import { CategoryDonut } from "@/components/dashboard/charts"
 import { cn } from "@/lib/utils"
-
-const EXPENSE = "#ef4444"
+import { EXPENSE, ORANGE, BLUE, PURPLE } from "@/lib/theme-colors"
 
 function netOf(amount: number, rate: number) {
   return amount / (1 + rate / 100)
 }
 
-// DE-Betrag robust parsen: "1.234,56" -> 1234.56, "12,50" -> 12.5, "12.50" -> 12.5
-function parseAmount(s: string): number {
-  let t = s.trim()
-  if (t.includes(",")) t = t.replace(/\./g, "").replace(",", ".")
-  const n = Number(t)
-  return Number.isFinite(n) ? n : NaN
-}
-
 export function ExpensesView() {
-  const { db, addTransaction, removeTransaction } = useStore()
+  const { db, addTransaction, updateTransaction, removeTransaction } = useStore()
   const [adding, setAdding] = useState(false)
+  // Beleg im Bearbeiten-Modus — nutzt dasselbe Formular wie das Erfassen.
+  const [editing, setEditing] = useState<Transaction | null>(null)
   const [search, setSearch] = useState("")
   const [period, setPeriod] = useState<"all" | "week" | "month">("all")
   const [cat, setCat] = useState<string>("all")
+  const [sortBy, setSortBy] = useState<"date" | "amount">("date")
 
   // Nur geschäftliche Ausgaben (Belege/Eingangsrechnungen). Private laufen unter /privat.
   const expenses = useMemo(
@@ -73,10 +71,10 @@ export function ExpensesView() {
         if (q && !(t.category.toLowerCase().includes(q) || (t.note ?? "").toLowerCase().includes(q))) return false
         return true
       })
-      .sort((a, b) => b.date.localeCompare(a.date))
+      .sort((a, b) => (sortBy === "amount" ? b.amount - a.amount : b.date.localeCompare(a.date)))
     const sum = list.reduce((s, t) => s + t.amount, 0)
     return { list, sum }
-  }, [expenses, search, period, cat, monthStartISO])
+  }, [expenses, search, period, cat, monthStartISO, sortBy])
 
   return (
     <div className="space-y-4">
@@ -98,20 +96,39 @@ export function ExpensesView() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Kpi icon={TrendingDown} label="Ausgaben gesamt" value={eur0(m.total)} accent={EXPENSE} />
-        <Kpi icon={ReceiptText} label="Diesen Monat" value={eur0(m.month)} accent="#E39832" />
-        <Kpi icon={Receipt} label="Vorsteuer abziehbar" value={eur0(m.vorsteuer)} accent="#3b82f6" />
-        <Kpi icon={Layers} label="Belege" value={String(m.count)} accent="#a855f7" />
+        <KpiTile icon={TrendingDown} label="Ausgaben gesamt" value={eur0(m.total)} accent={EXPENSE} />
+        <KpiTile icon={ReceiptText} label="Diesen Monat" value={eur0(m.month)} accent={ORANGE} />
+        <KpiTile icon={Receipt} label="Vorsteuer abziehbar" value={eur0(m.vorsteuer)} accent={BLUE} />
+        <KpiTile icon={Layers} label="Belege" value={String(m.count)} accent={PURPLE} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
         {/* Belegliste */}
         <Card className="flex flex-col overflow-hidden lg:col-span-2">
-          <div className="flex items-center justify-between border-b border-border p-4">
+          <div className="flex items-center justify-between gap-2 border-b border-border p-4">
             <h3 className="font-heading text-base font-bold">Belege</h3>
-            <Button size="sm" onClick={() => setAdding((v) => !v)}>
-              <Plus className="h-4 w-4" /> Beleg erfassen
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                title="Gefilterte Belege als CSV exportieren (Steuerberater)"
+                onClick={() =>
+                  downloadCsv(
+                    `belege-${todayISO()}.csv`,
+                    ["Datum", "Kategorie", "Notiz", "Betrag brutto", "USt-Satz", "Netto", "Vorsteuer"],
+                    filtered.list.map((t) => {
+                      const net = netOf(t.amount, t.taxRate)
+                      return [dateShort(t.date), t.category, t.note ?? "", deNum(t.amount), `${t.taxRate} %`, deNum(net), deNum(t.amount - net)]
+                    }),
+                  )
+                }
+              >
+                <Download className="h-4 w-4" /> CSV
+              </Button>
+              <Button size="sm" onClick={() => setAdding((v) => !v)}>
+                <Plus className="h-4 w-4" /> Beleg erfassen
+              </Button>
+            </div>
           </div>
 
           {/* Filterleiste: Suche · Zeitraum · Kategorie */}
@@ -125,7 +142,7 @@ export function ExpensesView() {
                 className="h-9 w-full rounded-lg border border-border bg-white/[0.03] pl-9 pr-3 text-sm outline-none focus:border-primary/50"
               />
             </div>
-            <Segmented
+            <SegmentedControl
               value={period}
               onChange={(v) => setPeriod(v as typeof period)}
               options={[{ v: "all", l: "Gesamt" }, { v: "week", l: "Woche" }, { v: "month", l: "Monat" }]}
@@ -134,37 +151,48 @@ export function ExpensesView() {
               <option value="all">Alle Kategorien</option>
               {EXPENSE_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
+            <SegmentedControl
+              value={sortBy}
+              onChange={(v) => setSortBy(v as typeof sortBy)}
+              options={[{ v: "date", l: "Datum" }, { v: "amount", l: "Betrag" }]}
+            />
           </div>
 
-          {adding && (
-            <AddExpense
-              onCancel={() => setAdding(false)}
-              onSave={(input) => { addTransaction(input); setAdding(false) }}
+          {(adding || editing) && (
+            <ExpenseForm
+              key={editing?.id ?? "new"}
+              initial={editing ?? undefined}
+              onCancel={() => { setAdding(false); setEditing(null) }}
+              onSave={(input) => {
+                if (editing) updateTransaction(editing.id, input)
+                else addTransaction(input)
+                setAdding(false)
+                setEditing(null)
+              }}
             />
           )}
 
-          <div className="divide-y divide-border">
-            {filtered.list.length === 0 && (
-              <p className="p-6 text-center text-sm text-muted-foreground">
-                {expenses.length === 0 ? "Noch keine Belege erfasst." : "Keine Treffer für diesen Filter."}
-              </p>
-            )}
-            {filtered.list.map((t) => (
-              <div key={t.id} className="group flex items-center gap-3 px-4 py-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${EXPENSE}1f`, color: EXPENSE }}>
-                  <ArrowUpRight className="h-4 w-4" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-medium">{t.category}{t.note ? <span className="font-normal text-muted-foreground"> · {t.note}</span> : ""}</div>
-                  <div className="text-xs text-muted-foreground">{dateDE(t.date)} · {t.taxRate}% USt</div>
-                </div>
-                <span className="text-sm font-semibold tabular-nums" style={{ color: EXPENSE }}>−{eur(t.amount)}</span>
-                <button onClick={() => removeTransaction(t.id)} aria-label="Beleg löschen" title="Beleg löschen" className="action-reveal rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60">
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            ))}
-          </div>
+          {/* Echte Tabellen-Struktur mit Monats-Gruppen — Betrag auf fester rechtsbündiger Achse */}
+          <LedgerTable
+            withVat
+            groupMonths={sortBy === "date"}
+            emptyText={expenses.length === 0 ? "Noch keine Belege erfasst." : "Keine Treffer für diesen Filter."}
+            rows={filtered.list.map((t) => ({
+              id: t.id,
+              label: t.category,
+              note: t.note,
+              date: t.date,
+              amount: t.amount,
+              sign: "−" as const,
+              color: EXPENSE,
+              vat: `${t.taxRate} %`,
+              icon: <ArrowUpRight className="h-4 w-4" />,
+              onEdit: () => { setEditing(t); setAdding(false) },
+              editLabel: "Beleg bearbeiten",
+              onRemove: () => removeTransaction(t.id),
+              removeLabel: "Beleg löschen",
+            }))}
+          />
 
           {filtered.list.length > 0 && (
             <div className="flex items-center justify-between border-t border-border bg-white/[0.015] px-4 py-2.5 text-xs">
@@ -190,50 +218,37 @@ export function ExpensesView() {
   )
 }
 
-function Segmented({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: { v: string; l: string }[] }) {
-  return (
-    <div className="flex items-center rounded-lg border border-border bg-white/[0.03] p-0.5">
-      {options.map((o) => {
-        const active = value === o.v
-        return (
-          <button
-            key={o.v}
-            onClick={() => onChange(o.v)}
-            aria-pressed={active}
-            className={cn(
-              "rounded-md px-2.5 py-1 text-xs font-semibold transition-colors",
-              active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {o.l}
-          </button>
-        )
-      })}
-    </div>
-  )
-}
-
-function AddExpense({
+function ExpenseForm({
+  initial,
   onSave,
   onCancel,
 }: {
+  initial?: Transaction
   onSave: (input: Omit<Transaction, "id">) => void
   onCancel: () => void
 }) {
-  const [category, setCategory] = useState(EXPENSE_CATEGORIES[0])
-  const [amount, setAmount] = useState("")
-  const [taxRate, setTaxRate] = useState(19)
-  const [date, setDate] = useState(todayISO())
-  const [note, setNote] = useState("")
+  const [category, setCategory] = useState(initial?.category ?? EXPENSE_CATEGORIES[0])
+  const [amount, setAmount] = useState(initial ? String(initial.amount).replace(".", ",") : "")
+  const [taxRate, setTaxRate] = useState(initial?.taxRate ?? 19)
+  const [date, setDate] = useState(initial?.date ?? todayISO())
+  const [note, setNote] = useState(initial?.note ?? "")
   const [error, setError] = useState(false)
 
+  // Formular beim Öffnen in den Blick holen — bei langen Listen sitzt es sonst
+  // unsichtbar über der Tabelle ("es passiert nichts").
+  const formRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+  }, [])
+
   return (
-    <div className="space-y-3 border-b border-border bg-white/[0.02] p-4">
+    <div ref={formRef} className="space-y-3 border-b border-border bg-white/[0.02] p-4">
+      {initial && <div className="eyebrow">Beleg bearbeiten</div>}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <select value={category} onChange={(e) => setCategory(e.target.value)} className="h-10 rounded-lg border border-border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50 [color-scheme:dark]">
           {EXPENSE_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
-        <input value={amount} onChange={(e) => { setAmount(e.target.value.replace(/[^0-9.,]/g, "")); setError(false) }} inputMode="decimal" placeholder="Betrag € (brutto)" className={cn("h-10 rounded-lg border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50", error ? "border-destructive" : "border-border")} />
+        <input autoFocus value={amount} onChange={(e) => { setAmount(e.target.value.replace(/[^0-9.,]/g, "")); setError(false) }} inputMode="decimal" placeholder="Betrag € (brutto)" className={cn("h-10 rounded-lg border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50", error ? "border-destructive" : "border-border")} />
         <select value={taxRate} onChange={(e) => setTaxRate(Number(e.target.value))} className="h-10 rounded-lg border border-border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50 [color-scheme:dark]">
           <option value={19}>19% USt</option>
           <option value={7}>7% USt</option>
@@ -245,7 +260,7 @@ function AddExpense({
       <div className="flex justify-end gap-2">
         <Button size="sm" variant="ghost" onClick={onCancel}>Abbrechen</Button>
         <Button size="sm" onClick={() => {
-          const val = parseAmount(amount)
+          const val = parseAmountDE(amount)
           if (!Number.isFinite(val) || val <= 0) { setError(true); return }
           onSave({ type: "expense", category, amount: val, taxRate, date, note: note.trim() || undefined })
         }}>Speichern</Button>
@@ -254,16 +269,3 @@ function AddExpense({
   )
 }
 
-function Kpi({ icon: Icon, label, value, accent }: { icon: typeof TrendingDown; label: string; value: string; accent: string }) {
-  return (
-    <Card className="hover-aura flex items-center gap-3 p-4">
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${accent}1f`, color: accent, border: `1px solid ${accent}33` }}>
-        <Icon className="h-5 w-5" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="eyebrow truncate">{label}</div>
-        <div className="num truncate font-heading text-[clamp(1rem,5vw,1.5rem)] font-bold leading-tight tracking-tight sm:text-2xl">{value}</div>
-      </div>
-    </Card>
-  )
-}

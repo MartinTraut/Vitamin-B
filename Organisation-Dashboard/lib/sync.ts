@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, type Dispatch, type SetStateAction } from "react"
 import { supabase, isSupabaseEnabled } from "./supabase"
+import { withOverdue } from "./invoice-rules"
 import type { Database } from "./types"
 
 // Eine Zeile pro Top-Level-Collection in der Tabelle `app_state` (key, data jsonb).
@@ -23,6 +24,8 @@ const KEYS: (keyof Database)[] = [
   "templates",
   "company",
   "whiteboards",
+  "notes",
+  "timeEntries",
 ]
 
 /**
@@ -70,7 +73,11 @@ export function useSupabaseSync(
           incoming[row.key] = row.data as never
           lastSynced.current[row.key] = JSON.stringify(row.data)
         }
-        setDb((prev) => ({ ...prev, ...incoming }))
+        // Nur den deterministischen Überfällig-Status erneut ableiten. Folge-
+        // rechnungen werden hier bewusst NICHT generiert: das erzeugt pro Gerät
+        // neue IDs/Nummern und führt bei zwei offenen Geräten zu §14-Duplikaten.
+        // Die Generierung läuft ausschließlich über den lokalen Store-Load.
+        setDb((prev) => withOverdue({ ...prev, ...incoming }))
       }
       loaded.current = true
     }
@@ -89,7 +96,12 @@ export function useSupabaseSync(
           // Eigener Schreibvorgang? Stand stimmt überein → ignorieren.
           if (lastSynced.current[row.key] === json) return
           lastSynced.current[row.key] = json
-          setDb((prev) => ({ ...prev, [row.key as keyof Database]: row.data as never }))
+          setDb((prev) => {
+            const next = { ...prev, [row.key as keyof Database]: row.data as never }
+            // Nur der Überfällig-Status wird nachgezogen (deterministisch, idempotent).
+            // Keine Folgerechnungs-Generierung im Sync — siehe Bootstrap-Kommentar.
+            return row.key === "invoices" ? withOverdue(next) : next
+          })
         },
       )
       .subscribe()

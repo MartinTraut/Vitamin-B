@@ -20,6 +20,7 @@ export interface SeriesPoint {
   month: string
   income: number
   expense: number
+  profit: number // Einnahmen − Ausgaben je Bucket (Gewinn bzw. privat: Saldo)
   debt?: number // negativ = offene Restschuld zum Bucket-Ende (nur wenn debts übergeben)
 }
 
@@ -34,7 +35,7 @@ export function buildSeries(tx: Transaction[], gran: Gran, debts?: Debt[]): Seri
   const idx = new Map<string, number>()
   const push = (key: string, label: string, end: Date) => {
     idx.set(key, buckets.length)
-    buckets.push({ month: label, income: 0, expense: 0 })
+    buckets.push({ month: label, income: 0, expense: 0, profit: 0 })
     ends.push(toISO(end))
   }
 
@@ -74,6 +75,7 @@ export function buildSeries(tx: Transaction[], gran: Gran, debts?: Debt[]): Seri
     if (t.type === "income") buckets[i].income += t.amount
     else buckets[i].expense += t.amount
   }
+  for (const b of buckets) b.profit = b.income - b.expense
 
   if (debts && debts.length) {
     for (let i = 0; i < buckets.length; i++) {

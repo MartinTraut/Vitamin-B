@@ -1,10 +1,10 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import {
   Plus, TrendingUp, TrendingDown, Wallet, Landmark, Trash2, ArrowDownLeft, ArrowUpRight,
-  ChevronRight, CreditCard, X,
+  ChevronRight, CreditCard, X, Building2, ArrowRight,
 } from "lucide-react"
 import { useStore } from "@/lib/store"
 import { useToast } from "@/lib/toast"
@@ -17,33 +17,27 @@ import {
   type Transaction,
   type Debt,
 } from "@/lib/types"
-import { eur, eur0, dateDE } from "@/lib/format"
+import { eur, eur0, parseAmountDE } from "@/lib/format"
 import { todayISO } from "@/lib/recurrence"
 import { buildSeries, GRAN_LABEL, type Gran } from "@/lib/finance-series"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { KpiTile } from "@/components/ui/kpi-tile"
+import { SegmentedControl } from "@/components/ui/segmented-control"
+import { LedgerTable } from "@/components/ui/ledger-table"
 import { FinanceChart, CategoryDonut, ChartLegend, type SeriesKey } from "@/components/dashboard/charts"
 import { cn } from "@/lib/utils"
-
-const INCOME = "#34d399"
-const EXPENSE = "#ef4444"
-const ACCENT = "#a855f7" // privat = violett, klar getrennt von der Firma (grün)
-const DEBT = "#f59e0b"
-
-function parseAmount(s: string): number {
-  let t = s.trim()
-  if (t.includes(",")) t = t.replace(/\./g, "").replace(",", ".")
-  const n = Number(t)
-  return Number.isFinite(n) ? n : NaN
-}
+import { INCOME, EXPENSE, ORANGE, DEBT } from "@/lib/theme-colors"
 
 export function PrivateFinanceView() {
-  const { db, activePerson, addTransaction, removeTransaction } = useStore()
+  const { db, activePerson, addTransaction, updateTransaction, removeTransaction } = useStore()
   const person = PEOPLE.find((p) => p.id === activePerson)!
   const [adding, setAdding] = useState(false)
+  // Buchung im Bearbeiten-Modus — nutzt dasselbe Formular wie das Anlegen.
+  const [editing, setEditing] = useState<Transaction | null>(null)
   const [gran, setGran] = useState<Gran>("month")
   // Welche Verlauf-Linien sichtbar sind (über die Legende umschaltbar).
-  const [visible, setVisible] = useState<Record<SeriesKey, boolean>>({ income: true, expense: true, debt: true })
+  const [visible, setVisible] = useState<Record<SeriesKey, boolean>>({ income: true, expense: true, profit: true, debt: true })
   const toggleSeries = (k: SeriesKey) => setVisible((v) => ({ ...v, [k]: !v[k] }))
 
   // Nur private Buchungen der aktiven Person.
@@ -88,17 +82,22 @@ export function PrivateFinanceView() {
             <div className="text-xs text-muted-foreground">Streng getrennt von den Firmen-Finanzen · oben rechts die Person wechseln</div>
           </div>
         </div>
-        <Link href="/finanzen" className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground">
-          Firmen-Finanzen →
+        <Link
+          href="/finanzen"
+          className="group flex shrink-0 items-center gap-2 rounded-xl border border-primary/45 bg-primary/15 px-4 py-2.5 text-sm font-bold text-primary shadow-sm transition-all hover:border-primary/70 hover:bg-primary/25 hover:shadow-md hover:shadow-primary/10"
+        >
+          <Building2 className="h-4 w-4 shrink-0" />
+          <span>Zu den Firmen-Finanzen</span>
+          <ArrowRight className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
         </Link>
       </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Kpi icon={TrendingUp} label="Einnahmen" value={eur0(m.income)} accent={INCOME} />
-        <Kpi icon={TrendingDown} label="Ausgaben" value={eur0(m.expense)} accent={EXPENSE} />
-        <Kpi icon={Wallet} label="Saldo" value={eur0(m.saldo)} accent={m.saldo >= 0 ? INCOME : EXPENSE} />
-        <Kpi icon={Landmark} label="Restschulden" value={eur0(m.debtRemaining)} accent={DEBT} />
+        <KpiTile icon={TrendingUp} label="Einnahmen" value={eur0(m.income)} accent={INCOME} />
+        <KpiTile icon={TrendingDown} label="Ausgaben" value={eur0(m.expense)} accent={EXPENSE} />
+        <KpiTile icon={Wallet} label="Saldo" value={eur0(m.saldo)} accent={m.saldo >= 0 ? INCOME : EXPENSE} />
+        <KpiTile icon={Landmark} label="Restschulden" value={eur0(m.debtRemaining)} accent={DEBT} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -113,20 +112,19 @@ export function PrivateFinanceView() {
                 items={[
                   { key: "income", color: INCOME },
                   { key: "expense", color: EXPENSE },
+                  { key: "profit", color: ORANGE, label: "Saldo" },
                   ...(myDebts.length > 0 ? [{ key: "debt" as SeriesKey, color: DEBT }] : []),
                 ]}
               />
-              <div className="flex items-center rounded-lg border border-border bg-white/[0.03] p-0.5">
-                {(["day", "week", "month"] as Gran[]).map((g) => (
-                  <button key={g} onClick={() => setGran(g)} aria-pressed={gran === g} className={cn("rounded-md px-2.5 py-1 text-xs font-semibold transition-colors", gran === g ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>
-                    {GRAN_LABEL[g]}
-                  </button>
-                ))}
-              </div>
+              <SegmentedControl
+                value={gran}
+                onChange={(v) => setGran(v as Gran)}
+                options={(["day", "week", "month"] as Gran[]).map((g) => ({ v: g, l: GRAN_LABEL[g] }))}
+              />
             </div>
           </div>
           <div className="min-h-[240px] flex-1 p-3 pt-1">
-            <FinanceChart data={chartData} height="full" visible={visible} />
+            <FinanceChart data={chartData} height="full" visible={visible} labels={{ profit: "Saldo" }} />
           </div>
         </Card>
 
@@ -148,35 +146,51 @@ export function PrivateFinanceView() {
             <Plus className="h-4 w-4" /> Buchung
           </Button>
         </div>
-        {adding && (
-          <AddPrivateTx
-            onCancel={() => setAdding(false)}
-            onSave={(input) => { addTransaction({ ...input, scope: "private", person: activePerson }); setAdding(false) }}
+        {(adding || editing) && (
+          <PrivateTxForm
+            key={editing?.id ?? "new"}
+            initial={editing ?? undefined}
+            onCancel={() => { setAdding(false); setEditing(null) }}
+            onSave={(input) => {
+              if (editing) updateTransaction(editing.id, input)
+              else addTransaction({ ...input, scope: "private", person: activePerson })
+              setAdding(false)
+              setEditing(null)
+            }}
           />
         )}
-        <div className="divide-y divide-border">
-          {m.sorted.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">Noch keine privaten Buchungen.</p>}
-          {m.sorted.map((t) => {
+        {/* Echte Tabellen-Struktur mit Monats-Gruppen — Betrag auf fester rechtsbündiger Achse */}
+        <LedgerTable
+          emptyText="Noch keine privaten Buchungen."
+          rows={m.sorted.map((t) => {
             const inc = t.type === "income"
-            return (
-              <div key={t.id} className="group flex items-center gap-3 px-4 py-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${inc ? INCOME : EXPENSE}1f`, color: inc ? INCOME : EXPENSE }}>
-                  {inc ? <ArrowDownLeft className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm font-medium">{t.category}{t.note ? <span className="font-normal text-muted-foreground"> · {t.note}</span> : ""}</div>
-                  <div className="text-xs text-muted-foreground">{dateDE(t.date)}</div>
-                </div>
-                <span className="text-sm font-semibold tabular-nums" style={{ color: inc ? INCOME : EXPENSE }}>
-                  {inc ? "+" : "−"}{eur(t.amount)}
-                </span>
-                <button onClick={() => removeTransaction(t.id)} aria-label="Buchung löschen" title="Buchung löschen" className="action-reveal rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60">
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            )
+            const color = inc ? INCOME : EXPENSE
+            return {
+              id: t.id,
+              label: t.category,
+              note: t.note,
+              date: t.date,
+              amount: t.amount,
+              sign: inc ? ("+" as const) : ("−" as const),
+              color,
+              icon: inc ? <ArrowDownLeft className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />,
+              onEdit: () => { setEditing(t); setAdding(false) },
+              editLabel: "Buchung bearbeiten",
+              onRemove: () => removeTransaction(t.id),
+              removeLabel: "Buchung löschen",
+            }
           })}
-        </div>
+        />
+
+        {/* Summen-Fußzeile — konsistent zu Firmen-Finanzen & Belegen */}
+        {m.sorted.length > 0 && (
+          <div className="flex items-center justify-between border-t border-border bg-white/[0.015] px-4 py-2.5 text-xs">
+            <span className="text-muted-foreground">{m.sorted.length} {m.sorted.length === 1 ? "Buchung" : "Buchungen"}</span>
+            <span className="font-semibold text-muted-foreground">
+              Saldo <span className="num font-bold" style={{ color: m.saldo >= 0 ? INCOME : EXPENSE }}>{m.saldo >= 0 ? "+" : "−"}{eur(Math.abs(m.saldo))}</span>
+            </span>
+          </div>
+        )}
       </Card>
     </div>
   )
@@ -230,6 +244,7 @@ function DebtCard({ debt }: { debt: Debt }) {
   const [name, setName] = useState(debt.title)
   const [total, setTotal] = useState(String(debt.total))
   const [rate, setRate] = useState(debt.monthlyRate ? String(debt.monthlyRate) : "")
+  const [note, setNote] = useState(debt.note ?? "")
 
   const remaining = Math.max(0, debt.total - debt.paid)
   const pct = debt.total > 0 ? Math.min(100, Math.round((debt.paid / debt.total) * 100)) : 0
@@ -239,7 +254,7 @@ function DebtCard({ debt }: { debt: Debt }) {
     const def = debt.monthlyRate ? String(debt.monthlyRate) : ""
     const v = await dialog.prompt({ title: "Tilgung verbuchen", message: `Wie viel wurde auf „${debt.title}" getilgt?`, defaultValue: def, placeholder: "Betrag €", confirmLabel: "Verbuchen" })
     if (!v) return
-    const amount = parseAmount(v)
+    const amount = parseAmountDE(v)
     if (!Number.isFinite(amount) || amount <= 0) return
     payDebt(debt.id, amount)
     toast.success("Tilgung verbucht")
@@ -249,12 +264,13 @@ function DebtCard({ debt }: { debt: Debt }) {
     if (ok) removeDebt(debt.id)
   }
   function commitEdit() {
-    const t = parseAmount(total)
-    const r = rate.trim() ? parseAmount(rate) : undefined
+    const t = parseAmountDE(total)
+    const r = rate.trim() ? parseAmountDE(rate) : undefined
     updateDebt(debt.id, {
       title: name.trim() || debt.title,
       total: Number.isFinite(t) && t > 0 ? t : debt.total,
       monthlyRate: r && Number.isFinite(r) && r > 0 ? r : undefined,
+      note: note.trim() || undefined,
     })
   }
 
@@ -264,15 +280,18 @@ function DebtCard({ debt }: { debt: Debt }) {
         <button onClick={() => setOpen((v) => !v)} className="flex min-w-0 flex-1 items-start gap-2 text-left">
           <ChevronRight className={cn("mt-0.5 h-4 w-4 shrink-0 transition-transform", open && "rotate-90")} style={{ color: done ? INCOME : DEBT }} />
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-[15px] font-bold leading-tight">{debt.title}</span>
-            <span className="block text-[13px] text-muted-foreground">
+            <span className="block truncate text-[clamp(1rem,0.4vw+0.9rem,1.15rem)] font-bold leading-tight">{debt.title}</span>
+            <span className="block text-[clamp(0.85rem,0.25vw+0.78rem,0.95rem)] text-muted-foreground">
               {eur0(debt.paid)} / {eur0(debt.total)}{debt.monthlyRate ? ` · ${eur0(debt.monthlyRate)}/Mt.` : ""}
             </span>
+            {debt.note && !open && (
+              <span className="mt-0.5 block truncate text-[clamp(0.8rem,0.2vw+0.74rem,0.9rem)] text-muted-foreground/70">{debt.note}</span>
+            )}
           </span>
         </button>
         <div className="shrink-0 text-right">
-          <div className="num font-heading text-xl font-bold leading-none" style={{ color: done ? INCOME : DEBT }}>{done ? "Getilgt" : eur0(remaining)}</div>
-          {!done && <div className="mt-0.5 text-[11px] font-medium text-muted-foreground">offen</div>}
+          <div className="num font-heading text-[clamp(1.05rem,1vw+0.85rem,1.25rem)] font-bold leading-none" style={{ color: done ? INCOME : DEBT }}>{done ? "Getilgt" : eur0(remaining)}</div>
+          {!done && <div className="mt-0.5 text-[clamp(0.78rem,0.2vw+0.72rem,0.85rem)] font-medium text-muted-foreground">offen</div>}
         </div>
       </div>
 
@@ -308,6 +327,10 @@ function DebtCard({ debt }: { debt: Debt }) {
               <input value={rate} onChange={(e) => setRate(e.target.value.replace(/[^0-9.,]/g, ""))} onBlur={commitEdit} inputMode="decimal" className="h-9 w-full rounded-lg border border-border bg-white/[0.04] px-2.5 text-sm outline-none focus:border-primary/50" />
             </label>
           </div>
+          <label className="block">
+            <span className="mb-1 block text-[11px] text-muted-foreground">Notiz (z. B. Konditionen, Laufzeit, Vereinbarungen)</span>
+            <textarea value={note} onChange={(e) => setNote(e.target.value)} onBlur={commitEdit} rows={2} className="w-full resize-y rounded-lg border border-border bg-white/[0.04] px-2.5 py-2 text-sm outline-none focus:border-primary/50" />
+          </label>
           <button onClick={remove} className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-destructive">
             <Trash2 className="h-3.5 w-3.5" /> Schuld löschen
           </button>
@@ -322,6 +345,7 @@ function AddDebtForm({ onSave, onCancel }: { onSave: (input: Omit<Debt, "id" | "
   const [total, setTotal] = useState("")
   const [paid, setPaid] = useState("")
   const [rate, setRate] = useState("")
+  const [note, setNote] = useState("")
   const [error, setError] = useState(false)
 
   return (
@@ -332,14 +356,15 @@ function AddDebtForm({ onSave, onCancel }: { onSave: (input: Omit<Debt, "id" | "
         <input value={paid} onChange={(e) => setPaid(e.target.value.replace(/[^0-9.,]/g, ""))} inputMode="decimal" placeholder="Bereits getilgt € (optional)" className="h-10 rounded-lg border border-border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50" />
         <input value={rate} onChange={(e) => setRate(e.target.value.replace(/[^0-9.,]/g, ""))} inputMode="decimal" placeholder="Rate/Monat € (optional)" className="h-10 rounded-lg border border-border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50" />
       </div>
+      <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Notiz (optional) — z. B. Konditionen, Laufzeit" className="h-10 w-full rounded-lg border border-border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50" />
       <div className="flex justify-end gap-2">
         <Button size="sm" variant="ghost" onClick={onCancel}>Abbrechen</Button>
         <Button size="sm" onClick={() => {
-          const t = parseAmount(total)
+          const t = parseAmountDE(total)
           if (!title.trim() || !Number.isFinite(t) || t <= 0) { setError(true); return }
-          const p = parseAmount(paid)
-          const r = parseAmount(rate)
-          onSave({ title: title.trim(), total: t, paid: Number.isFinite(p) && p > 0 ? Math.min(p, t) : 0, monthlyRate: Number.isFinite(r) && r > 0 ? r : undefined })
+          const p = parseAmountDE(paid)
+          const r = parseAmountDE(rate)
+          onSave({ title: title.trim(), total: t, paid: Number.isFinite(p) && p > 0 ? Math.min(p, t) : 0, monthlyRate: Number.isFinite(r) && r > 0 ? r : undefined, note: note.trim() || undefined })
         }}>Speichern</Button>
       </div>
     </div>
@@ -348,17 +373,25 @@ function AddDebtForm({ onSave, onCancel }: { onSave: (input: Omit<Debt, "id" | "
 
 /* ---------- private Buchung erfassen ---------- */
 
-function AddPrivateTx({ onSave, onCancel }: { onSave: (input: Omit<Transaction, "id" | "scope" | "person">) => void; onCancel: () => void }) {
-  const [type, setType] = useState<TxType>("expense")
-  const [category, setCategory] = useState(PRIVATE_EXPENSE_CATEGORIES[0])
-  const [amount, setAmount] = useState("")
-  const [date, setDate] = useState(todayISO())
-  const [note, setNote] = useState("")
+function PrivateTxForm({ initial, onSave, onCancel }: { initial?: Transaction; onSave: (input: Omit<Transaction, "id" | "scope" | "person">) => void; onCancel: () => void }) {
+  const [type, setType] = useState<TxType>(initial?.type ?? "expense")
+  const [category, setCategory] = useState(initial?.category ?? PRIVATE_EXPENSE_CATEGORIES[0])
+  const [amount, setAmount] = useState(initial ? String(initial.amount).replace(".", ",") : "")
+  const [date, setDate] = useState(initial?.date ?? todayISO())
+  const [note, setNote] = useState(initial?.note ?? "")
   const [error, setError] = useState(false)
   const cats = type === "income" ? PRIVATE_INCOME_CATEGORIES : PRIVATE_EXPENSE_CATEGORIES
 
+  // Formular beim Öffnen in den Blick holen — bei langen Listen sitzt es sonst
+  // unsichtbar über der Tabelle ("es passiert nichts").
+  const formRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+  }, [])
+
   return (
-    <div className="space-y-3 border-b border-border bg-white/[0.02] p-4">
+    <div ref={formRef} className="space-y-3 border-b border-border bg-white/[0.02] p-4">
+      {initial && <div className="eyebrow">Buchung bearbeiten</div>}
       <div className="flex gap-2">
         <button onClick={() => { setType("expense"); setCategory(PRIVATE_EXPENSE_CATEGORIES[0]) }} className={cn("flex-1 rounded-lg border py-2 text-sm font-medium transition-colors", type === "expense" ? "border-transparent" : "border-border text-muted-foreground")} style={type === "expense" ? { backgroundColor: `${EXPENSE}26`, color: EXPENSE } : undefined}>Ausgabe</button>
         <button onClick={() => { setType("income"); setCategory(PRIVATE_INCOME_CATEGORIES[0]) }} className={cn("flex-1 rounded-lg border py-2 text-sm font-medium transition-colors", type === "income" ? "border-transparent" : "border-border text-muted-foreground")} style={type === "income" ? { backgroundColor: `${INCOME}26`, color: INCOME } : undefined}>Einnahme</button>
@@ -367,14 +400,14 @@ function AddPrivateTx({ onSave, onCancel }: { onSave: (input: Omit<Transaction, 
         <select value={category} onChange={(e) => setCategory(e.target.value)} className="h-10 rounded-lg border border-border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50 [color-scheme:dark]">
           {cats.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
-        <input value={amount} onChange={(e) => { setAmount(e.target.value.replace(/[^0-9.,]/g, "")); setError(false) }} inputMode="decimal" placeholder="Betrag €" className={cn("h-10 rounded-lg border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50", error ? "border-destructive" : "border-border")} />
+        <input autoFocus value={amount} onChange={(e) => { setAmount(e.target.value.replace(/[^0-9.,]/g, "")); setError(false) }} inputMode="decimal" placeholder="Betrag €" className={cn("h-10 rounded-lg border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50", error ? "border-destructive" : "border-border")} />
         <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-10 rounded-lg border border-border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50 [color-scheme:dark]" />
       </div>
       <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Notiz (optional)" className="h-10 w-full rounded-lg border border-border bg-white/[0.03] px-3 text-sm outline-none focus:border-primary/50" />
       <div className="flex justify-end gap-2">
         <Button size="sm" variant="ghost" onClick={onCancel}>Abbrechen</Button>
         <Button size="sm" onClick={() => {
-          const val = parseAmount(amount)
+          const val = parseAmountDE(amount)
           if (!Number.isFinite(val) || val <= 0) { setError(true); return }
           onSave({ type, category, amount: val, taxRate: 0, date, note: note.trim() || undefined })
         }}>Speichern</Button>
@@ -383,19 +416,3 @@ function AddPrivateTx({ onSave, onCancel }: { onSave: (input: Omit<Transaction, 
   )
 }
 
-function Kpi({ icon: Icon, label, value, accent }: { icon: typeof TrendingUp; label: string; value: string; accent: string }) {
-  return (
-    <div
-      className="relative flex items-center gap-3 overflow-hidden rounded-2xl p-4"
-      style={{ background: `linear-gradient(135deg, ${accent}2e, ${accent}0d 70%)`, border: `1px solid ${accent}55`, boxShadow: `inset 0 1px 0 0 ${accent}33, 0 10px 34px -14px ${accent}99` }}
-    >
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${accent}33`, color: accent, border: `1px solid ${accent}66` }}>
-        <Icon className="h-5 w-5" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="eyebrow truncate" style={{ color: `${accent}cc` }}>{label}</div>
-        <div className="num truncate font-heading text-[clamp(1rem,5vw,1.5rem)] font-bold leading-tight sm:text-2xl" style={{ color: accent }}>{value}</div>
-      </div>
-    </div>
-  )
-}

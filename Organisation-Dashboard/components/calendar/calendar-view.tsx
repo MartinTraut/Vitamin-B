@@ -1,22 +1,29 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
+import { useSearchParams } from "next/navigation"
+import Link from "next/link"
 import { motion, AnimatePresence, type PanInfo } from "framer-motion"
-import { ChevronLeft, ChevronRight, Plus, Trash2, Check, CalendarDays, Clock, Sun, RotateCcw, Tags, X, Pencil } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus, Trash2, Check, CalendarDays, Clock, Sun, RotateCcw, Tags, X, Pencil, CheckSquare, MapPin, AlignLeft } from "lucide-react"
 import { useStore } from "@/lib/store"
+import { useDialog } from "@/lib/dialog"
 import {
   PEOPLE,
   CATEGORY_COLOR_PALETTE,
   resolveCategory,
   type AppointmentCategory,
   type AppointmentCategoryDef,
+  type Person,
 } from "@/lib/types"
 import { occurrencesInRange, toISO, parseISO, todayISO } from "@/lib/recurrence"
 import { dateDE, monthName } from "@/lib/format"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { PersonBadge } from "@/components/ui/person-badge"
+import { SegmentedControl } from "@/components/ui/segmented-control"
 import { cn } from "@/lib/utils"
+import { ORANGE } from "@/lib/theme-colors"
 
 const WD = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
 
@@ -25,6 +32,8 @@ const START_HOUR = 6
 const END_HOUR = 22 // exklusiv → letzte Zeile 21:00
 const HOURS = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => START_HOUR + i)
 const ROW_H = 52 // px pro Stunde
+const GRID_H = HOURS.length * ROW_H // Gesamthöhe des Zeitrasters in px
+const MIN_BLOCK_H = 22 // Mindesthöhe eines Termin-Blocks in px
 
 type ViewMode = "month" | "week" | "day"
 
@@ -36,7 +45,12 @@ interface DayEvent {
   categoryLabel: string
   time?: string
   endTime?: string
+  location?: string
+  notes?: string
+  person: Person
   done: boolean
+  isTask?: boolean
+  taskId?: string
 }
 
 interface Draft {
@@ -64,12 +78,16 @@ export function CalendarView() {
     addAppointmentCategory,
     updateAppointmentCategory,
     removeAppointmentCategory,
+    toggleTask,
   } = useStore()
   const person = PEOPLE.find((p) => p.id === activePerson)!
+  const dialog = useDialog()
   const today = todayISO()
 
   const [view, setView] = useState<ViewMode>("month")
   const [editEvt, setEditEvt] = useState<DayEvent | null>(null)
+  // Klick auf einen Termin klappt die Detail-Ansicht (Zeit, Ort, Notizen) auf.
+  const [detailId, setDetailId] = useState<string | null>(null)
   const [cursor, setCursor] = useState(() => {
     const d = new Date()
     return { year: d.getFullYear(), month: d.getMonth() }
@@ -77,9 +95,36 @@ export function CalendarView() {
   const [selected, setSelected] = useState(today)
   const [draft, setDraft] = useState<Draft | null>(null)
 
+  // "Team" zeigt automatisch die Termine ALLER Personen — kein Doppel-Eintragen nötig.
+  const [scope, setScope] = useState<"mine" | "team">("mine")
+  const team = scope === "team"
+
+  // Aus der ⌘K-Suche vorselektieren (?sel=<Termin-id>): Ansicht auf das Datum
+  // des Termins stellen und die Detail-Ansicht direkt aufklappen. useSearchParams
+  // statt window.location — greift auch bei Client-Navigation auf derselben Route
+  // und nach asynchronem Daten-Load; jede sel-ID nur einmal.
+  const selParam = useSearchParams().get("sel")
+  const handledSelRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!selParam || handledSelRef.current === selParam) return
+    const appt = db.appointments.find((a) => a.id === selParam)
+    if (!appt) return
+    handledSelRef.current = selParam
+    const d = parseISO(appt.date)
+    setCursor({ year: d.getFullYear(), month: d.getMonth() })
+    setSelected(appt.date)
+    setDetailId(appt.id)
+    // Termin einer anderen Person? Dann auf Team-Sicht wechseln, damit er sichtbar ist.
+    if (appt.person !== activePerson) setScope("team")
+  }, [selParam, db.appointments, activePerson])
+
   const myAppts = useMemo(
-    () => db.appointments.filter((a) => a.person === activePerson),
-    [db.appointments, activePerson],
+    () => (team ? db.appointments : db.appointments.filter((a) => a.person === activePerson)),
+    [db.appointments, activePerson, team],
+  )
+  const myTasksWithDue = useMemo(
+    () => db.tasks.filter((t) => (team || t.person === activePerson) && t.due),
+    [db.tasks, activePerson, team],
   )
 
   const categories = db.appointmentCategories
@@ -123,10 +168,31 @@ export function CalendarView() {
           categoryLabel: cat.label,
           time: a.time,
           endTime: a.endTime,
+          location: a.location,
+          notes: a.notes,
+          person: a.person,
           done: a.completedDates.includes(date),
         })
         map.set(date, arr)
       }
+    }
+    // Aufgaben-Fälligkeiten als eigene, erkennbare Einträge einblenden — Work-OS-Verknüpfung
+    // Task ↔ Kalender: Deadlines tauchen automatisch auf, ohne doppelte Datenpflege.
+    for (const t of myTasksWithDue) {
+      if (!t.due || t.due < from || t.due > to) continue
+      const arr = map.get(t.due) ?? []
+      arr.push({
+        id: `task-${t.id}`,
+        title: t.title,
+        category: "aufgabe",
+        categoryColor: ORANGE,
+        categoryLabel: "Aufgabe",
+        person: t.person,
+        done: t.status === "done",
+        isTask: true,
+        taskId: t.id,
+      })
+      map.set(t.due, arr)
     }
     return map
   }
@@ -134,12 +200,12 @@ export function CalendarView() {
   const monthEvents = useMemo(
     () => eventsFor(grid[0], grid[grid.length - 1]),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [myAppts, grid, categories],
+    [myAppts, myTasksWithDue, grid, categories],
   )
   const weekEvents = useMemo(
     () => eventsFor(weekDays[0], weekDays[6]),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [myAppts, weekDays, categories],
+    [myAppts, myTasksWithDue, weekDays, categories],
   )
 
   // Day- und Week-View lesen beide aus weekEvents (deckt selected garantiert ab);
@@ -175,7 +241,24 @@ export function CalendarView() {
         ? `${parseISO(weekDays[0]).getDate()}. – ${parseISO(weekDays[6]).getDate()}. ${monthName(parseISO(weekDays[6]).getMonth())} ${parseISO(weekDays[6]).getFullYear()}`
         : `${monthName(cursor.month)} ${cursor.year}`
 
-  function save(input: { title: string; category: AppointmentCategory; time?: string; endTime?: string }) {
+  // Löschen nur nach Bestätigung — schützt vor versehentlichem Swipe/Klick,
+  // bei Serien-Terminen wird auf das Entfernen der ganzen Serie hingewiesen.
+  async function confirmRemove(e: DayEvent) {
+    const appt = db.appointments.find((a) => a.id === e.id)
+    const isSeries = appt ? appt.recurrence.freq !== "none" : false
+    const ok = await dialog.confirm({
+      title: "Termin löschen?",
+      message: isSeries
+        ? `„${e.title}" ist ein Serien-Termin — die gesamte Serie wird unwiderruflich gelöscht.`
+        : `„${e.title}" wird unwiderruflich gelöscht.`,
+      confirmLabel: "Löschen",
+      danger: true,
+    })
+    if (!ok) return // Abbruch: Swipe-Karte springt automatisch zurück (dragConstraints 0/0)
+    removeAppointment(e.id)
+  }
+
+  function save(input: { title: string; category: AppointmentCategory; time?: string; endTime?: string; location?: string; notes?: string }) {
     if (!draft) return
     addAppointment({
       person: activePerson,
@@ -203,10 +286,18 @@ export function CalendarView() {
             Heute
           </Button>
         </div>
-        <div className="flex w-full items-center gap-1 rounded-xl border border-border bg-white/[0.03] p-1 sm:w-auto">
-          <SwitchBtn active={view === "day"} onClick={() => setView("day")} icon={<Sun className="h-4 w-4" />} label="Tag" />
-          <SwitchBtn active={view === "week"} onClick={() => setView("week")} icon={<Clock className="h-4 w-4" />} label="Woche" />
-          <SwitchBtn active={view === "month"} onClick={() => setView("month")} icon={<CalendarDays className="h-4 w-4" />} label="Monat" />
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+          {/* Mein Kalender vs. Team — Team zeigt alle Personen automatisch */}
+          <SegmentedControl
+            value={scope}
+            onChange={(v) => setScope(v as typeof scope)}
+            options={[{ v: "mine", l: person.name, color: person.color }, { v: "team", l: "Team" }]}
+          />
+          <div className="flex flex-1 items-center gap-1 rounded-xl border border-border bg-white/[0.03] p-1 sm:flex-none">
+            <SwitchBtn active={view === "day"} onClick={() => setView("day")} icon={<Sun className="h-4 w-4" />} label="Tag" />
+            <SwitchBtn active={view === "week"} onClick={() => setView("week")} icon={<Clock className="h-4 w-4" />} label="Woche" />
+            <SwitchBtn active={view === "month"} onClick={() => setView("month")} icon={<CalendarDays className="h-4 w-4" />} label="Monat" />
+          </div>
         </div>
       </Card>
 
@@ -227,6 +318,7 @@ export function CalendarView() {
               today={today}
               selected={selected}
               events={weekEvents}
+              showPerson={team}
               onSelectDay={(d) => setSelected(d)}
               onCreate={(d) => setDraft(d)}
             />
@@ -267,6 +359,8 @@ export function CalendarView() {
               submitLabel="Aktualisieren"
               initialTitle={editEvt.title}
               initialCategory={editEvt.category}
+              initialLocation={editEvt.location}
+              initialNotes={editEvt.notes}
               defaultTime={editEvt.time}
               defaultEnd={editEvt.endTime}
               onCancel={() => setEditEvt(null)}
@@ -293,9 +387,12 @@ export function CalendarView() {
                         key={e.id}
                         e={e}
                         active={editEvt?.id === e.id}
-                        onToggle={() => toggleAppointmentDone(e.id, selected)}
-                        onRemove={() => removeAppointment(e.id)}
-                        onEdit={() => { setDraft(null); setEditEvt(editEvt?.id === e.id ? null : e) }}
+                        expanded={detailId === e.id}
+                        showPerson={team}
+                        onToggleDetail={e.isTask ? undefined : () => setDetailId(detailId === e.id ? null : e.id)}
+                        onToggle={() => (e.isTask && e.taskId ? toggleTask(e.taskId) : toggleAppointmentDone(e.id, selected))}
+                        onRemove={e.isTask ? undefined : () => void confirmRemove(e)}
+                        onEdit={e.isTask ? undefined : () => { setDraft(null); setEditEvt(editEvt?.id === e.id ? null : e) }}
                       />
                     ))}
                   </AnimatePresence>
@@ -311,9 +408,12 @@ export function CalendarView() {
                         key={e.id}
                         e={e}
                         active={editEvt?.id === e.id}
-                        onToggle={() => toggleAppointmentDone(e.id, selected)}
-                        onRemove={() => removeAppointment(e.id)}
-                        onEdit={() => { setDraft(null); setEditEvt(editEvt?.id === e.id ? null : e) }}
+                        expanded={detailId === e.id}
+                        showPerson={team}
+                        onToggleDetail={e.isTask ? undefined : () => setDetailId(detailId === e.id ? null : e.id)}
+                        onToggle={() => (e.isTask && e.taskId ? toggleTask(e.taskId) : toggleAppointmentDone(e.id, selected))}
+                        onRemove={e.isTask ? undefined : () => void confirmRemove(e)}
+                        onEdit={e.isTask ? undefined : () => { setDraft(null); setEditEvt(editEvt?.id === e.id ? null : e) }}
                       />
                     ))}
                   </AnimatePresence>
@@ -326,7 +426,9 @@ export function CalendarView() {
 
       <p className="text-center text-xs text-muted-foreground">
         {view === "week" ? "Auf eine Stunde tippen oder mit der Maus ziehen, um einen Timeslot anzulegen · " : ""}
-        Kalender von <span style={{ color: person.color }}>{person.name}</span> · oben links die Person wechseln
+        {team
+          ? "Team-Kalender · Termine & Deadlines aller Personen — neue Termine landen bei dir"
+          : <>Kalender von <span style={{ color: person.color }}>{person.name}</span> · oben „Team" für alle Personen</>}
       </p>
 
       <AnimatePresence>
@@ -490,13 +592,14 @@ function CategoryRow({
           />
         ))}
         {!editing && (
-          <button onClick={() => setEditing(true)} title="Umbenennen" className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground">
+          <button onClick={() => setEditing(true)} aria-label="Umbenennen" title="Umbenennen" className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground">
             <Pencil className="h-3.5 w-3.5" />
           </button>
         )}
         <button
           onClick={onRemove}
           disabled={!canDelete}
+          aria-label="Kategorie löschen"
           title={canDelete ? "Löschen" : "Mindestens eine Kategorie behalten"}
           className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive disabled:cursor-not-allowed disabled:opacity-30"
         >
@@ -534,15 +637,21 @@ function ColorPicker({ value, onChange }: { value: string; onChange: (c: string)
 function DayEventRow({
   e,
   active,
+  expanded,
+  showPerson,
+  onToggleDetail,
   onToggle,
   onRemove,
   onEdit,
 }: {
   e: DayEvent
   active: boolean
+  expanded: boolean
+  showPerson?: boolean
+  onToggleDetail?: () => void
   onToggle: () => void
-  onRemove: () => void
-  onEdit: () => void
+  onRemove?: () => void
+  onEdit?: () => void
 }) {
   const done = e.done
   const color = e.categoryColor
@@ -551,7 +660,7 @@ function DayEventRow({
 
   function handleDragEnd(_: unknown, info: PanInfo) {
     if (info.offset.x > 92) onToggle()
-    else if (info.offset.x < -92) onRemove()
+    else if (info.offset.x < -92) onRemove?.()
   }
 
   return (
@@ -569,24 +678,27 @@ function DayEventRow({
           {done ? <RotateCcw className="h-4 w-4" /> : <Check className="h-4 w-4" />}
           {done ? "Offen" : "Erledigt"}
         </span>
-        <span className="flex items-center gap-1.5 text-destructive">
-          Löschen <Trash2 className="h-4 w-4" />
-        </span>
+        {onRemove && (
+          <span className="flex items-center gap-1.5 text-destructive">
+            Löschen <Trash2 className="h-4 w-4" />
+          </span>
+        )}
       </div>
 
       <motion.div
-        drag="x"
+        drag={onRemove ? "x" : false}
         dragDirectionLock
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.5}
         onDragEnd={handleDragEnd}
         whileDrag={{ cursor: "grabbing" }}
         className={cn(
-          "relative flex touch-pan-y items-center gap-3 rounded-xl border p-3",
+          "relative touch-pan-y rounded-xl border p-3",
           active ? "border-primary/50" : "border-border",
         )}
         style={{ backgroundColor: bg, boxShadow: `inset 3px 0 0 0 ${done ? "#34d399" : color}` }}
       >
+        <div className="flex items-center gap-3">
         {/* Abhaken — große, klare Checkbox mit Hover-Vorschau */}
         <button
           onClick={onToggle}
@@ -609,33 +721,93 @@ function DayEventRow({
           )}
         </button>
 
-        {/* Inhalt (Klick = bearbeiten) */}
-        <button onClick={onEdit} className="min-w-0 flex-1 text-left" title="Termin bearbeiten">
-          <div className={cn("text-base font-medium transition-colors", done && "text-muted-foreground line-through")}>{e.title}</div>
-          <div className="mt-1 flex flex-wrap items-center gap-2">
-            {done && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-xs font-semibold text-success">
-                <Check className="h-3 w-3" strokeWidth={3} /> Erledigt
-              </span>
-            )}
-            {e.time && (
-              <span className="text-sm text-muted-foreground">
-                {e.time}{e.endTime ? `–${e.endTime}` : ""}
-              </span>
-            )}
-            <Badge color={color}>{e.categoryLabel}</Badge>
-          </div>
-        </button>
+        {/* Inhalt (Klick = bearbeiten, bei Aufgaben Link zum Aufgaben-Board) */}
+        {e.isTask ? (
+          <Link href="/aufgaben" className="min-w-0 flex-1 text-left" title="Zur Aufgabe">
+            <div className={cn("text-base font-medium transition-colors", done && "text-muted-foreground line-through")}>{e.title}</div>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              {done && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-xs font-semibold text-success">
+                  <Check className="h-3 w-3" strokeWidth={3} /> Erledigt
+                </span>
+              )}
+              <Badge color={color}><CheckSquare className="mr-1 -mt-px inline h-3 w-3" />{e.categoryLabel}</Badge>
+              {showPerson && <PersonBadge person={e.person} size="sm" />}
+            </div>
+          </Link>
+        ) : (
+          <button onClick={onToggleDetail ?? onEdit} className="min-w-0 flex-1 text-left" title="Details anzeigen">
+            <div className={cn("text-base font-medium transition-colors", done && "text-muted-foreground line-through")}>{e.title}</div>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              {done && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-xs font-semibold text-success">
+                  <Check className="h-3 w-3" strokeWidth={3} /> Erledigt
+                </span>
+              )}
+              {e.time && (
+                <span className="text-sm text-muted-foreground">
+                  {e.time}{e.endTime ? `–${e.endTime}` : ""}
+                </span>
+              )}
+              <Badge color={color}>{e.categoryLabel}</Badge>
+              {showPerson && <PersonBadge person={e.person} size="sm" />}
+              {e.notes && <AlignLeft className="h-3.5 w-3.5 text-muted-foreground" aria-label="Hat Notizen" />}
+              {e.location && <MapPin className="h-3.5 w-3.5 text-muted-foreground" aria-label="Hat Ort" />}
+            </div>
+          </button>
+        )}
 
         {/* Aktion rechts */}
         {done ? (
-          <button onClick={onToggle} title="Rückgängig" className="shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground">
+          <button onClick={onToggle} aria-label="Rückgängig" title="Rückgängig" className="shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground">
             <RotateCcw className="h-4 w-4" />
           </button>
-        ) : (
-          <button onClick={onRemove} title="Löschen" className="shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive">
+        ) : onRemove ? (
+          <button onClick={onRemove} aria-label="Löschen" title="Löschen" className="shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive">
             <Trash2 className="h-4 w-4" />
           </button>
+        ) : null}
+        </div>
+
+        {/* Detail-Ansicht: alle Infos & Daten des Termins auf einen Klick */}
+        {expanded && !e.isTask && (
+          <div className="mt-3 space-y-2.5 border-t border-white/[0.08] pt-3">
+            <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-muted-foreground">
+              {showPerson && (
+                <span className="flex items-center gap-1.5">
+                  <PersonBadge person={e.person} size="sm" />
+                  {PEOPLE.find((p) => p.id === e.person)?.name}
+                </span>
+              )}
+              <span className="flex items-center gap-1.5">
+                <Clock className="h-4 w-4" style={{ color }} />
+                {e.time ? `${e.time}${e.endTime ? ` – ${e.endTime}` : ""} Uhr` : "Keine Uhrzeit"}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Tags className="h-4 w-4" style={{ color }} />
+                {e.categoryLabel}
+              </span>
+              {e.location && (
+                <span className="flex items-center gap-1.5">
+                  <MapPin className="h-4 w-4" style={{ color }} />
+                  {e.location}
+                </span>
+              )}
+            </div>
+            {e.notes ? (
+              <div className="flex items-start gap-2 rounded-lg bg-white/[0.03] p-2.5 text-sm">
+                <AlignLeft className="mt-0.5 h-4 w-4 shrink-0" style={{ color }} />
+                <p className="min-w-0 whitespace-pre-wrap leading-relaxed">{e.notes}</p>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground/70">Keine Notizen — über „Bearbeiten" hinzufügen.</p>
+            )}
+            {onEdit && (
+              <Button size="sm" variant="secondary" onClick={onEdit}>
+                <Pencil className="h-3.5 w-3.5" /> Bearbeiten
+              </Button>
+            )}
+          </div>
         )}
       </motion.div>
     </motion.div>
@@ -760,6 +932,7 @@ function WeekGrid({
   today,
   selected,
   events,
+  showPerson,
   onSelectDay,
   onCreate,
 }: {
@@ -767,6 +940,7 @@ function WeekGrid({
   today: string
   selected: string
   events: Map<string, DayEvent[]>
+  showPerson?: boolean
   onSelectDay: (d: string) => void
   onCreate: (draft: Draft) => void
 }) {
@@ -898,9 +1072,15 @@ function WeekGrid({
                       eh = h2
                       em = m2
                     }
-                    const top = (sh - START_HOUR + sm / 60) * ROW_H
-                    const height = Math.max(((eh - sh) + (em - sm) / 60) * ROW_H - 3, 22)
-                    if (top < 0) return null
+                    // Termine außerhalb des 06–22-Rasters nicht verschlucken:
+                    // Position auf den Rasterrand klemmen, damit z. B. ein Termin um
+                    // 05:00 oder 23:00 am oberen/unteren Rand sichtbar bleibt statt
+                    // gar nicht gerendert (top < 0) oder weggeclippt zu werden.
+                    const rawTop = (sh - START_HOUR + sm / 60) * ROW_H
+                    const rawHeight = Math.max(((eh - sh) + (em - sm) / 60) * ROW_H - 3, MIN_BLOCK_H)
+                    const top = Math.min(Math.max(rawTop, 0), GRID_H - MIN_BLOCK_H)
+                    // Höhe so begrenzen, dass der Block im Raster endet (Mindesthöhe bleibt)
+                    const height = Math.max(Math.min(rawHeight - (top - rawTop), GRID_H - top), MIN_BLOCK_H)
                     return (
                       <div
                         key={e.id + i}
@@ -913,7 +1093,7 @@ function WeekGrid({
                         }}
                       >
                         <div className="truncate text-[11px] font-semibold" style={{ color: e.categoryColor }}>
-                          {e.title}
+                          {showPerson ? `${PEOPLE.find((p) => p.id === e.person)?.initials ?? ""} · ` : ""}{e.title}
                         </div>
                         <div className="text-[10px] text-muted-foreground">
                           {e.time}{e.endTime ? `–${e.endTime}` : ""}
@@ -941,17 +1121,21 @@ function AddForm({
   defaultEnd,
   initialTitle,
   initialCategory,
+  initialLocation,
+  initialNotes,
   title: heading,
   submitLabel = "Speichern",
 }: {
   categories: AppointmentCategoryDef[]
-  onSave: (input: { title: string; category: AppointmentCategory; time?: string; endTime?: string }) => void
+  onSave: (input: { title: string; category: AppointmentCategory; time?: string; endTime?: string; location?: string; notes?: string }) => void
   onCancel: () => void
   onManageCategories: () => void
   defaultTime?: string
   defaultEnd?: string
   initialTitle?: string
   initialCategory?: AppointmentCategory
+  initialLocation?: string
+  initialNotes?: string
   title?: string
   submitLabel?: string
 }) {
@@ -959,6 +1143,8 @@ function AddForm({
   const [category, setCategory] = useState<AppointmentCategory>(initialCategory ?? categories[0]?.id ?? "termin")
   const [time, setTime] = useState(defaultTime ?? "")
   const [endTime, setEndTime] = useState(defaultEnd ?? "")
+  const [location, setLocation] = useState(initialLocation ?? "")
+  const [notes, setNotes] = useState(initialNotes ?? "")
 
   return (
     <div className="space-y-3 border-b border-border bg-white/[0.02] p-4">
@@ -1016,13 +1202,37 @@ function AddForm({
           />
         </label>
       </div>
+      {/* Ort & Notizen — alle Infos direkt am Termin */}
+      <div className="relative">
+        <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <input
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+          placeholder="Ort (optional)"
+          className="h-10 w-full rounded-lg border border-border bg-white/[0.03] pl-9 pr-3 text-sm outline-none focus:border-primary/50"
+        />
+      </div>
+      <textarea
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        placeholder="Notizen & Infos (optional) — z. B. Agenda, Ansprechpartner, Vorbereitung…"
+        rows={3}
+        className="w-full resize-y rounded-lg border border-border bg-white/[0.03] px-3 py-2 text-sm outline-none focus:border-primary/50"
+      />
       <div className="flex gap-2">
         <Button
           size="sm"
           className="flex-1"
           onClick={() => {
             if (!title.trim()) return
-            onSave({ title: title.trim(), category, time: time || undefined, endTime: endTime || undefined })
+            onSave({
+              title: title.trim(),
+              category,
+              time: time || undefined,
+              endTime: endTime || undefined,
+              location: location.trim() || undefined,
+              notes: notes.trim() || undefined,
+            })
           }}
         >
           {submitLabel}

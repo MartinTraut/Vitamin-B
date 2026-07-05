@@ -1,7 +1,7 @@
 // Wiederholungs-Engine für Termine. Reine Funktionen, leicht testbar.
 // Modell: Anker-Datum + Frequenz/Intervall + completedDates[].
 
-import type { Appointment } from "./types"
+import type { Appointment, Recurrence } from "./types"
 
 export function toISO(d: Date): string {
   const y = d.getFullYear()
@@ -34,13 +34,14 @@ function daysInMonth(year: number, month: number): number {
   return new Date(year, month + 1, 0).getDate()
 }
 
-// k-tes Vorkommen ab dem Anker. Index-basiert (statt iterativem setMonth),
+// k-tes Vorkommen ab einem Anker-Datum. Index-basiert (statt iterativem setMonth),
 // damit Monatsenden nicht driften: ein 31. wird in kurzen Monaten auf den
 // Monatsletzten geklemmt und bleibt im nächsten langen Monat wieder der 31.
-function nthOccurrence(appt: Appointment, k: number): string {
-  const anchor = parseISO(appt.date)
-  const n = Math.max(1, appt.recurrence.interval)
-  switch (appt.recurrence.freq) {
+// Generisch (Datum + Recurrence statt Appointment) — auch für Invoice.recurrence nutzbar.
+export function nthOccurrenceOf(anchorISO: string, recurrence: Recurrence, k: number): string {
+  const anchor = parseISO(anchorISO)
+  const n = Math.max(1, recurrence.interval)
+  switch (recurrence.freq) {
     case "weekly": {
       const d = new Date(anchor)
       d.setDate(d.getDate() + 7 * n * k)
@@ -62,8 +63,12 @@ function nthOccurrence(appt: Appointment, k: number): string {
       return toISO(target)
     }
     default:
-      return appt.date
+      return anchorISO
   }
+}
+
+function nthOccurrence(appt: Appointment, k: number): string {
+  return nthOccurrenceOf(appt.date, appt.recurrence, k)
 }
 
 // Alle Vorkommen eines Termins in einem Datumsbereich [from, to].

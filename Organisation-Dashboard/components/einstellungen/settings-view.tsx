@@ -77,6 +77,7 @@ export function SettingsView() {
           <Field label="Telefon" value={c.phone} onChange={set("phone")} />
           <Field label="Bank" value={c.bank} onChange={set("bank")} />
           <Field label="IBAN" value={c.iban} onChange={set("iban")} />
+          <Field label="BIC / SWIFT" value={c.bic ?? ""} onChange={set("bic")} />
         </div>
         <div className="border-t border-border px-4 py-3 text-xs text-muted-foreground">
           Änderungen werden automatisch gespeichert.

@@ -18,11 +18,14 @@ import type {
   Deal,
   DealStage,
   Invoice,
+  Note,
   Person,
   Project,
   Quote,
   Task,
   TaskStatus,
+  Template,
+  TimeEntry,
   Transaction,
   Debt,
   Whiteboard,
@@ -30,34 +33,59 @@ import type {
 import { buildDemoData } from "./demo-data"
 import { nextNumber, computeTotals } from "./totals"
 import { todayISO, addDaysISO } from "./recurrence"
+import { withOverdue, withRecurringInvoices } from "./invoice-rules"
 import { useSupabaseSync } from "./sync"
 
 const DB_KEY = "vitaminb-os-db-v2"
 const PERSON_KEY = "vitaminb-active-person"
 
-// Gesendete Rechnungen, deren Zahlungsziel überschritten ist, automatisch
-// auf "überfällig" heben — damit niemand offene Forderungen übersieht.
-function withOverdue(db: Database): Database {
-  const today = todayISO()
-  return {
-    ...db,
-    invoices: db.invoices.map((i) =>
-      i.status === "gesendet" && i.dueDate < today ? { ...i, status: "ueberfaellig" as const } : i,
-    ),
+// Verknüpfung Pipeline → Angebote: sobald ein Deal auf der Stufe "angebot"
+// steht und noch kein Angebot mit ihm verknüpft ist, automatisch ein
+// Entwurf-Angebot anlegen. So taucht jedes Angebot direkt in der Angebote-
+// Sektion auf, ohne manuellen Schritt. Greift bei Move, Drag und Neuanlage.
+function withAutoQuotes(prev: Database, deals: Deal[]): Database {
+  // Guards: ohne Kunden-Zuordnung kein Auto-Angebot (sonst entstehen Waisen-Belege),
+  // und verlorene Deals bekommen keine neuen Angebote (sonst tauchen gelöschte
+  // Angebote toter Deals bei jedem Reorder wieder auf).
+  const need = deals.filter(
+    (d) => d.stage === "angebot" && !d.lostAt && !!d.customerId && !prev.quotes.some((q) => q.dealId === d.id),
+  )
+  if (need.length === 0) return { ...prev, deals }
+  const year = new Date().getFullYear()
+  const created: Quote[] = []
+  for (const d of need) {
+    const number = nextNumber(
+      [...prev.quotes.map((q) => q.number), ...created.map((c) => c.number)],
+      year,
+    )
+    created.push({
+      id: nanoid(8),
+      number,
+      customerId: d.customerId,
+      status: "entwurf",
+      items: [],
+      validUntil: addDaysISO(todayISO(), prev.company.paymentTermDays),
+      person: d.person,
+      dealId: d.id,
+      createdAt: new Date().toISOString(),
+    })
   }
+  return { ...prev, deals, quotes: [...created, ...prev.quotes] }
 }
 
 // Gespeicherte Daten über die Demo-Defaults mergen, damit neue (auch
 // verschachtelte) Felder bei altem Cache vorhanden sind und nichts undefined wird.
 function mergeDb(partial: Partial<Database>): Database {
   const base = buildDemoData()
-  return withOverdue({
+  return withRecurringInvoices(withOverdue({
     ...base,
     ...partial,
-    // Neues Feld: bei Bestandsdaten leer starten statt Demo-Schulden einzuspielen.
+    // Neues Feld: bei Bestandsdaten leer starten statt Demo-Daten einzuspielen.
     debts: partial.debts ?? [],
+    notes: partial.notes ?? [],
+    timeEntries: partial.timeEntries ?? [],
     company: { ...base.company, ...(partial.company ?? {}) },
-  })
+  }))
 }
 
 interface StoreValue {
@@ -67,6 +95,7 @@ interface StoreValue {
   addTask: (input: Omit<Task, "id" | "createdAt">) => void
   toggleTask: (id: string) => void
   updateTaskStatus: (id: string, status: TaskStatus) => void
+  updateTask: (id: string, patch: Partial<Omit<Task, "id" | "createdAt">>) => void
   reorderTasks: (next: Task[]) => void
   removeTask: (id: string) => void
   addAppointment: (input: Omit<Appointment, "id" | "createdAt">) => void
@@ -98,8 +127,11 @@ interface StoreValue {
   addInvoice: (input: Omit<Invoice, "id" | "createdAt" | "number">) => void
   updateInvoice: (id: string, patch: Partial<Omit<Invoice, "id" | "createdAt">>) => void
   removeInvoice: (id: string) => void
+  voidInvoice: (id: string) => void
+  sendDunning: (id: string) => void
   // Finanzen
   addTransaction: (input: Omit<Transaction, "id">) => void
+  updateTransaction: (id: string, patch: Partial<Omit<Transaction, "id">>) => void
   removeTransaction: (id: string) => void
   // Private Schulden
   addDebt: (input: Omit<Debt, "id" | "createdAt">) => void
@@ -114,6 +146,16 @@ interface StoreValue {
   addWhiteboard: (input: Omit<Whiteboard, "id" | "createdAt">) => string
   renameWhiteboard: (id: string, name: string) => void
   removeWhiteboard: (id: string) => void
+  // Notizen (Timeline bei Kunde/Deal)
+  addNote: (input: Omit<Note, "id" | "createdAt">) => void
+  removeNote: (id: string) => void
+  // Zeiterfassung
+  addTimeEntry: (input: Omit<TimeEntry, "id" | "createdAt">) => void
+  removeTimeEntry: (id: string) => void
+  // Vorlagen
+  addTemplate: (input: Omit<Template, "id">) => void
+  updateTemplate: (id: string, patch: Partial<Omit<Template, "id">>) => void
+  removeTemplate: (id: string) => void
 }
 
 const StoreContext = createContext<StoreValue | null>(null)
@@ -192,6 +234,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           ...prev,
           tasks: prev.tasks.map((t) => (t.id === id ? { ...t, status } : t)),
         })),
+      updateTask: (id, patch) =>
+        setDb((prev) => ({
+          ...prev,
+          tasks: prev.tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)),
+        })),
       reorderTasks: (next) => setDb((prev) => ({ ...prev, tasks: next })),
       removeTask: (id) =>
         setDb((prev) => ({
@@ -267,13 +314,45 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           ...prev,
           customers: prev.customers.map((c) => (c.id === id ? { ...c, ...patch } : c)),
         })),
+      // Kaskade beim Kunden-Löschen: Projekte, Deals und Notizen des Kunden werden
+      // entfernt. Erfasste Arbeit (Tasks, Termine, Zeiten) bleibt erhalten — nur die
+      // Referenzen auf den Kunden bzw. dessen gelöschte Projekte/Deals werden gekappt,
+      // damit keine Waisen-Referenzen entstehen. Rechnungen/Angebote bleiben bewusst
+      // unangetastet (GoBD: Belege sind unveränderlich).
       removeCustomer: (id) =>
-        setDb((prev) => ({
-          ...prev,
-          customers: prev.customers.filter((c) => c.id !== id),
-          projects: prev.projects.filter((p) => p.customerId !== id),
-          deals: prev.deals.filter((d) => d.customerId !== id),
-        })),
+        setDb((prev) => {
+          const projectIds = new Set(prev.projects.filter((p) => p.customerId === id).map((p) => p.id))
+          const dealIds = new Set(prev.deals.filter((d) => d.customerId === id).map((d) => d.id))
+          return {
+            ...prev,
+            customers: prev.customers.filter((c) => c.id !== id),
+            projects: prev.projects.filter((p) => p.customerId !== id),
+            deals: prev.deals.filter((d) => d.customerId !== id),
+            notes: prev.notes.filter((n) => n.customerId !== id && !(n.dealId && dealIds.has(n.dealId))),
+            tasks: prev.tasks.map((t) =>
+              t.customerId === id || (t.projectId && projectIds.has(t.projectId))
+                ? {
+                    ...t,
+                    customerId: t.customerId === id ? undefined : t.customerId,
+                    projectId: t.projectId && projectIds.has(t.projectId) ? undefined : t.projectId,
+                  }
+                : t,
+            ),
+            appointments: prev.appointments.map((a) =>
+              a.customerId === id || (a.dealId && dealIds.has(a.dealId)) || (a.projectId && projectIds.has(a.projectId))
+                ? {
+                    ...a,
+                    customerId: a.customerId === id ? undefined : a.customerId,
+                    dealId: a.dealId && dealIds.has(a.dealId) ? undefined : a.dealId,
+                    projectId: a.projectId && projectIds.has(a.projectId) ? undefined : a.projectId,
+                  }
+                : a,
+            ),
+            timeEntries: prev.timeEntries.map((e) =>
+              e.projectId && projectIds.has(e.projectId) ? { ...e, projectId: undefined } : e,
+            ),
+          }
+        }),
       addProject: (input) =>
         setDb((prev) => ({
           ...prev,
@@ -295,24 +374,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
       // Pipeline
       addDeal: (input) =>
-        setDb((prev) => ({
-          ...prev,
-          deals: [
-            { ...input, id: nanoid(8), createdAt: new Date().toISOString() },
+        setDb((prev) =>
+          withAutoQuotes(prev, [
+            { ...input, id: nanoid(8), createdAt: new Date().toISOString(), stageChangedAt: new Date().toISOString() },
             ...prev.deals,
-          ],
-        })),
+          ]),
+        ),
       updateDeal: (id, patch) =>
         setDb((prev) => ({
           ...prev,
           deals: prev.deals.map((d) => (d.id === id ? { ...d, ...patch } : d)),
         })),
       moveDeal: (id, stage) =>
-        setDb((prev) => ({
-          ...prev,
-          deals: prev.deals.map((d) => (d.id === id ? { ...d, stage } : d)),
-        })),
-      reorderDeals: (next) => setDb((prev) => ({ ...prev, deals: next })),
+        setDb((prev) =>
+          withAutoQuotes(
+            prev,
+            prev.deals.map((d) => (d.id === id ? { ...d, stage, stageChangedAt: new Date().toISOString() } : d)),
+          ),
+        ),
+      reorderDeals: (next) => setDb((prev) => withAutoQuotes(prev, next)),
       removeDeal: (id) =>
         setDb((prev) => ({
           ...prev,
@@ -334,10 +414,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           ],
         })),
       updateQuote: (id, patch) =>
-        setDb((prev) => ({
-          ...prev,
-          quotes: prev.quotes.map((q) => (q.id === id ? { ...q, ...patch } : q)),
-        })),
+        setDb((prev) => {
+          const quotes = prev.quotes.map((q) => (q.id === id ? { ...q, ...patch } : q))
+          let deals = prev.deals
+          // Angebot angenommen → verknüpften Deal auf "gewonnen" heben,
+          // damit Pipeline und Beleg-Status nicht auseinanderlaufen. Ein zuvor
+          // als verloren markierter Deal wird dabei wieder "entloren".
+          if (patch.status === "angenommen") {
+            const q = quotes.find((x) => x.id === id)
+            if (q?.dealId) {
+              deals = deals.map((d) =>
+                d.id === q.dealId && d.stage !== "gewonnen"
+                  ? { ...d, stage: "gewonnen" as const, stageChangedAt: new Date().toISOString(), lostAt: undefined, lostReason: undefined }
+                  : d,
+              )
+            }
+          }
+          return { ...prev, quotes, deals }
+        }),
       removeQuote: (id) =>
         setDb((prev) => ({ ...prev, quotes: prev.quotes.filter((q) => q.id !== id) })),
       convertQuoteToInvoice: (quoteId) =>
@@ -362,6 +456,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             ...prev,
             invoices: [invoice, ...prev.invoices],
             quotes: prev.quotes.map((x) => (x.id === quoteId ? { ...x, status: "angenommen" } : x)),
+            // Angebot wird Rechnung → verknüpften Deal auf "gewonnen" heben (Pipeline-Sync);
+            // ein Verloren-Status wird dabei aufgehoben.
+            deals: q.dealId
+              ? prev.deals.map((d) =>
+                  d.id === q.dealId && d.stage !== "gewonnen"
+                    ? { ...d, stage: "gewonnen" as const, stageChangedAt: new Date().toISOString(), lostAt: undefined, lostReason: undefined }
+                    : d,
+                )
+              : prev.deals,
           }
         }),
       addInvoice: (input) =>
@@ -411,16 +514,79 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               transactions = transactions.filter((t) => t.invoiceId !== id)
             }
           }
+          // Positionen einer bezahlten Rechnung geändert → verknüpfte Auto-Buchung
+          // (invoiceId) auf das neue Brutto nachziehen, sonst divergieren
+          // Rechnung und Ledger (Einnahmen + USt-Zahllast).
+          if (patch.items) {
+            const after = invoices.find((i) => i.id === id)
+            if (after && after.status === "bezahlt" && transactions.some((t) => t.invoiceId === id)) {
+              const totals = computeTotals(after.items)
+              const topRate = totals.taxByRate.slice().sort((a, b) => b.net - a.net)[0]?.rate ?? prev.company.defaultTaxRate
+              transactions = transactions.map((t) =>
+                t.invoiceId === id ? { ...t, amount: totals.gross, taxRate: topRate } : t,
+              )
+            }
+          }
           return { ...prev, invoices, transactions }
         }),
+      // Nur Entwürfe dürfen gelöscht werden — vergebene Nummern bleiben §14/GoBD-konform lückenlos.
+      // Für gesendete/bezahlte Rechnungen siehe voidInvoice (Storno statt Löschung).
       removeInvoice: (id) =>
-        setDb((prev) => ({ ...prev, invoices: prev.invoices.filter((i) => i.id !== id) })),
+        setDb((prev) => ({
+          ...prev,
+          invoices: prev.invoices.filter((i) => i.id !== id || i.status !== "entwurf"),
+        })),
+      // Storniert eine versendete/bezahlte Rechnung: Original bleibt (Nummernkreis lückenlos),
+      // eine neue Stornorechnung mit Negativpositionen wird als Gegenbuchung angelegt.
+      voidInvoice: (id) =>
+        setDb((prev) => {
+          const original = prev.invoices.find((i) => i.id === id)
+          if (!original || original.status === "entwurf" || original.voided) return prev
+          const issue = todayISO()
+          const creditNote: Invoice = {
+            id: nanoid(8),
+            number: nextNumber(prev.invoices.map((i) => i.number), new Date().getFullYear()),
+            customerId: original.customerId,
+            status: "bezahlt",
+            items: original.items.map((it) => ({ ...it, id: nanoid(6), qty: -it.qty })),
+            issueDate: issue,
+            serviceDate: original.serviceDate,
+            dueDate: issue,
+            person: original.person,
+            notes: `Storno zu Rechnung ${original.number}`,
+            createdAt: new Date().toISOString(),
+            creditNoteFor: original.id,
+          }
+          return {
+            ...prev,
+            invoices: [creditNote, ...prev.invoices.map((i) => (i.id === id ? { ...i, voided: true } : i))],
+            // War das Original bezahlt, hängt eine Auto-Einnahme im Ledger
+            // (invoiceId, aus updateInvoice). Beim Storno entfernen — sonst bleiben
+            // Einnahmen + USt-Zahllast dauerhaft überhöht.
+            transactions: prev.transactions.filter((t) => t.invoiceId !== id),
+          }
+        }),
+      // Erhöht die Mahnstufe (max. 3) und protokolliert das Datum der Mahnung.
+      sendDunning: (id) =>
+        setDb((prev) => ({
+          ...prev,
+          invoices: prev.invoices.map((i) => {
+            if (i.id !== id) return i
+            const level = Math.min(3, ((i.dunningLevel ?? 0) + 1)) as 0 | 1 | 2 | 3
+            return { ...i, dunningLevel: level, dunningDates: [...(i.dunningDates ?? []), new Date().toISOString()] }
+          }),
+        })),
 
       // Finanzen
       addTransaction: (input) =>
         setDb((prev) => ({
           ...prev,
           transactions: [{ ...input, id: nanoid(8) }, ...prev.transactions],
+        })),
+      updateTransaction: (id, patch) =>
+        setDb((prev) => ({
+          ...prev,
+          transactions: prev.transactions.map((t) => (t.id === id ? { ...t, ...patch } : t)),
         })),
       removeTransaction: (id) =>
         setDb((prev) => ({ ...prev, transactions: prev.transactions.filter((t) => t.id !== id) })),
@@ -485,6 +651,51 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         })),
       removeWhiteboard: (id) =>
         setDb((prev) => ({ ...prev, whiteboards: prev.whiteboards.filter((w) => w.id !== id) })),
+
+      // Notizen (Timeline bei Kunde/Deal)
+      addNote: (input) =>
+        setDb((prev) => ({
+          ...prev,
+          notes: [{ ...input, id: nanoid(8), createdAt: new Date().toISOString() }, ...prev.notes],
+        })),
+      removeNote: (id) =>
+        setDb((prev) => ({ ...prev, notes: prev.notes.filter((n) => n.id !== id) })),
+
+      // Zeiterfassung — erfasste Minuten fließen zusätzlich in Task.trackedMinutes ein.
+      addTimeEntry: (input) =>
+        setDb((prev) => ({
+          ...prev,
+          timeEntries: [{ ...input, id: nanoid(8), createdAt: new Date().toISOString() }, ...prev.timeEntries],
+          tasks: input.taskId
+            ? prev.tasks.map((t) =>
+                t.id === input.taskId ? { ...t, trackedMinutes: (t.trackedMinutes ?? 0) + input.minutes } : t,
+              )
+            : prev.tasks,
+        })),
+      removeTimeEntry: (id) =>
+        setDb((prev) => {
+          const entry = prev.timeEntries.find((e) => e.id === id)
+          return {
+            ...prev,
+            timeEntries: prev.timeEntries.filter((e) => e.id !== id),
+            tasks: entry?.taskId
+              ? prev.tasks.map((t) =>
+                  t.id === entry.taskId ? { ...t, trackedMinutes: Math.max(0, (t.trackedMinutes ?? 0) - entry.minutes) } : t,
+                )
+              : prev.tasks,
+          }
+        }),
+
+      // Vorlagen
+      addTemplate: (input) =>
+        setDb((prev) => ({ ...prev, templates: [{ ...input, id: nanoid(8) }, ...prev.templates] })),
+      updateTemplate: (id, patch) =>
+        setDb((prev) => ({
+          ...prev,
+          templates: prev.templates.map((t) => (t.id === id ? { ...t, ...patch } : t)),
+        })),
+      removeTemplate: (id) =>
+        setDb((prev) => ({ ...prev, templates: prev.templates.filter((t) => t.id !== id) })),
     }),
     [db, activePerson],
   )

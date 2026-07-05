@@ -47,6 +47,21 @@ export interface Task {
   priority: Priority
   due?: string // YYYY-MM-DD
   createdAt: string // ISO
+  projectId?: string // verknüpftes Kundenprojekt (Work-OS-Verknüpfung)
+  customerId?: string // direkter Kundenbezug, falls kein Projekt existiert
+  trackedMinutes?: number // aufsummierte Zeiterfassung (aus TimeEntry)
+}
+
+// Zeiterfassung — an Task oder direkt an Projekt hängbar.
+export interface TimeEntry {
+  id: string
+  person: Person
+  taskId?: string
+  projectId?: string
+  minutes: number
+  date: string // YYYY-MM-DD
+  note?: string
+  createdAt: string
 }
 
 // Kategorie-ID (referenziert eine editierbare AppointmentCategoryDef).
@@ -99,6 +114,9 @@ export interface Appointment {
   recurrence: Recurrence
   completedDates: string[]
   createdAt: string
+  customerId?: string // Work-OS-Verknüpfung
+  dealId?: string
+  projectId?: string
 }
 
 export interface FinanceMonth {
@@ -167,12 +185,25 @@ export const PROJECT_STATUS_COLOR: Record<ProjectStatus, string> = {
   fertig: "#34d399",
 }
 
+// Angehaengte Datei/Bild — als Data-URL gespeichert (laeuft so durch den
+// lokalen Demo-Store und die Supabase-Synchronisation). Fuer kleine Dateien
+// gedacht; grosse Uploads werden in der UI begrenzt.
+export interface ProjectFile {
+  id: string
+  name: string
+  type: string // MIME-Type, z. B. "image/png" oder "application/pdf"
+  size: number // Bytes
+  dataUrl: string
+  createdAt: string
+}
+
 export interface Project {
   id: string
   customerId: string
   name: string
   status: ProjectStatus
   description?: string
+  attachments?: ProjectFile[]
   createdAt: string
 }
 
@@ -183,10 +214,10 @@ export type DealStage = "lead" | "kontakt" | "angebot" | "gewonnen"
 export const DEAL_STAGES: DealStage[] = ["lead", "kontakt", "angebot", "gewonnen"]
 
 export const DEAL_STAGE_LABEL: Record<DealStage, string> = {
-  lead: "Lead",
+  lead: "Potenzieller Lead",
   kontakt: "Kontaktiert",
   angebot: "Angebot",
-  gewonnen: "Gewonnen",
+  gewonnen: "Abgeschlossen",
 }
 export const DEAL_STAGE_COLOR: Record<DealStage, string> = {
   lead: "#9ca3af",
@@ -202,7 +233,34 @@ export interface Deal {
   stage: DealStage
   value: number
   person: Person
+  note?: string // kurze Notiz, v. a. für selbst erfasste Leads
+  phone?: string // Kontakt (v. a. bei selbst erfassten Leads)
+  email?: string
   createdAt: string
+  probability?: number // 0–100, für gewichtete Pipeline (fehlt → Default aus Stage)
+  expectedCloseDate?: string // YYYY-MM-DD
+  stageChangedAt?: string // ISO, für Follow-up-Nudges ("seit X Tagen keine Bewegung")
+  lostAt?: string // ISO, gesetzt wenn der Deal als verloren markiert wurde
+  lostReason?: string // Verlustgrund (Win/Loss-Analyse)
+}
+
+// Default-Abschlusswahrscheinlichkeit je Pipeline-Stufe, falls Deal.probability nicht gesetzt ist.
+export const DEAL_STAGE_DEFAULT_PROBABILITY: Record<DealStage, number> = {
+  lead: 10,
+  kontakt: 35,
+  angebot: 65,
+  gewonnen: 100,
+}
+
+/* ---------- Notizen (chronologische Timeline bei Kunde/Deal) ---------- */
+
+export interface Note {
+  id: string
+  customerId?: string
+  dealId?: string
+  person: Person
+  text: string
+  createdAt: string // ISO
 }
 
 /* ---------- Belege (Angebote & Rechnungen) ---------- */
@@ -262,6 +320,15 @@ export interface Quote {
   createdAt: string
 }
 
+export type DunningLevel = 0 | 1 | 2 | 3
+
+export const DUNNING_LABEL: Record<DunningLevel, string> = {
+  0: "Keine Mahnung",
+  1: "1. Mahnung",
+  2: "2. Mahnung",
+  3: "3. Mahnung",
+}
+
 export interface Invoice {
   id: string
   number: string
@@ -269,11 +336,19 @@ export interface Invoice {
   status: InvoiceStatus
   items: LineItem[]
   issueDate: string
+  serviceDate?: string // Leistungs-/Lieferdatum (§14 UStG Pflicht). Fehlt → entspricht issueDate
   dueDate: string
   person: Person
   notes?: string
   quoteId?: string
   createdAt: string
+  recurrence?: Recurrence // wiederkehrende Rechnung (z. B. monatlicher Wartungsvertrag)
+  recurrenceParentId?: string // verweist auf die "Vorlagen"-Rechnung, aus der Folgerechnungen generiert werden
+  nextRecurrenceDate?: string // YYYY-MM-DD — wann die nächste Folgerechnung fällig ist
+  dunningLevel?: DunningLevel
+  dunningDates?: string[] // ISO, ein Eintrag pro versendeter Mahnstufe
+  voided?: boolean // storniert (Original bleibt für Nummernkreis erhalten, siehe creditNoteFor)
+  creditNoteFor?: string // gesetzt bei einer Stornorechnung: id der stornierten Original-Rechnung
 }
 
 export interface Template {
@@ -337,6 +412,7 @@ export interface CompanySettings {
   address: string
   taxId: string
   iban: string
+  bic?: string // BIC/SWIFT der Bank — gehört zu einer vollständigen Zahlungsangabe
   bank: string
   email: string
   phone: string
@@ -383,4 +459,6 @@ export interface Database {
   templates: Template[]
   company: CompanySettings
   whiteboards: Whiteboard[]
+  notes: Note[]
+  timeEntries: TimeEntry[]
 }
